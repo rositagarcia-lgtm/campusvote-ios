@@ -2,31 +2,27 @@ import SwiftUI
 
 @main
 struct CampusVoteJuradoApp: App {
+
+    @State private var session: SessionStore
     @State private var fairsStore: FairsStore
-    @State private var isShowingSplash = true
 
     init() {
-        let apiClient = APIClient()
-        _fairsStore = State(initialValue: FairsStore(api: apiClient))
+        let api = APIClient()
+
+        _session = State(
+            initialValue: SessionStore(api: api)
+        )
+
+        _fairsStore = State(
+            initialValue: FairsStore(api: api)
+        )
     }
 
     var body: some Scene {
         WindowGroup {
-            ZStack {
-                if isShowingSplash {
-                    SplashView()
-                } else {
-                    FairListView()
-                        .environment(fairsStore)
-                }
-            }
-            .task {
-                
-                try? await Task.sleep(nanoseconds: 2_500_000_000)
-                withAnimation {
-                    isShowingSplash = false
-                }
-            }
+            RootView()
+                .environment(session)
+                .environment(fairsStore)
         }
     }
 }
