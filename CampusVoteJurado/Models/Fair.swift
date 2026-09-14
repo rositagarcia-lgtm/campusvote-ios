@@ -1,41 +1,49 @@
 import Foundation
 
-/// Feria asignada al jurado.
-struct Fair: Decodable, Hashable, Identifiable {
-    let id: String
-    let name: String
-    let description: String?
-    /// DRAFT (en preparación) · OPEN (abierta) · CLOSED (cerrada)
-    let status: String
-    let startsAt: Date?
-    let endsAt: Date?
+struct APIResponse<T: Decodable>: Decodable {
+    let success: Bool
+    let message: String?
+    let data: T
+}
 
-    var isOpen: Bool {
-        status == "OPEN"
+struct FairAssignment: Codable, Identifiable, Hashable {
+    var id: String { fair.id }
+    let assignedAt: String?
+    let fair: Fair
+
+    enum CodingKeys: String, CodingKey {
+        case fair
+        case assignedAt = "assigned_at"
     }
 
-    /// El jurado solo puede evaluar desde que empieza la feria.
-    var hasStarted: Bool {
-        guard let startsAt else { return true }
-        return startsAt <= .now
+    static func == (lhs: FairAssignment, rhs: FairAssignment) -> Bool {
+        lhs.id == rhs.id
     }
 
-    var statusLabel: String {
-        switch status {
-        case "OPEN":
-            if hasStarted { return "En curso" }
-            let inicio = startsAt?.formatted(date: .abbreviated, time: .shortened) ?? ""
-            return "Empieza el \(inicio)"
-        case "CLOSED":
-            return "Cerrada"
-        default:
-            return "En preparación"
-        }
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }
 
-/// Elemento de GET /fairs/my-assignments.
-struct Assignment: Decodable, Hashable {
-    let assignedAt: Date
-    let fair: Fair
+struct Fair: Codable, Identifiable, Hashable {
+    let id: String
+    let name: String
+    let description: String?
+    let status: String
+    let startsAt: String?
+    let endsAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, description, status
+        case startsAt = "starts_at"
+        case endsAt = "ends_at"
+    }
+
+    static func == (lhs: Fair, rhs: Fair) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
 }

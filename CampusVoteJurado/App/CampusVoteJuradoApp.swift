@@ -1,20 +1,32 @@
 import SwiftUI
 
-/// Punto de entrada. Crea los stores una sola vez y los comparte con todas las pantallas.
 @main
 struct CampusVoteJuradoApp: App {
-    @State private var session = SessionStore(api: .shared)
-    @State private var fairs = FairsStore(api: .shared)
-    @State private var projects = ProjectsStore(api: .shared)
-    @State private var evaluation = EvaluationStore(api: .shared)
+    @State private var fairsStore: FairsStore
+    @State private var isShowingSplash = true
+
+    init() {
+        let apiClient = APIClient()
+        _fairsStore = State(initialValue: FairsStore(api: apiClient))
+    }
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .environment(session)
-                .environment(fairs)
-                .environment(projects)
-                .environment(evaluation)
+            ZStack {
+                if isShowingSplash {
+                    SplashView()
+                } else {
+                    FairListView()
+                        .environment(fairsStore)
+                }
+            }
+            .task {
+                
+                try? await Task.sleep(nanoseconds: 2_500_000_000)
+                withAnimation {
+                    isShowingSplash = false
+                }
+            }
         }
     }
 }
