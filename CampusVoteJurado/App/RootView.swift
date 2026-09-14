@@ -18,7 +18,7 @@ struct RootView: View {
                 TotpView()
 
             case .signedIn:
-                FairListView()
+                JuryDashboardView()
             }
         }
         .task {

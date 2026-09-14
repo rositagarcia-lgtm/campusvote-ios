@@ -9,6 +9,8 @@ struct Evaluation: Decodable, Hashable, Identifiable {
     let comment: String?
     let project: ProjectSummary?
     let details: [EvaluationDetail]
+    /// Momento en que se guardó la evaluación (updated_at del backend).
+    let updatedAt: Date?
 }
 
 struct ProjectSummary: Decodable, Hashable {
