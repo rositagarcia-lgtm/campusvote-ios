@@ -22,12 +22,10 @@ extension Color {
     /// Color neutro.
     static let appNeutral = Color(light: 0x8E8E93, dark: 0x98989F)
 
-
     // MARK: - Colores sobre fondos
 
     /// Texto que aparece encima del verde principal.
     static let onBrand = Color(light: 0xFFFFFF, dark: 0x0E1514)
-
 
     // MARK: - Colores suaves
 
@@ -42,7 +40,6 @@ extension Color {
     /// Menta suave para fondos, halos y estados activos.
     static let brandMint = Color(light: 0xD9F3EE, dark: 0x1B3A35)
 
-
     // MARK: - Fondos
 
     /// Fondo general de las pantallas.
@@ -53,7 +50,6 @@ extension Color {
 
     /// Fondo de cajas de íconos, campos y elementos secundarios.
     static let iconTile = Color(light: 0xEEF0F4, dark: 0x22302C)
-
 
     // MARK: - Alias compatibles con el código existente
 
@@ -67,11 +63,40 @@ extension Color {
     static let appTertiary = brandGold
 }
 
+// MARK: - Color hexadecimal (#RRGGBB)
+
+extension Color {
+    /// Crea un color desde una cadena hexadecimal ("#7A5E0B", "7A5E0B", "RRGGBBAA").
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var value: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&value)
+
+        let r, g, b, a: UInt64
+        switch hex.count {
+        case 3:
+            (r, g, b, a) = ((value >> 8) * 17, (value >> 4 & 0xF) * 17, (value & 0xF) * 17, 255)
+        case 6:
+            (r, g, b, a) = (value >> 16, value >> 8 & 0xFF, value & 0xFF, 255)
+        case 8:
+            (r, g, b, a) = (value >> 24, value >> 16 & 0xFF, value >> 8 & 0xFF, value & 0xFF)
+        default:
+            (r, g, b, a) = (0, 0, 0, 255)
+        }
+
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue: Double(b) / 255,
+            opacity: Double(a) / 255
+        )
+    }
+}
 
 // MARK: - Color hexadecimal con soporte claro/oscuro
 
 extension Color {
-
     /// Crea un color que cambia automáticamente
     /// dependiendo del modo claro u oscuro del sistema.
     ///
@@ -90,11 +115,9 @@ extension Color {
     }
 }
 
-
 // MARK: - UIColor hexadecimal
 
 private extension UIColor {
-
     convenience init(hex: UInt32) {
         self.init(
             red: CGFloat((hex >> 16) & 0xFF) / 255,

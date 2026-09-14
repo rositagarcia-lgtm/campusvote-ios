@@ -20,4 +20,13 @@ struct Criterion: Decodable, Hashable, Identifiable {
     let minScore: Double
     let maxScore: Double
     let position: Int
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case description
+        case minScore = "min_score"
+        case maxScore = "max_score"
+        case position
+    }
 }

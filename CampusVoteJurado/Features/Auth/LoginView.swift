@@ -20,27 +20,31 @@ struct LoginView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 28) {
-                header
-                credentialsCard
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(spacing: 24) {
+                    header
+                    credentialsCard
 
-                if let message = session.errorMessage {
-                    ErrorBanner(message: message)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if let message = session.errorMessage {
+                        ErrorBanner(message: message)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    submitButton
+                    twoStepNote
+
+                    helpLink
+                        .padding(.top, 8)
                 }
-
-                submitButton
-                twoStepNote
-
-                helpLink
-                    .padding(.top, 24)
+                .padding(.horizontal, 22)
+                .padding(.vertical, 24)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: proxy.size.height, alignment: .center)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
+            .scrollDismissesKeyboard(.interactively)
+            .background(Color.appBackground.ignoresSafeArea())
         }
-        .scrollDismissesKeyboard(.interactively)
-        .background(Color.appBackground.ignoresSafeArea())
         .alert("¿Problemas para acceder?", isPresented: $showHelp) {
             Button("Entendido", role: .cancel) {}
         } message: {
@@ -53,26 +57,16 @@ struct LoginView: View {
     private var header: some View {
         VStack(spacing: 14) {
 
-            Label(
-                "TECSUP · SISTEMA ELECTORAL UNIVERSITARIO",
-                systemImage: "checkmark.seal"
-            )
-            .font(.system(size: 10, weight: .medium))
-            .tracking(1)
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 7)
-            .background(
-                Capsule()
-                    .fill(Color.iconTile)
-            )
+            Image("logo_campusvote")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 230, height: 230)
 
-            VStack(spacing: 4) {
-                Image("logo_campusvote")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 200, height: 200)
-            }
+            Text("Ingresa tus credenciales para acceder a tu panel de evaluación.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
         }
     }
 
@@ -88,7 +82,7 @@ struct LoginView: View {
 
                 TextField(
                     text: $email,
-                    prompt: Text(verbatim: "jurado@tecsup.edu.pe")
+                    prompt: Text(verbatim: "jurado@campusvote.edu.pe")
                         .foregroundStyle(Color.gray.opacity(0.35))
                 ) {
                     Text("")
@@ -228,7 +222,7 @@ struct LoginView: View {
         } label: {
 
             Label(
-                "¿Problemas para acceder? Contactar a soporte electoral Tecsup",
+                "¿Problemas para acceder? Contactar a soporte electoral",
                 systemImage: "questionmark.circle"
             )
             .font(.system(size: 12))

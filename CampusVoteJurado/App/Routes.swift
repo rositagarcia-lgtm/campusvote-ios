@@ -1,5 +1,11 @@
 import Foundation
 
+/// Rutas del flujo de Ferias (declaración → proyectos).
+enum FairRoute: Hashable {
+    case declaration(fairId: String)
+    case projects(fairId: String)
+}
+
 enum ProjectRoute: Hashable {
     case list(fairId: String)
     case detail(fairId: String, projectId: String)

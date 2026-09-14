@@ -1,14 +1,31 @@
 import Foundation
 
-/// Declaración de imparcialidad firmada por el jurado (una por feria).
-struct Declaration: Decodable, Hashable {
-    let id: String
-    let statement: String
-    let signedAt: Date
+struct Declaration: Codable, Identifiable {
+    let id: String?
+    let fairId: String?
+    let signedAt: String?
+    let statement: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case fairId = "fair_id"
+        case signedAt = "signed_at"
+        case statement
+    }
 }
 
-/// GET /fairs/:id/jury/declaration
-struct DeclarationStatus: Decodable {
+struct DeclarationResponse: Decodable {
+    let fairId: String?
     let signed: Bool
     let declaration: Declaration?
+
+    enum CodingKeys: String, CodingKey {
+        case fairId = "fair_id"
+        case signed
+        case declaration
+    }
+}
+
+struct DeclarationRequest: Encodable {
+    let statement: String
 }

@@ -1,150 +1,185 @@
 import Foundation
 
-/// Única capa que habla con el backend. Las vistas nunca la usan directo: pasan por un store.
+/// Cliente HTTP que habla con el backend de CampusVote.
 ///
-/// Es @MainActor en lugar de actor: todo el estado de la app vive en el hilo
-/// principal y así no hay que cruzar aislamientos. Las esperas de red no
-/// bloquean la interfaz, porque URLSession suspende la tarea mientras llega la respuesta.
-@MainActor
-final class APIClient {
+/// Cada respuesta viaja en un envelope `{ success, message, data, meta }`.
+/// `send(_:as:)` desempaqueta automáticamente `data`. Si el access token venció
+/// (401) y hay un refresh token guardado, se renueva la sesión y se reintenta
+/// la petición original una vez.
+final class APIClient: Sendable {
     static let shared = APIClient()
 
-    private enum Key {
-        static let access = "accessToken"
-        static let refresh = "refreshToken"
+    // MARK: - Envelope
+
+    private struct Envelope<Payload: Decodable>: Decodable {
+        let success: Bool
+        let message: String?
+        let data: Payload?
     }
 
-    private let session: URLSession
-    private let keychain = KeychainStore()
-    private let decoder = JSONCoding.makeDecoder()
-    private let encoder = JSONCoding.makeEncoder()
+    private struct VoidPayload: Decodable {}
 
-    init(session: URLSession = .shared) {
-        self.session = session
-    }
+    private init() {}
 
-    // MARK: - Tokens
+    // MARK: - Sesión persistida
 
     var hasSavedSession: Bool {
-        keychain.read(Key.access) != nil
+        KeychainStore.readToken(for: .access) != nil
     }
 
     var savedRefreshToken: String? {
-        keychain.read(Key.refresh)
+        KeychainStore.readToken(for: .refresh)
     }
 
     func saveTokens(access: String, refresh: String?) {
-        keychain.save(access, for: Key.access)
+        KeychainStore.save(access, for: .access)
         if let refresh {
-            keychain.save(refresh, for: Key.refresh)
+            KeychainStore.save(refresh, for: .refresh)
+        } else {
+            KeychainStore.deleteToken(for: .refresh)
         }
     }
 
     func clearTokens() {
-        keychain.delete(Key.access)
-        keychain.delete(Key.refresh)
+        KeychainStore.deleteToken(for: .access)
+        KeychainStore.deleteToken(for: .refresh)
     }
 
     // MARK: - Peticiones
 
-    /// Envía la petición y devuelve el `data` de la respuesta ya decodificado.
-    /// Si el token venció (401), lo renueva una vez y reintenta.
-    func send<T: Decodable>(_ endpoint: Endpoint, as type: T.Type) async throws -> T {
-        do {
-            return try await perform(endpoint, as: type)
-        } catch APIError.server(let status, _, _) where status == 401 && endpoint.usesStoredToken {
-            try await refreshSession()
-            return try await perform(endpoint, as: type)
+    func send<T: Decodable>(_ event: Endpoint, as type: T.Type) async throws -> T {
+        let data = try await perform(event, allowRetry: true)
+        let envelope = try decodeEnvelope(Envelope<T>.self, from: data)
+        guard let payload = envelope.data else {
+            throw APIError.decoding("La respuesta no contiene el campo data esperado.")
         }
+        return payload
     }
 
-    /// Para rutas cuya respuesta no interesa, como cerrar sesión.
-    func send(_ endpoint: Endpoint) async throws {
-        _ = try await rawData(for: endpoint)
+    func send(_ event: Endpoint) async throws {
+        let data = try await perform(event, allowRetry: true)
+        _ = try? decodeEnvelope(Envelope<VoidPayload>.self, from: data)
     }
 
-    private func perform<T: Decodable>(_ endpoint: Endpoint, as type: T.Type) async throws -> T {
-        let data = try await rawData(for: endpoint)
+    // MARK: - Ejecución
+
+    private func perform(_ event: Endpoint, allowRetry: Bool) async throws -> Data {
+        let request: URLRequest
         do {
-            return try decoder.decode(Envelope<T>.self, from: data).data
+            request = try makeRequest(for: event)
         } catch {
-            throw APIError.decoding(String(describing: error))
+            throw APIError.network
         }
+
+        let data: Data
+        let httpResponse: HTTPURLResponse
+        do {
+            let (responseData, response) = try await URLSession.shared.data(for: request)
+            guard let urlResponse = response as? HTTPURLResponse else {
+                throw APIError.decoding("El servidor no devolvió una respuesta HTTP válida.")
+            }
+            data = responseData
+            httpResponse = urlResponse
+        } catch let error as APIError {
+            throw error
+        } catch {
+            throw APIError.network
+        }
+
+        // 401 con stale token: renueva y reintenta una vez.
+        if httpResponse.statusCode == 401,
+           allowRetry,
+           event.usesStoredToken,
+           case .some(let refreshToken) = savedRefreshToken {
+
+            do {
+                let refreshed = try await refreshSession(refreshToken: refreshToken)
+                guard let newAccessToken = refreshed.token else {
+                    clearTokens()
+                    throw APIError.sessionExpired
+                }
+                KeychainStore.save(newAccessToken, for: .access)
+                if let newRefresh = refreshed.refreshToken {
+                    KeychainStore.save(newRefresh, for: .refresh)
+                }
+            } catch {
+                clearTokens()
+                throw APIError.sessionExpired
+            }
+
+            let retryRequest = try makeRequest(for: event)
+            let (retryData, retryResponse) = try await URLSession.shared.data(for: retryRequest)
+            guard let retryHTTP = retryResponse as? HTTPURLResponse else {
+                throw APIError.network
+            }
+            guard (200...299).contains(retryHTTP.statusCode) else {
+                throw Self.mapError(status: retryHTTP.statusCode, data: retryData)
+            }
+            return retryData
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw Self.mapError(status: httpResponse.statusCode, data: data)
+        }
+
+        return data
     }
 
-    private func rawData(for endpoint: Endpoint) async throws -> Data {
-        var components = URLComponents(
-            url: APIConfig.baseURL.appending(path: endpoint.path),
-            resolvingAgainstBaseURL: false
-        )
-        if !endpoint.queryItems.isEmpty {
-            components?.queryItems = endpoint.queryItems
+    private func makeRequest(for event: Endpoint) throws -> URLRequest {
+        guard var components = URLComponents(url: APIConfig.baseURL.appendingPathComponent(event.path), resolvingAgainstBaseURL: false) else {
+            throw APIError.network
         }
-        guard let url = components?.url else {
+        if !event.queryItems.isEmpty {
+            components.queryItems = event.queryItems
+        }
+        guard let url = components.url else {
             throw APIError.network
         }
 
         var request = URLRequest(url: url)
-        request.httpMethod = endpoint.method
+        request.httpMethod = event.method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        // Render en plan gratuito puede tardar en despertar la primera vez.
-        request.timeoutInterval = 60
-        if let body = endpoint.body {
-            request.httpBody = try encoder.encode(body)
-        }
 
-        let token = endpoint.explicitToken ?? (endpoint.usesStoredToken ? keychain.read(Key.access) : nil)
-        if let token {
+        if let explicitToken = event.explicitToken {
+            request.setValue("Bearer \(explicitToken)", forHTTPHeaderField: "Authorization")
+        } else if event.usesStoredToken, let token = KeychainStore.getToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        let result: (Data, URLResponse)
-        do {
-            result = try await session.data(for: request)
-        } catch let error as URLError where error.code == .cancelled {
-            throw CancellationError()
-        } catch {
+        if let body = event.body {
+            request.httpBody = try JSONEncoder().encode(body)
+        }
+
+        return request
+    }
+
+    private func refreshSession(refreshToken: String) async throws -> AuthResult {
+        let request = try makeRequest(for: .refresh(refreshToken: refreshToken))
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
             throw APIError.network
         }
-
-        let (data, response) = result
-        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-        guard (200..<300).contains(status) else {
-            let body = try? decoder.decode(ServerErrorBody.self, from: data)
-            throw APIError.server(
-                status: status,
-                code: body?.error.code ?? "HTTP_\(status)",
-                message: body?.error.message ?? "El servidor respondió con el código \(status)."
-            )
+        guard (200...299).contains(http.statusCode) else {
+            throw Self.mapError(status: http.statusCode, data: data)
         }
-        return data
+        guard let result = try decodeEnvelope(Envelope<AuthResult>.self, from: data).data else {
+            throw APIError.decoding("La renovación de sesión no devolvió tokens.")
+        }
+        return result
     }
 
-    /// POST /auth/refresh con el refresh token guardado.
-    private func refreshSession() async throws {
-        guard let refresh = keychain.read(Key.refresh) else {
-            clearTokens()
-            throw APIError.sessionExpired
-        }
+    private func decodeEnvelope<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
         do {
-            let result = try await perform(.refresh(refreshToken: refresh), as: AuthResult.self)
-            guard let token = result.token else {
-                throw APIError.sessionExpired
-            }
-            saveTokens(access: token, refresh: result.refreshToken)
+            return try JSONCoding.makeDecoder().decode(T.self, from: data)
         } catch {
-            clearTokens()
-            throw APIError.sessionExpired
+            throw APIError.decoding(error.localizedDescription)
         }
     }
-}
 
-/// Toda respuesta correcta del backend: { success, message, data, meta }.
-private struct Envelope<T: Decodable>: Decodable {
-    let data: T
-}
-
-/// Para respuestas cuyo contenido no se usa: acepta cualquier valor.
-struct IgnoredResponse: Decodable {
-    init(from decoder: any Decoder) throws {}
+    private static func mapError(status: Int, data: Data) -> APIError {
+        if let body = try? JSONCoding.makeDecoder().decode(ServerErrorBody.self, from: data) {
+            return .server(status: status, code: body.error.code, message: body.error.message)
+        }
+        return .server(status: status, code: "HTTP_\(status)", message: "El servidor respondió con el estado \(status).")
+    }
 }

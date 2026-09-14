@@ -21,9 +21,9 @@ final class FairsStore {
         defer { isLoading = false }
 
         do {
-            let response = try await api.send(.myAssignments, as: APIResponse<[FairAssignment]>.self)
-            self.activeFairs = response.data.filter { $0.fair.status.uppercased() != "CLOSED" }
-            self.closedFairs = response.data.filter { $0.fair.status.uppercased() == "CLOSED" }
+            let assignments = try await api.send(.myAssignments, as: [FairAssignment].self)
+            self.activeFairs = assignments.filter { $0.fair.status.uppercased() != "CLOSED" }
+            self.closedFairs = assignments.filter { $0.fair.status.uppercased() == "CLOSED" }
         } catch {
             self.errorMessage = error.localizedDescription
         }

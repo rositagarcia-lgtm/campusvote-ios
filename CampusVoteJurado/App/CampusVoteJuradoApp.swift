@@ -9,7 +9,7 @@ struct CampusVoteJuradoApp: App {
     @State private var evaluationStore: EvaluationStore
 
     init() {
-        let api = APIClient()
+        let api = APIClient.shared
 
         _session = State(
             initialValue: SessionStore(api: api)

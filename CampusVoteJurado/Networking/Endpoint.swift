@@ -23,11 +23,6 @@ private struct DeclarationPayload: Encodable {
     let statement: String
 }
 
-private struct EvaluationUpdatePayload: Encodable {
-    let scores: [ScoreInput]
-    let comment: String?
-}
-
 // MARK: - Endpoint
 
 struct Endpoint {
@@ -60,6 +55,7 @@ struct Endpoint {
         )
     }
 
+    /// Paso 2 del login: verificar el código TOTP de 6 dígitos.
     static func verifyTotp(
         code: String,
         tempToken: String
@@ -75,6 +71,7 @@ struct Endpoint {
         )
     }
 
+    /// Paso 2 del login: verificar un código de respaldo de 8 caracteres.
     static func verifyBackupCode(
         code: String,
         tempToken: String
@@ -90,6 +87,7 @@ struct Endpoint {
         )
     }
 
+    /// Renueva el access token con el refresh token.
     static func refresh(
         refreshToken: String
     ) -> Endpoint {
@@ -99,8 +97,7 @@ struct Endpoint {
             body: RefreshPayload(
                 refreshToken: refreshToken
             ),
-            usesStoredToken: false,
-            explicitToken: refreshToken
+            usesStoredToken: false
         )
     }
 
@@ -126,7 +123,7 @@ struct Endpoint {
         )
     }
 
-    // MARK: - Ferias
+    // MARK: - Ferias asignadas
 
     static var myAssignments: Endpoint {
         Endpoint(
@@ -141,6 +138,8 @@ struct Endpoint {
         )
     }
 
+    // MARK: - Declaración de jurado
+
     static func declaration(
         fairId: String
     ) -> Endpoint {
@@ -148,6 +147,12 @@ struct Endpoint {
             path: "fairs/\(fairId)/jury/declaration",
             method: "GET"
         )
+    }
+
+    static func getDeclaration(
+        fairId: String
+    ) -> Endpoint {
+        declaration(fairId: fairId)
     }
 
     static func signDeclaration(
@@ -163,7 +168,18 @@ struct Endpoint {
         )
     }
 
-    // MARK: - Proyectos
+    static func signDeclaration(
+        fairId: String,
+        body: DeclarationRequest
+    ) -> Endpoint {
+        Endpoint(
+            path: "fairs/\(fairId)/jury/declaration",
+            method: "POST",
+            body: body
+        )
+    }
+
+    // MARK: - Categorías y stands
 
     static func categories(
         fairId: String
@@ -182,6 +198,8 @@ struct Endpoint {
             method: "GET"
         )
     }
+
+    // MARK: - Proyectos
 
     static func projects(
         fairId: String,
@@ -241,7 +259,7 @@ struct Endpoint {
         )
     }
 
-    // MARK: - Evaluación
+    // MARK: - Rúbrica
 
     static func rubric(
         fairId: String
@@ -252,6 +270,7 @@ struct Endpoint {
         )
     }
 
+<<<<<<< HEAD
     /// Avance del jurado en la feria (GET /fairs/my-progress/:fairId).
     static func myProgress(
         fairId: String
@@ -261,6 +280,9 @@ struct Endpoint {
             method: "GET"
         )
     }
+=======
+    // MARK: - Evaluaciones
+>>>>>>> c26b2aa (fix: codikey por Json)
 
     static func createEvaluation(
         fairId: String,
@@ -274,6 +296,7 @@ struct Endpoint {
     }
 
     static func updateEvaluation(
+<<<<<<< HEAD
             fairId: String,
             evaluationId: String,
             input: EvaluationInput
@@ -287,4 +310,44 @@ struct Endpoint {
                 )
             )
         }
+=======
+        fairId: String,
+        evaluationId: String,
+        input: EvaluationInput
+    ) -> Endpoint {
+        Endpoint(
+            path: "fairs/\(fairId)/evaluations/\(evaluationId)",
+            method: "PUT",
+            body: input
+        )
+>>>>>>> c26b2aa (fix: codikey por Json)
     }
+
+    static func myEvaluations(
+        fairId: String
+    ) -> Endpoint {
+        Endpoint(
+            path: "fairs/my-evaluations",
+            method: "GET",
+            queryItems: [
+                URLQueryItem(
+                    name: "fair_id",
+                    value: fairId
+                ),
+                URLQueryItem(
+                    name: "limit",
+                    value: "100"
+                )
+            ]
+        )
+    }
+
+    static func myProgress(
+        fairId: String
+    ) -> Endpoint {
+        Endpoint(
+            path: "fairs/my-progress/\(fairId)",
+            method: "GET"
+        )
+    }
+}
