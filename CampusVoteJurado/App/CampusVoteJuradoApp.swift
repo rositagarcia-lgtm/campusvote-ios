@@ -5,6 +5,8 @@ struct CampusVoteJuradoApp: App {
 
     @State private var session: SessionStore
     @State private var fairsStore: FairsStore
+    @State private var projectsStore: ProjectsStore
+    @State private var evaluationStore: EvaluationStore
 
     init() {
         let api = APIClient()
@@ -16,6 +18,14 @@ struct CampusVoteJuradoApp: App {
         _fairsStore = State(
             initialValue: FairsStore(api: api)
         )
+
+        _projectsStore = State(
+            initialValue: ProjectsStore(api: api)
+        )
+
+        _evaluationStore = State(
+            initialValue: EvaluationStore(api: api)
+        )
     }
 
     var body: some Scene {
@@ -23,6 +33,8 @@ struct CampusVoteJuradoApp: App {
             RootView()
                 .environment(session)
                 .environment(fairsStore)
+                .environment(projectsStore)
+                .environment(evaluationStore)
         }
     }
 }

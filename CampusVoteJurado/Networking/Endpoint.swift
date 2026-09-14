@@ -252,6 +252,16 @@ struct Endpoint {
         )
     }
 
+    /// Avance del jurado en la feria (GET /fairs/my-progress/:fairId).
+    static func myProgress(
+        fairId: String
+    ) -> Endpoint {
+        Endpoint(
+            path: "fairs/my-progress/\(fairId)",
+            method: "GET"
+        )
+    }
+
     static func createEvaluation(
         fairId: String,
         input: EvaluationInput
@@ -271,7 +281,10 @@ struct Endpoint {
             Endpoint(
                 path: "fairs/\(fairId)/evaluations/\(evaluationId)",
                 method: "PUT",
-                body: input
+                body: EvaluationUpdatePayload(
+                    scores: input.scores,
+                    comment: input.comment
+                )
             )
         }
     }

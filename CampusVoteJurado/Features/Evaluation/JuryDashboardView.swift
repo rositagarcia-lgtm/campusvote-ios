@@ -41,7 +41,7 @@ struct FairsDashboardView: View {
     @Environment(ProjectsStore.self) private var projects
     @Environment(EvaluationStore.self) private var evaluation
 
-    private var fair: Fair? { fairs.fairs.first }
+    private var fair: Fair? { fairs.activeFairs.first?.fair }
     private var progress: JuryProgress? { evaluation.progress }
 
     private var evaluatedIds: Set<String> {
@@ -95,12 +95,7 @@ struct FairsDashboardView: View {
                 ) {
                     if !pending.isEmpty {
                         ForEach(pending) { project in
-                            if let fair {
-                                NavigationLink(value: ProjectRoute(fair: fair, project: project)) {
-                                    PendingProjectRow(project: project)
-                                }
-                                .buttonStyle(.plain)
-                            }
+                            PendingProjectRow(project: project)
                         }
                     } else {
                         Text("No quedan proyectos por calificar.")
@@ -118,22 +113,11 @@ struct FairsDashboardView: View {
                 ) {
                     if !evaluated.isEmpty {
                         ForEach(evaluated) { item in
-                            if let fair {
-                                NavigationLink(
-                                    value: EvaluateRoute(
-                                        fair: fair,
-                                        projectId: item.projectId,
-                                        projectName: item.project?.name ?? "Proyecto"
-                                    )
-                                ) {
-                                    EvaluatedProjectRow(
-                                        item: item,
-                                        standCode: standCode(for: item.projectId),
-                                        evaluatedAt: item.updatedAt
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
+                            EvaluatedProjectRow(
+                                item: item,
+                                standCode: standCode(for: item.projectId),
+                                evaluatedAt: item.updatedAt
+                            )
                         }
                     } else {
                         Text("Aquí aparecerán tus calificaciones.")
@@ -151,12 +135,6 @@ struct FairsDashboardView: View {
             .padding(.bottom, 24)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationDestination(for: ProjectRoute.self) { route in
-            ProjectDetailView(route: route)
-        }
-        .navigationDestination(for: EvaluateRoute.self) { route in
-            EvaluateView(route: route)
-        }
         .task { await load() }
         .refreshable { await load() }
     }
@@ -169,8 +147,8 @@ struct FairsDashboardView: View {
     }
 
     private func load() async {
-        await fairs.load()
-        guard let fair = fairs.fairs.first else { return }
+        await fairs.fetchMyAssignments()
+        guard let fair = fairs.activeFairs.first?.fair else { return }
         await projects.open(fairId: fair.id)
         await projects.load(fairId: fair.id)
         await evaluation.load(fairId: fair.id)
@@ -184,7 +162,7 @@ struct AdvanceDashboardView: View {
     @Environment(FairsStore.self) private var fairs
     @Environment(EvaluationStore.self) private var evaluation
 
-    private var fair: Fair? { fairs.fairs.first }
+    private var fair: Fair? { fairs.activeFairs.first?.fair }
 
     var body: some View {
         ScrollView {
@@ -215,8 +193,8 @@ struct AdvanceDashboardView: View {
         }
         .background(Color(.systemGroupedBackground))
         .task {
-            await fairs.load()
-            if let fair = fairs.fairs.first {
+            await fairs.fetchMyAssignments()
+            if let fair = fairs.activeFairs.first?.fair {
                 await evaluation.refreshProgress(fairId: fair.id)
             }
         }
