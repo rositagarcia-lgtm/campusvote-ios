@@ -1,49 +1,7 @@
 import Foundation
 
-<<<<<<< HEAD
-/// Evaluación de un proyecto hecha por este jurado.
-struct Evaluation: Decodable, Hashable, Identifiable {
-    let id: String
-    let projectId: String
-    /// Suma de las notas de todos los criterios.
-    let totalScore: Double
-    let comment: String?
-    let project: ProjectSummary?
-    let details: [EvaluationDetail]
-    /// Momento en que se guardó la evaluación (updated_at del backend).
-    let updatedAt: Date?
-}
-
-struct ProjectSummary: Decodable, Hashable {
-    let id: String
-    let name: String
-}
-
-struct EvaluationDetail: Decodable, Hashable {
-    let criterionId: String
-    let criterionName: String?
-    let score: Double
-}
-
-/// Cuerpo de POST /fairs/:id/evaluations. Las claves van en snake_case.
-struct EvaluationInput: Encodable, Hashable {
-    let projectId: String
-    /// Una nota por CADA criterio de la rúbrica, dentro de su rango.
-    let scores: [ScoreInput]
-    let comment: String?
-
-    enum CodingKeys: String, CodingKey {
-        case projectId = "project_id"
-        case scores
-        case comment
-    }
-}
-
-struct ScoreInput: Encodable, Hashable {
-=======
 /// Puntuación de un criterio al enviar una evaluación.
 struct ScoreInput: Codable {
->>>>>>> c26b2aa (fix: codikey por Json)
     let criterionId: String
     let score: Double
 
@@ -128,10 +86,21 @@ struct JuryProgress: Decodable {
     let fairStatus: String?
     let declaration: Declaration?
     let totalProjects: Int
-    let evaluatedProjects: Int
-    let remaining: Int
+    let completedProjects: Int
+    let pendingProjects: Int
     let progressPercentage: Double?
-    let evaluations: [Evaluation]?
+
+    /// Nombres que ya usaban las pantallas.
+    var evaluatedProjects: Int { completedProjects }
+    var remaining: Int { pendingProjects }
+    /// El backend no manda las evaluaciones en este endpoint; se consultan en
+    /// /fairs/my-evaluations.
+    var evaluations: [Evaluation]? { nil }
+
+    /// Ya firmó la declaración de conflicto de interés de esta feria.
+    var declarationSigned: Bool {
+        declaration?.signedAt?.isEmpty == false
+    }
 
     enum CodingKeys: String, CodingKey {
         case fairId = "fair_id"
@@ -139,9 +108,8 @@ struct JuryProgress: Decodable {
         case fairStatus = "fair_status"
         case declaration
         case totalProjects = "total_projects"
-        case evaluatedProjects = "evaluated_projects"
-        case remaining
+        case completedProjects = "completed_projects"
+        case pendingProjects = "pending_projects"
         case progressPercentage = "progress_percentage"
-        case evaluations
     }
 }

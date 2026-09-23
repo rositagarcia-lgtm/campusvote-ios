@@ -17,17 +17,20 @@ struct TotpView: View {
             topBar
 
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 20) {
                     badge
 
-                    VStack(spacing: 10) {
+                    VStack(spacing: 8) {
                         Text("Verificación en dos pasos")
-                            .font(.largeTitle.bold())
+                            .font(.title2.bold())
                             .multilineTextAlignment(.center)
                         Text(subtitle)
+                            .font(.footnote.italic())
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
+                            .padding(.horizontal, 8)
                     }
+                    .frame(maxWidth: .infinity)
 
                     if usingBackup {
                         backupField
@@ -40,7 +43,7 @@ struct TotpView: View {
 
                     if let message = session.errorMessage {
                         ErrorBanner(message: message)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(maxWidth: .infinity)
                     }
 
                     verifyButton
@@ -49,13 +52,15 @@ struct TotpView: View {
                         usingBackup.toggle()
                         session.errorMessage = nil
                     }
-                    .font(.headline)
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.brandTeal)
 
                     Label("Código válido por 30 segundos", systemImage: "lock")
-                        .font(.footnote)
+                        .font(.caption.italic())
                         .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                 }
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 24)
             }
@@ -84,26 +89,14 @@ struct TotpView: View {
                 session.cancelCode()
             } label: {
                 Label("Volver al inicio", systemImage: "chevron.left")
-                    .font(.title3)
+                    .font(.subheadline)
                     .foregroundStyle(Color.brand)
             }
 
             Spacer()
-
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(Color.brandTeal)
-                    .frame(width: 7, height: 7)
-                Text("TECSUP ID")
-                    .font(.caption.weight(.semibold))
-                    .tracking(1)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(Capsule().fill(Color.iconTile))
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
     }
 
     private var badge: some View {
@@ -127,17 +120,17 @@ struct TotpView: View {
                 .background(Circle().fill(Color.brandGold.opacity(0.45)))
                 .offset(x: -14, y: -14)
         }
-        .padding(.top, 16)
+        .padding(.top, 12)
         .accessibilityHidden(true)
     }
 
     private var backupField: some View {
         TextField("ABCD2345", text: $backupCode)
-            .font(.system(size: 26, weight: .semibold, design: .monospaced))
+            .font(.system(size: 22, weight: .semibold, design: .monospaced))
             .multilineTextAlignment(.center)
             .textInputAutocapitalization(.characters)
             .autocorrectionDisabled()
-            .padding(.vertical, 16)
+            .padding(.vertical, 14)
             .background(RoundedRectangle(cornerRadius: 14).fill(Color.iconTile))
             .onChange(of: backupCode) { _, nuevo in
                 // Solo letras y números, como máximo 8.
@@ -153,24 +146,24 @@ struct TotpView: View {
     private var accountCard: some View {
         HStack(spacing: 14) {
             Image(systemName: "person.crop.circle.badge.checkmark")
-                .font(.title2)
+                .font(.title3)
                 .foregroundStyle(Color.brand)
-                .frame(width: 56, height: 56)
+                .frame(width: 48, height: 48)
                 .background(RoundedRectangle(cornerRadius: 14).fill(Color.iconTile))
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
                     Text("Jurado de feria")
-                        .font(.headline)
+                        .font(.subheadline.weight(.semibold))
                     Text("2FA")
-                        .font(.caption.weight(.semibold))
+                        .font(.caption2.weight(.semibold))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
                         .background(Capsule().fill(Color.brandMint))
                         .foregroundStyle(Color.brand)
                 }
                 Text(session.pendingEmail)
-                    .font(.subheadline)
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -179,6 +172,7 @@ struct TotpView: View {
             Spacer()
 
             Image(systemName: "lock")
+                .font(.footnote)
                 .foregroundStyle(.tertiary)
         }
         .padding(14)
@@ -196,10 +190,10 @@ struct TotpView: View {
                     Text("Verificar")
                 }
             }
-            .font(.title3.weight(.semibold))
+            .font(.subheadline.weight(.semibold))
             .foregroundStyle(Color.onBrand)
             .frame(maxWidth: .infinity)
-            .frame(height: 58)
+            .frame(height: 52)
             .background(RoundedRectangle(cornerRadius: 16).fill(Color.brand))
         }
         .disabled(!canVerify)
@@ -231,16 +225,17 @@ private struct ExpiryPill: View {
 
             HStack(spacing: 10) {
                 Image(systemName: "timer")
+                    .font(.footnote)
                     .foregroundStyle(Color.brandTeal)
                 (Text("Expira en ") + Text("\(remaining)s").bold())
-                    .font(.subheadline)
+                    .font(.footnote)
                     .monospacedDigit()
                 ProgressView(value: Double(remaining), total: 30)
                     .tint(Color.brandTeal)
                     .frame(width: 80)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
             .background(Capsule().fill(Color.iconTile))
         }
     }
@@ -250,4 +245,3 @@ private struct ExpiryPill: View {
     TotpView()
         .environment(SessionStore(api: .shared))
 }
-

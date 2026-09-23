@@ -87,6 +87,49 @@ struct Endpoint {
         )
     }
 
+    // MARK: - Primer acceso (configurar el autenticador)
+
+    /// Genera el secreto y el QR. Todavía no activa nada.
+    static func totpSetup(
+        tempToken: String
+    ) -> Endpoint {
+        Endpoint(
+            path: "auth/onboarding/totp/setup",
+            method: "POST",
+            usesStoredToken: false,
+            explicitToken: tempToken
+        )
+    }
+
+    /// Primer código del autenticador: activa el 2FA y devuelve los códigos
+    /// de respaldo.
+    static func totpConfirm(
+        code: String,
+        tempToken: String
+    ) -> Endpoint {
+        Endpoint(
+            path: "auth/onboarding/totp/verify",
+            method: "POST",
+            body: CodePayload(
+                code: code
+            ),
+            usesStoredToken: false,
+            explicitToken: tempToken
+        )
+    }
+
+    /// Cierra el primer acceso y entrega la sesión definitiva.
+    static func totpFinalize(
+        tempToken: String
+    ) -> Endpoint {
+        Endpoint(
+            path: "auth/onboarding/finalize",
+            method: "POST",
+            usesStoredToken: false,
+            explicitToken: tempToken
+        )
+    }
+
     /// Renueva el access token con el refresh token.
     static func refresh(
         refreshToken: String
@@ -259,76 +302,6 @@ struct Endpoint {
         )
     }
 
-    // MARK: - Búsqueda de proyectos (modo observador)
-
-    static func searchProjects(
-        fairId: String,
-        search: String? = nil,
-        categoryId: String? = nil,
-        minScore: Double? = nil,
-        maxScore: Double? = nil,
-        sort: String? = nil
-    ) -> Endpoint {
-
-        var items = [
-            URLQueryItem(
-                name: "limit",
-                value: "100"
-            )
-        ]
-
-        if let search, !search.isEmpty {
-            items.append(
-                URLQueryItem(
-                    name: "search",
-                    value: search
-                )
-            )
-        }
-
-        if let categoryId {
-            items.append(
-                URLQueryItem(
-                    name: "category_id",
-                    value: categoryId
-                )
-            )
-        }
-
-        if let minScore {
-            items.append(
-                URLQueryItem(
-                    name: "min_score",
-                    value: String(minScore)
-                )
-            )
-        }
-
-        if let maxScore {
-            items.append(
-                URLQueryItem(
-                    name: "max_score",
-                    value: String(maxScore)
-                )
-            )
-        }
-
-        if let sort, !sort.isEmpty {
-            items.append(
-                URLQueryItem(
-                    name: "sort",
-                    value: sort
-                )
-            )
-        }
-
-        return Endpoint(
-            path: "fairs/\(fairId)/projects",
-            method: "GET",
-            queryItems: items
-        )
-    }
-
     // MARK: - Rúbrica
 
     static func rubric(
@@ -336,17 +309,6 @@ struct Endpoint {
     ) -> Endpoint {
         Endpoint(
             path: "fairs/\(fairId)/rubric",
-            method: "GET"
-        )
-    }
-
-
-    /// Avance del jurado en la feria (GET /fairs/my-progress/:fairId).
-    static func myProgress(
-        fairId: String
-    ) -> Endpoint {
-        Endpoint(
-            path: "fairs/my-progress/\(fairId)",
             method: "GET"
         )
     }
@@ -392,6 +354,15 @@ struct Endpoint {
                     value: "100"
                 )
             ]
+        )
+    }
+
+    static func myProgress(
+        fairId: String
+    ) -> Endpoint {
+        Endpoint(
+            path: "fairs/my-progress/\(fairId)",
+            method: "GET"
         )
     }
 }

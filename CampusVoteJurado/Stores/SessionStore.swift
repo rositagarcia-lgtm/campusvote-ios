@@ -9,6 +9,8 @@ final class SessionStore {
     enum Phase: Equatable {
         case checking
         case signedOut
+        /// Primer acceso: la cuenta aún no tiene autenticador, toca el QR.
+        case needsSetup(tempToken: String)
         case needsCode(tempToken: String)
         case signedIn(User)
     }
@@ -24,6 +26,12 @@ final class SessionStore {
     /// Correo introducido durante el login.
     /// Se muestra posteriormente en TotpView.
     private(set) var pendingEmail = ""
+
+    /// QR y secreto mientras se configura el autenticador.
+    private(set) var setup: TotpSetup?
+
+    /// Códigos de respaldo recién generados. El backend los muestra una vez.
+    private(set) var backupCodes: [String] = []
 
     private let api: APIClient
 
@@ -100,8 +108,18 @@ final class SessionStore {
                 as: AuthResult.self
             )
 
-            if result.requiresTotp == true,
+            if result.requiresOnboarding == true,
                let tempToken = result.tempToken {
+
+                setup = nil
+                backupCodes = []
+
+                phase = .needsSetup(
+                    tempToken: tempToken
+                )
+
+            } else if result.requiresTotp == true,
+                      let tempToken = result.tempToken {
 
                 phase = .needsCode(
                     tempToken: tempToken
@@ -111,6 +129,81 @@ final class SessionStore {
 
                 try finish(result)
             }
+        }
+    }
+
+    // MARK: - Primer acceso (QR)
+
+    /// Pide el QR al backend. Solo la primera vez: una vez activado el 2FA,
+    /// el backend ya no vuelve a entregarlo.
+    func loadSetup() async {
+
+        guard case .needsSetup(let tempToken) = phase, setup == nil else {
+            return
+        }
+
+        await run {
+
+            setup = try await api.send(
+                .totpSetup(
+                    tempToken: tempToken
+                ),
+                as: TotpSetup.self
+            )
+        }
+    }
+
+    /// Primer código del autenticador: activa el 2FA y guarda los códigos
+    /// de respaldo para mostrarlos.
+    func confirmSetup(
+        _ code: String
+    ) async {
+
+        guard case .needsSetup(let tempToken) = phase else {
+            return
+        }
+
+        let cleanCode = code
+            .trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        guard cleanCode.count == 6 else {
+            errorMessage = "El código debe tener 6 dígitos."
+            return
+        }
+
+        await run {
+
+            let enabled = try await api.send(
+                .totpConfirm(
+                    code: cleanCode,
+                    tempToken: tempToken
+                ),
+                as: TotpEnabled.self
+            )
+
+            backupCodes = enabled.backupCodes
+        }
+    }
+
+    /// Cierra el primer acceso y entrega la sesión definitiva.
+    func finishSetup() async {
+
+        guard case .needsSetup(let tempToken) = phase else {
+            return
+        }
+
+        await run {
+
+            let result = try await api.send(
+                .totpFinalize(
+                    tempToken: tempToken
+                ),
+                as: AuthResult.self
+            )
+
+            try finish(result)
         }
     }
 
@@ -189,6 +282,8 @@ final class SessionStore {
 
         errorMessage = nil
         pendingEmail = ""
+        setup = nil
+        backupCodes = []
 
         phase = .signedOut
     }
@@ -207,6 +302,8 @@ final class SessionStore {
 
         errorMessage = nil
         pendingEmail = ""
+        setup = nil
+        backupCodes = []
 
         phase = .signedOut
     }
@@ -231,6 +328,9 @@ final class SessionStore {
             access: token,
             refresh: result.refreshToken
         )
+
+        setup = nil
+        backupCodes = []
 
         accept(user)
     }

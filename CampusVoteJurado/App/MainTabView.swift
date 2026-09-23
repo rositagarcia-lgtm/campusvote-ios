@@ -2,39 +2,77 @@ import SwiftUI
 
 struct MainTabView: View {
     @Environment(FairsStore.self) private var fairsStore
+    @Environment(TabBarVisibility.self) private var tabBar
     @State private var selectedTab: Int = 0
+
+    /// Las tres secciones del jurado, en orden.
+    private let pestanas: [(icono: String, titulo: String)] = [
+        ("building.columns", "Ferias"),
+        ("magnifyingglass", "Buscar"),
+        ("person.circle", "Perfil"),
+    ]
 
     var body: some View {
         TabView(selection: $selectedTab) {
 
             // MARK: - Tab 1: Ferias
-            NavigationStack {
-                FairListView()
-            }
-            .tabItem {
-                Label("Ferias", systemImage: "building.columns")
-            }
-            .tag(0)
+            // Sin NavigationStack aquí: FairListView trae el suyo (con su
+            // propio path). Envolverla en otro deja una barra vacía arriba.
+            FairListView()
+                .toolbar(.hidden, for: .tabBar)
+                .tag(0)
 
             // MARK: - Tab 2: Buscar (proyectos de una feria)
             NavigationStack {
                 SearchProjectsView()
             }
-            .tabItem {
-                Label("Buscar", systemImage: "magnifyingglass")
-            }
+            .toolbar(.hidden, for: .tabBar)
             .tag(1)
 
             // MARK: - Tab 3: Perfil
             NavigationStack {
                 ProfileView()
             }
-            .tabItem {
-                Label("Perfil", systemImage: "person.circle")
-            }
+            .toolbar(.hidden, for: .tabBar)
             .tag(2)
         }
         .tint(Color.appPrimary)
+        // La barra nativa agrupa los iconos al centro. Esta ocupa todo el
+        // ancho: cada sección se lleva la misma porción de la pantalla.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            // La declaración de conflicto de interés se firma sin la barra.
+            if !tabBar.isHidden {
+                barraInferior
+            }
+        }
+    }
+
+    private var barraInferior: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(pestanas.enumerated()), id: \.offset) { indice, pestana in
+                Button {
+                    selectedTab = indice
+                } label: {
+                    TabBarItem(
+                        icon: pestana.icono,
+                        label: pestana.titulo,
+                        isSelected: selectedTab == indice,
+                        activeColor: Color.appPrimary
+                    )
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(pestana.titulo)
+            }
+        }
+        .padding(.top, 8)
+        .padding(.bottom, 2)
+        .background(
+            Color.cardBackground
+                .overlay(alignment: .top) { Divider() }
+                .ignoresSafeArea(edges: .bottom)
+        )
     }
 }
 

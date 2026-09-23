@@ -2,6 +2,8 @@ import SwiftUI
 
 struct DeclarationView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(FairsStore.self) private var fairsStore
+    @Environment(TabBarVisibility.self) private var tabBar
     @State private var viewModel: DeclarationViewModel
     var onSigned: () -> Void
     var onBack: () -> Void
@@ -16,10 +18,17 @@ struct DeclarationView: View {
         self.onBack = onBack
     }
 
+    /// Institución dueña de la feria, tal como la manda el backend.
+    private var institucion: String {
+        (fairsStore.activeFairs + fairsStore.closedFairs)
+            .first { $0.fair.id == viewModel.fairId }?
+            .fair.organization?.name ?? ""
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                
+
                 // MARK: - Top Header Bar
                 HStack {
                     Button(action: { onBack() }) {
@@ -78,7 +87,9 @@ struct DeclarationView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "checkmark.seal.fill")
                                 .font(.caption2)
-                            Text("CÓDIGO JURÍSTICO TECSUP")
+                            Text(institucion.isEmpty
+                                 ? "CÓDIGO JURÍDICO"
+                                 : "CÓDIGO JURÍDICO \(institucion.uppercased())")
                                 .font(.system(size: 9, weight: .bold))
                         }
                         .foregroundColor(Color(hex: "#7A5E0B"))
@@ -118,7 +129,7 @@ struct DeclarationView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         ChecklistRow(text: "Sin parentesco hasta 4to grado de consanguinidad ni 2do de afinidad con los alumnos expositores.")
                         ChecklistRow(text: "No haber intervenido como docente asesor directo, tutor o patrocinador del prototipo en concurso.")
-                        ChecklistRow(text: "Compromiso formal de imparcialidad, ética profesional y objetividad según el reglamento de evaluación de Tecsup.")
+                        ChecklistRow(text: "Compromiso formal de imparcialidad, ética profesional y objetividad según el reglamento de evaluación\(institucion.isEmpty ? "" : " de \(institucion)").")
                     }
                 }
                 .padding(16)
@@ -251,7 +262,7 @@ struct DeclarationView: View {
                 }
                 .disabled(!viewModel.isToggled || viewModel.isSigning)
 
-                Text("Certificado con cifrado de integridad institucional Tecsup")
+                Text("Certificado con cifrado de integridad institucional\(institucion.isEmpty ? "" : " \(institucion)")")
                     .font(.system(size: 10))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -270,5 +281,8 @@ struct DeclarationView: View {
             }
             await viewModel.fetchDeclarationStatus()
         }
+        // La declaración se firma sin la barra inferior; al salir vuelve.
+        .onAppear { tabBar.isHidden = true }
+        .onDisappear { tabBar.isHidden = false }
     }
 }

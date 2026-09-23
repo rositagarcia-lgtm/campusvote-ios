@@ -31,10 +31,28 @@ struct User: Decodable, Hashable {
 /// Respuesta del login, del segundo paso del 2FA y de la renovación de sesión.
 /// Estas claves van en camelCase en el backend.
 struct AuthResult: Decodable {
+    /// La cuenta aún no tiene autenticador: toca configurarlo (QR).
+    let requiresOnboarding: Bool?
     let requiresTotp: Bool?
     let token: String?
     let refreshToken: String?
-    /// Solo llega si requiresTotp es true: se usa para enviar el código.
+    /// Solo llega con requiresOnboarding o requiresTotp: autentica los pasos
+    /// previos a la sesión (configurar el QR o enviar el código).
     let tempToken: String?
     let user: User?
+}
+
+/// Datos para configurar el autenticador por primera vez
+/// (POST /auth/onboarding/totp/setup). Claves en camelCase.
+struct TotpSetup: Decodable {
+    /// Imagen del QR en formato "data:image/png;base64,…".
+    let qrCode: String
+    /// El mismo secreto en texto, para escribirlo a mano si no puede escanear.
+    let secret: String
+    let uri: String
+}
+
+/// Respuesta al activar el 2FA: los códigos de respaldo se muestran UNA vez.
+struct TotpEnabled: Decodable {
+    let backupCodes: [String]
 }

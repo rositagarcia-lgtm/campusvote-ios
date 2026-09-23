@@ -23,17 +23,16 @@ struct RootView: View {
                 case .signedOut:
                     LoginView()
 
-<<<<<<< HEAD
-            case .signedIn:
-                JuryDashboardView()
-=======
+                // Primer acceso: la cuenta todavía no tiene autenticador.
+                case .needsSetup:
+                    TotpSetupView()
+
                 case .needsCode:
                     TotpView()
 
                 case .signedIn:
                     MainTabView()
                 }
->>>>>>> c26b2aa (fix: codikey por Json)
             }
         }
         .task {
@@ -42,23 +41,4 @@ struct RootView: View {
             await session.restore()
         }
     }
-<<<<<<< HEAD
-
-    @MainActor
-    private func startApp() async {
-
-        // Esperamos mientras se muestra la pantalla de carga.
-        try? await Task.sleep(for: .seconds(2))
-
-        // Si durante estos 2 segundos el estado cambió,
-        // no hacemos nada.
-        guard session.phase == .checking else {
-            return
-        }
-
-        // Después del splash vamos al Login.
-        session.showLogin()
-    }
-=======
->>>>>>> c26b2aa (fix: codikey por Json)
 }

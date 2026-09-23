@@ -7,6 +7,7 @@ struct CampusVoteJuradoApp: App {
     @State private var fairsStore: FairsStore
     @State private var projectsStore: ProjectsStore
     @State private var evaluationStore: EvaluationStore
+    @State private var tabBar = TabBarVisibility()
 
     init() {
         let api = APIClient.shared
@@ -35,6 +36,7 @@ struct CampusVoteJuradoApp: App {
                 .environment(fairsStore)
                 .environment(projectsStore)
                 .environment(evaluationStore)
+                .environment(tabBar)
         }
     }
 }

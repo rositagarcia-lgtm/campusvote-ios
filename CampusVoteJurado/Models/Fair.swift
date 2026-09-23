@@ -25,6 +25,19 @@ struct FairAssignment: Codable, Identifiable, Hashable {
     }
 }
 
+/// Institución dueña de la feria (la cabecera muestra su nombre).
+struct FairOrganization: Codable, Hashable {
+    let id: String
+    let name: String
+}
+
+/// Sede donde se realiza la feria.
+struct FairSite: Codable, Hashable {
+    let id: String
+    let name: String
+    let city: String?
+}
+
 struct Fair: Codable, Identifiable, Hashable {
     let id: String
     let name: String
@@ -32,9 +45,13 @@ struct Fair: Codable, Identifiable, Hashable {
     let status: String
     let startsAt: String?
     let endsAt: String?
+    /// Vienen de GET /fairs/my-assignments: son opcionales porque una feria
+    /// puede no tener sede asignada.
+    let organization: FairOrganization?
+    let site: FairSite?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, description, status
+        case id, name, description, status, organization, site
         case startsAt = "starts_at"
         case endsAt = "ends_at"
     }
