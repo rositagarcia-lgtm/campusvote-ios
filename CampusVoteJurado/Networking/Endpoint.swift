@@ -259,6 +259,76 @@ struct Endpoint {
         )
     }
 
+    // MARK: - Búsqueda de proyectos (modo observador)
+
+    static func searchProjects(
+        fairId: String,
+        search: String? = nil,
+        categoryId: String? = nil,
+        minScore: Double? = nil,
+        maxScore: Double? = nil,
+        sort: String? = nil
+    ) -> Endpoint {
+
+        var items = [
+            URLQueryItem(
+                name: "limit",
+                value: "100"
+            )
+        ]
+
+        if let search, !search.isEmpty {
+            items.append(
+                URLQueryItem(
+                    name: "search",
+                    value: search
+                )
+            )
+        }
+
+        if let categoryId {
+            items.append(
+                URLQueryItem(
+                    name: "category_id",
+                    value: categoryId
+                )
+            )
+        }
+
+        if let minScore {
+            items.append(
+                URLQueryItem(
+                    name: "min_score",
+                    value: String(minScore)
+                )
+            )
+        }
+
+        if let maxScore {
+            items.append(
+                URLQueryItem(
+                    name: "max_score",
+                    value: String(maxScore)
+                )
+            )
+        }
+
+        if let sort, !sort.isEmpty {
+            items.append(
+                URLQueryItem(
+                    name: "sort",
+                    value: sort
+                )
+            )
+        }
+
+        return Endpoint(
+            path: "fairs/\(fairId)/projects",
+            method: "GET",
+            queryItems: items
+        )
+    }
+
     // MARK: - Rúbrica
 
     static func rubric(
@@ -270,7 +340,7 @@ struct Endpoint {
         )
     }
 
-<<<<<<< HEAD
+
     /// Avance del jurado en la feria (GET /fairs/my-progress/:fairId).
     static func myProgress(
         fairId: String
@@ -280,9 +350,8 @@ struct Endpoint {
             method: "GET"
         )
     }
-=======
+
     // MARK: - Evaluaciones
->>>>>>> c26b2aa (fix: codikey por Json)
 
     static func createEvaluation(
         fairId: String,
@@ -296,21 +365,6 @@ struct Endpoint {
     }
 
     static func updateEvaluation(
-<<<<<<< HEAD
-            fairId: String,
-            evaluationId: String,
-            input: EvaluationInput
-        ) -> Endpoint {
-            Endpoint(
-                path: "fairs/\(fairId)/evaluations/\(evaluationId)",
-                method: "PUT",
-                body: EvaluationUpdatePayload(
-                    scores: input.scores,
-                    comment: input.comment
-                )
-            )
-        }
-=======
         fairId: String,
         evaluationId: String,
         input: EvaluationInput
@@ -320,7 +374,6 @@ struct Endpoint {
             method: "PUT",
             body: input
         )
->>>>>>> c26b2aa (fix: codikey por Json)
     }
 
     static func myEvaluations(
@@ -339,15 +392,6 @@ struct Endpoint {
                     value: "100"
                 )
             ]
-        )
-    }
-
-    static func myProgress(
-        fairId: String
-    ) -> Endpoint {
-        Endpoint(
-            path: "fairs/my-progress/\(fairId)",
-            method: "GET"
         )
     }
 }

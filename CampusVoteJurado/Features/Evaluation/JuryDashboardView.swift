@@ -22,11 +22,18 @@ struct JuryDashboardView: View {
             .tag(1)
 
             NavigationStack {
+                SearchView()
+                    .toolbar(.hidden, for: .navigationBar)
+            }
+            .tabItem { Label("Buscar", systemImage: "magnifyingglass") }
+            .tag(2)
+
+            NavigationStack {
                 ProfileDashboardView()
                     .toolbar(.hidden, for: .navigationBar)
             }
             .tabItem { Label("Perfil", systemImage: "person.crop.circle.fill") }
-            .tag(2)
+            .tag(3)
         }
         .tint(JuryTheme.brand)
     }
@@ -45,7 +52,7 @@ struct FairsDashboardView: View {
     private var progress: JuryProgress? { evaluation.progress }
 
     private var evaluatedIds: Set<String> {
-        Set(progress?.evaluations.map(\.projectId) ?? [])
+        Set((progress?.evaluations ?? []).map(\.projectId))
     }
 
     private var pending: [ProjectCard] {
@@ -67,7 +74,7 @@ struct FairsDashboardView: View {
     }
 
     private func standCode(for projectId: String) -> String? {
-        projects.projects.first { $0.id == projectId }?.stand?.code
+        projects.projects.first { $0.id == projectId }?.standCode
     }
 
     private func sign(for user: User?) -> String {
@@ -173,7 +180,7 @@ struct AdvanceDashboardView: View {
 
                 JurySectionHeader(title: "TODAS MIS NOTAS") {
                     if let progress = evaluation.progress {
-                        ForEach(progress.evaluations) { item in
+                        ForEach(progress.evaluations ?? []) { item in
                             EvaluatedProjectRow(
                                 item: item,
                                 standCode: nil,
@@ -201,7 +208,7 @@ struct AdvanceDashboardView: View {
     }
 
     private var average: Double? {
-        guard let items = evaluation.progress?.evaluations.map(\.totalScore), !items.isEmpty else { return nil }
+        guard let items = evaluation.progress?.evaluations?.map(\.totalScore), !items.isEmpty else { return nil }
         return items.reduce(0, +) / Double(items.count)
     }
 
@@ -547,7 +554,7 @@ struct PendingProjectRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            CoverImage(url: project.coverUrl)
+            CoverImage(url: project.coverUrl.flatMap { URL(string: $0) })
                 .frame(width: 68, height: 68)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
 
@@ -557,11 +564,11 @@ struct PendingProjectRow: View {
                     .foregroundStyle(.primary)
                     .lineLimit(2)
                 HStack(spacing: 6) {
-                    if let stand = project.stand {
-                        Chip(text: stand.code, background: JuryTheme.mint, textColor: JuryTheme.mintText)
+                    if let standCode = project.standCode, !standCode.isEmpty {
+                        Chip(text: standCode, background: JuryTheme.mint, textColor: JuryTheme.mintText)
                     }
                     if let category = project.category {
-                        Chip(text: category.name, background: JuryTheme.surface, textColor: .secondary)
+                        Chip(text: category, background: JuryTheme.surface, textColor: .secondary)
                     }
                 }
             }
@@ -656,11 +663,14 @@ struct FooterNote: View {
         DashboardHero(fairName: "Feria de Proyectos 2026")
         JurySummaryCard(
             progress: JuryProgress(
+                fairId: "f1",
+                fairName: "Feria de Proyectos 2026",
+                fairStatus: "ACTIVE",
+                declaration: nil,
                 totalProjects: 8,
                 evaluatedProjects: 3,
                 remaining: 5,
                 progressPercentage: 37.5,
-                declaration: nil,
                 evaluations: []
             ),
             averageScore: 15.4,
@@ -672,10 +682,10 @@ struct FooterNote: View {
                     id: "p1",
                     name: "Brazo robótico de bajo costo",
                     description: nil,
-                    coverUrl: nil,
                     logoUrl: nil,
-                    category: Category(id: "c1", name: "Ingeniería y Tecnología"),
-                    stand: Stand(id: "s1", code: "Stand 14")
+                    coverUrl: nil,
+                    categoryName: "Ingeniería y Tecnología",
+                    standCode: "Stand 14"
                 )
             )
             EvaluatedProjectRow(

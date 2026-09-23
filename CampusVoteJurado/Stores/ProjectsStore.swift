@@ -6,6 +6,7 @@ import Observation
 @MainActor
 final class ProjectsStore {
     private(set) var projects: [ProjectCard] = []
+    private(set) var searchResults: [ProjectSearchResult] = []
     private(set) var categories: [Category] = []
     private(set) var stands: [Stand] = []
     private(set) var isLoading = false
@@ -15,6 +16,13 @@ final class ProjectsStore {
     var search = ""
     var categoryId: String?
     var standId: String?
+
+    // Estado del buscador (modo observador).
+    var searchText = ""
+    var searchCategoryId: String?
+    var minScore: Double?
+    var maxScore: Double?
+    var sortBy: SearchSort = .name
 
     private var currentFairId: String?
     private let api: APIClient
@@ -71,5 +79,48 @@ final class ProjectsStore {
             errorMessage = error.userMessage
             return nil
         }
+    }
+
+    /// Clave que cambia con cada filtro del buscador; la vista la usa como
+    /// `.task(id:)` para relanzar la búsqueda y recargar los resultados.
+    var searchRevision: String {
+        let min = minScore.map { String($0) } ?? ""
+        let max = maxScore.map { String($0) } ?? ""
+        return "\(searchText)|\(searchCategoryId ?? "")|\(min)|\(max)|\(sortBy.rawValue)"
+    }
+
+    /// Busca proyectos (modo observador) y actualiza `searchResults`.
+    func searchProjects(fairId: String) async {
+        let text = searchText.trimmingCharacters(in: .whitespaces)
+
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            searchResults = try await api.send(
+                .searchProjects(
+                    fairId: fairId,
+                    search: text.isEmpty ? nil : text,
+                    categoryId: searchCategoryId,
+                    minScore: minScore,
+                    maxScore: maxScore,
+                    sort: sortBy.rawValue
+                ),
+                as: [ProjectSearchResult].self
+            )
+        } catch {
+            searchResults = []
+            errorMessage = error.userMessage
+        }
+    }
+
+    /// Deja el buscador en blanco (texto y filtros).
+    func clearSearch() {
+        searchText = ""
+        searchCategoryId = nil
+        minScore = nil
+        maxScore = nil
+        sortBy = .name
     }
 }
