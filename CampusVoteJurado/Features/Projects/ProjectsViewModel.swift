@@ -57,7 +57,7 @@ final class ProjectsViewModel {
                 self.fairName = fairName
             }
 
-            let evaluatedIds = Set(evaluations.compactMap { $0.projectId })
+            let evaluatedIds = Set(evaluations.compactMap(\.resolvedProjectId))
 
             // Calificados: los que ya tienen evaluación propia. Si el proyecto no
             // aparece en la lista (p. ej. cambió de estado), se usa el proyectito

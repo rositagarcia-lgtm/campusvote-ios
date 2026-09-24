@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-/// Estructura para respuestas HTTP sin contenido en el cuerpo.
+/// Estructura para respuestas HTTP sin contenido útil en el cuerpo.
 struct EmptyResponse: Decodable {}
 
 /// Rúbrica de la feria, evaluaciones del jurado y su avance.
@@ -10,6 +10,7 @@ struct EmptyResponse: Decodable {}
 final class EvaluationStore {
     private(set) var rubric: Rubric?
     private(set) var progress: JuryProgress?
+    private(set) var evaluations: [Evaluation] = []
     private(set) var isSaving = false
     var errorMessage: String?
 
@@ -20,12 +21,13 @@ final class EvaluationStore {
     }
 
     func load(fairId: String) async {
+        errorMessage = nil
         do {
             rubric = try await api.send(.rubric(fairId: fairId), as: Rubric.self)
-            progress = try await api.send(.myProgress(fairId: fairId), as: JuryProgress.self)
         } catch {
             errorMessage = error.userMessage
         }
+        await refreshProgress(fairId: fairId)
     }
 
     func refreshProgress(fairId: String) async {
@@ -34,11 +36,16 @@ final class EvaluationStore {
         } catch {
             errorMessage = error.userMessage
         }
+        do {
+            evaluations = try await api.send(.myEvaluations(fairId: fairId), as: [Evaluation].self)
+        } catch {
+            errorMessage = error.userMessage
+        }
     }
 
     /// La evaluación que este jurado ya hizo del proyecto, si existe.
     func evaluation(for projectId: String) -> Evaluation? {
-        progress?.evaluations?.first { $0.projectId == projectId }
+        evaluations.first { $0.resolvedProjectId == projectId }
     }
 
     /// Crea la evaluación o, si ya existía, la corrige. Devuelve true si se guardó.
@@ -70,8 +77,8 @@ final class EvaluationStore {
                     as: EmptyResponse.self
                 )
             }
-            progress = try await api.send(.myProgress(fairId: fairId), as: JuryProgress.self)
-            return true
+            await refreshProgress(fairId: fairId)
+            return errorMessage == nil
         } catch {
             errorMessage = error.userMessage
             return false

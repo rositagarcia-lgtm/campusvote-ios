@@ -37,16 +37,21 @@ final class ProjectsStore {
     }
 
     /// Al entrar a otra feria se limpian los filtros y se cargan sus categorías y stands.
+    /// Si la carga falla, se puede volver a intentar.
     func open(fairId: String) async {
-        guard fairId != currentFairId else { return }
-        currentFairId = fairId
-        projects = []
-        search = ""
-        categoryId = nil
-        standId = nil
+        guard fairId != currentFairId || categories.isEmpty else { return }
+        let cambiandoFeria = fairId != currentFairId
+        if cambiandoFeria {
+            projects = []
+            search = ""
+            categoryId = nil
+            standId = nil
+            clearSearch()
+        }
         do {
             categories = try await api.send(.categories(fairId: fairId), as: CategoryList.self).categories
             stands = try await api.send(.stands(fairId: fairId), as: StandList.self).stands
+            currentFairId = fairId
         } catch {
             errorMessage = error.userMessage
         }

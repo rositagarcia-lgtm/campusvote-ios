@@ -19,10 +19,7 @@ final class RankingStore {
         self.api = api
     }
 
-    // MARK: - Cargar información
-
     func load(fairId: String) async {
-
         isLoading = true
         errorMessage = nil
 
@@ -35,13 +32,8 @@ final class RankingStore {
             isLoading = false
         }
 
-        // --------------------------------------------------
-        // 1. PROYECTOS
-        // --------------------------------------------------
-
         do {
-
-            let loadedProjects = try await api.send(
+            projects = try await api.send(
                 .projects(
                     fairId: fairId,
                     search: nil,
@@ -50,113 +42,49 @@ final class RankingStore {
                 ),
                 as: [ProjectCard].self
             )
-
-            projects = loadedProjects
-
         } catch {
-
-            errorMessage =
-                "No se pudieron cargar los proyectos: \(error.userMessage)"
-
+            errorMessage = "No se pudieron cargar los proyectos: \(error.userMessage ?? "Error desconocido.")"
             return
         }
 
-        // --------------------------------------------------
-        // 2. CATEGORÍAS
-        // --------------------------------------------------
-
         do {
-
             let response = try await api.send(
-                .categories(
-                    fairId: fairId
-                ),
+                .categories(fairId: fairId),
                 as: CategoryList.self
             )
-
             categories = response.categories
-
         } catch {
-
-            // Las categorías no deben impedir
-            // mostrar el ranking.
-
             categories = []
         }
 
-        // --------------------------------------------------
-        // 3. RÚBRICA
-        // --------------------------------------------------
-
         do {
-
-            let loadedRubric = try await api.send(
-                .rubric(
-                    fairId: fairId
-                ),
+            rubric = try await api.send(
+                .rubric(fairId: fairId),
                 as: Rubric.self
             )
-
-            rubric = loadedRubric
-
         } catch {
-
-            // La pantalla puede funcionar
-            // aunque no se cargue la rúbrica.
-
             rubric = nil
         }
 
-        // --------------------------------------------------
-        // 4. MIS EVALUACIONES
-        // --------------------------------------------------
-
         do {
-
-            let loadedEvaluations = try await api.send(
-                .myEvaluations(
-                    fairId: fairId
-                ),
+            evaluations = try await api.send(
+                .myEvaluations(fairId: fairId),
                 as: [Evaluation].self
             )
-
-            evaluations = loadedEvaluations
-
         } catch {
-
-            // No bloqueamos el ranking si
-            // mis evaluaciones no están disponibles.
-
             evaluations = []
         }
     }
 
-    // MARK: - Buscar evaluación
-
-    func evaluation(
-        for projectId: String
-    ) -> Evaluation? {
-
-        evaluations.first {
-            $0.projectId == projectId
-        }
+    func evaluation(for projectId: String) -> Evaluation? {
+        evaluations.first { $0.resolvedProjectId == projectId }
     }
 
-    // MARK: - Nombre de categoría
-
-    func categoryName(
-        for project: ProjectCard
-    ) -> String {
-
+    func categoryName(for project: ProjectCard) -> String {
         project.categoryName ?? "Sin categoría"
     }
 
-    // MARK: - Nombre del stand
-
-    func standName(
-        for project: ProjectCard
-    ) -> String {
-
+    func standName(for project: ProjectCard) -> String {
         project.standCode ?? "Sin stand"
     }
 }

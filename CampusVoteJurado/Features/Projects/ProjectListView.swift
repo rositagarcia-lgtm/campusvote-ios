@@ -3,17 +3,28 @@ import SwiftUI
 struct ProjectListView: View {
     @State private var viewModel: ProjectsViewModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(FairsStore.self) private var fairsStore
 
     /// true cuando la pantalla viene del flujo de Ferias (muestra el botón atrás).
     var showsFairsBack: Bool = true
 
-    @State private var showProgress = false
+    @State private var showRanking = false
 
     private let tealDark = Color(red: 0.03, green: 0.32, blue: 0.28)
     private let tealLight = Color(red: 0.88, green: 0.96, blue: 0.93)
     private let goldBadgeBg = Color(red: 0.99, green: 0.95, blue: 0.82)
     private let goldBadgeTxt = Color(red: 0.55, green: 0.40, blue: 0.05)
     private let bannerBg = Color(red: 0.02, green: 0.22, blue: 0.19)
+
+    private var tituloInstitucion: String {
+        let nombre = (fairsStore.activeFairs + fairsStore.closedFairs)
+            .first { $0.fair.id == viewModel.fairId }?
+            .fair.organization?.name
+        if let nombre, !nombre.isEmpty {
+            return "\(nombre.uppercased()) · EVALUACIÓN OFICIAL"
+        }
+        return "EVALUACIÓN OFICIAL"
+    }
 
     init(fairId: String, showsFairsBack: Bool = true) {
         _viewModel = State(initialValue: ProjectsViewModel(fairId: fairId))
@@ -23,7 +34,6 @@ struct ProjectListView: View {
     var body: some View {
         VStack(spacing: 0) {
 
-            // MARK: - Top Header Bar
             HStack {
                 if showsFairsBack {
                     Button(action: { dismiss() }) {
@@ -39,12 +49,12 @@ struct ProjectListView: View {
 
                 Spacer()
 
-                Button(action: { showProgress = true }) {
-                    Image(systemName: "chart.bar.xaxis")
+                Button(action: { showRanking = true }) {
+                    Image(systemName: "list.number")
                         .font(.title3)
                         .foregroundColor(.gray)
                 }
-                .accessibilityLabel("Mi avance")
+                .accessibilityLabel("Ranking provisional")
             }
             .padding(.horizontal)
             .padding(.top, 8)
@@ -52,9 +62,8 @@ struct ProjectListView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
 
-                    // MARK: - Fair Title Header
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("TECSUP EVALUACIÓN OFICIAL")
+                        Text(tituloInstitucion)
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(tealDark)
 
@@ -80,7 +89,6 @@ struct ProjectListView: View {
                             .cornerRadius(12)
                     }
 
-                    // MARK: - Segmented Selector (Pendientes / Calificados)
                     HStack(spacing: 0) {
                         TabSegmentButton(
                             title: "Pendientes",
@@ -106,7 +114,6 @@ struct ProjectListView: View {
                     .background(Color(.systemGray6))
                     .cornerRadius(12)
 
-                    // MARK: - Projects List
                     if viewModel.isLoading {
                         ProgressView("Cargando proyectos...")
                             .frame(maxWidth: .infinity, minHeight: 150)
@@ -152,7 +159,6 @@ struct ProjectListView: View {
                         }
                     }
 
-                    // MARK: - Bottom Helper Text
                     Text("Toque cualquier proyecto para ingresar la rúbrica de calificación oficial y comentarios de jurado.")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -160,7 +166,6 @@ struct ProjectListView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 4)
 
-                    // MARK: - Status Banner
                     HStack(spacing: 12) {
                         ZStack {
                             Circle()
@@ -200,8 +205,8 @@ struct ProjectListView: View {
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationBarHidden(true)
-        .navigationDestination(isPresented: $showProgress) {
-            MyProgressView(fairId: viewModel.fairId)
+        .navigationDestination(isPresented: $showRanking) {
+            RankingView(fairId: viewModel.fairId, categoryId: nil)
         }
         .task {
             await viewModel.loadProjects()

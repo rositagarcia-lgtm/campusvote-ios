@@ -1,13 +1,13 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @Environment(FairsStore.self) private var fairsStore
     @Environment(TabBarVisibility.self) private var tabBar
     @State private var selectedTab: Int = 0
 
-    /// Las tres secciones del jurado, en orden.
+    /// Las cuatro secciones del jurado, en orden.
     private let pestanas: [(icono: String, titulo: String)] = [
         ("building.columns", "Ferias"),
+        ("chart.bar.xaxis", "Mi avance"),
         ("magnifyingglass", "Buscar"),
         ("person.circle", "Perfil"),
     ]
@@ -15,32 +15,30 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
 
-            // MARK: - Tab 1: Ferias
-            // Sin NavigationStack aquí: FairListView trae el suyo (con su
-            // propio path). Envolverla en otro deja una barra vacía arriba.
             FairListView()
                 .toolbar(.hidden, for: .tabBar)
                 .tag(0)
 
-            // MARK: - Tab 2: Buscar (proyectos de una feria)
             NavigationStack {
-                SearchProjectsView()
+                MiAvanceTab()
             }
             .toolbar(.hidden, for: .tabBar)
             .tag(1)
 
-            // MARK: - Tab 3: Perfil
+            NavigationStack {
+                SearchView()
+            }
+            .toolbar(.hidden, for: .tabBar)
+            .tag(2)
+
             NavigationStack {
                 ProfileView()
             }
             .toolbar(.hidden, for: .tabBar)
-            .tag(2)
+            .tag(3)
         }
         .tint(Color.appPrimary)
-        // La barra nativa agrupa los iconos al centro. Esta ocupa todo el
-        // ancho: cada sección se lleva la misma porción de la pantalla.
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            // La declaración de conflicto de interés se firma sin la barra.
             if !tabBar.isHidden {
                 barraInferior
             }
@@ -76,51 +74,51 @@ struct MainTabView: View {
     }
 }
 
-/// Buscador de proyectos sobre una feria activa elegida por el jurado.
-private struct SearchProjectsView: View {
+/// Mi avance de la feria elegida. Si hay varias, el jurado cambia con el menú.
+private struct MiAvanceTab: View {
     @Environment(FairsStore.self) private var fairsStore
     @State private var selectedFairId: String?
 
-    private var activeFairs: [FairAssignment] {
-        fairsStore.activeFairs
+    private var fairs: [FairAssignment] {
+        fairsStore.activeFairs + fairsStore.closedFairs
     }
 
     var body: some View {
         Group {
-            if fairsStore.isLoading && activeFairs.isEmpty {
+            if fairsStore.isLoading && fairs.isEmpty {
                 ProgressView("Cargando ferias...")
-            } else if activeFairs.isEmpty {
+            } else if fairs.isEmpty {
                 ContentUnavailableView(
-                    "Sin ferias activas",
-                    systemImage: "magnifyingglass",
-                    description: Text("Ve a la pestaña Ferias para ver tus asignaciones.")
+                    "Sin ferias",
+                    systemImage: "chart.bar.xaxis",
+                    description: Text("Cuando tengas una feria asignada, aquí verás tu avance.")
                 )
             } else {
-                VStack(alignment: .leading, spacing: 2) {
-                    Picker("Feria", selection: $selectedFairId) {
-                        ForEach(activeFairs) { assignment in
-                            Text(assignment.fair.name)
-                                .tag(Optional(assignment.fair.id))
+                VStack(alignment: .leading, spacing: 0) {
+                    if fairs.count > 1 {
+                        Picker("Feria", selection: $selectedFairId) {
+                            ForEach(fairs) { assignment in
+                                Text(assignment.fair.name)
+                                    .tag(Optional(assignment.fair.id))
+                            }
                         }
+                        .pickerStyle(.menu)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
                     }
-                    .pickerStyle(.menu)
-                    .padding(.horizontal)
-                    .padding(.bottom, 4)
 
                     if let fairId = selectedFairId {
-                        ProjectListView(fairId: fairId, showsFairsBack: false)
-                    }
-                }
-                .onAppear {
-                    if selectedFairId == nil {
-                        selectedFairId = activeFairs.first?.fair.id
+                        MyProgressView(fairId: fairId)
+                            .id(fairId)
                     }
                 }
             }
         }
-        .navigationTitle("Buscar")
         .task {
             await fairsStore.fetchMyAssignments()
+            if selectedFairId == nil {
+                selectedFairId = fairs.first?.fair.id
+            }
         }
     }
 }

@@ -165,10 +165,10 @@ struct EvaluateView: View {
 
             Slider(
                 value: Binding(
-                    get: { scores[criterion.id] ?? criterion.minScore },
+                    get: { scores[criterion.id] ?? min(criterion.minScore, criterion.maxScore) },
                     set: { scores[criterion.id] = $0 }
                 ),
-                in: criterion.minScore...criterion.maxScore,
+                in: min(criterion.minScore, criterion.maxScore)...max(criterion.minScore, criterion.maxScore),
                 step: 0.5
             )
             .tint(tealDark)
@@ -246,7 +246,7 @@ struct EvaluateView: View {
                 Endpoint.myEvaluations(fairId: fairId),
                 as: [Evaluation].self
             )
-            if let existing = evaluations.first(where: { $0.projectId == project.id }) {
+            if let existing = evaluations.first(where: { $0.resolvedProjectId == project.id }) {
                 evaluationId = existing.id
                 comment = existing.comment ?? ""
                 for detail in existing.details ?? [] {
@@ -283,13 +283,20 @@ struct EvaluateView: View {
                 if let evaluationId {
                     _ = try await api.send(
                         Endpoint.updateEvaluation(fairId: fairId, evaluationId: evaluationId, input: input),
-                        as: Evaluation.self
+                        as: EmptyResponse.self
                     )
                 } else {
                     _ = try await api.send(
                         Endpoint.createEvaluation(fairId: fairId, input: input),
-                        as: Evaluation.self
+                        as: EmptyResponse.self
                     )
+                }
+                if let evaluations = try? await api.send(
+                    Endpoint.myEvaluations(fairId: fairId),
+                    as: [Evaluation].self
+                ),
+                   let existing = evaluations.first(where: { $0.resolvedProjectId == project.id }) {
+                    evaluationId = existing.id
                 }
                 isSaving = false
                 savedMessage = "Evaluación guardada correctamente."

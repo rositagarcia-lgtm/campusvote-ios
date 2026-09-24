@@ -39,9 +39,16 @@ struct JuryDashboardView: View {
     }
 }
 
-// MARK: - Pestaña Ferias (diseño principal)
+private func fechaISO(_ raw: String?) -> Date? {
+    guard let raw else { return nil }
+    let withMillis = ISO8601DateFormatter()
+    withMillis.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    if let date = withMillis.date(from: raw) { return date }
+    let plain = ISO8601DateFormatter()
+    plain.formatOptions = [.withInternetDateTime]
+    return plain.date(from: raw)
+}
 
-/// La feria en curso con el resumen "Mi avance" y las listas de pendientes y calificados.
 struct FairsDashboardView: View {
     @Environment(SessionStore.self) private var session
     @Environment(FairsStore.self) private var fairs
@@ -52,7 +59,7 @@ struct FairsDashboardView: View {
     private var progress: JuryProgress? { evaluation.progress }
 
     private var evaluatedIds: Set<String> {
-        Set((progress?.evaluations ?? []).compactMap(\.projectId))
+        Set(evaluation.evaluations.compactMap(\.resolvedProjectId))
     }
 
     private var pending: [ProjectCard] {
@@ -60,16 +67,12 @@ struct FairsDashboardView: View {
     }
 
     private var evaluated: [Evaluation] {
-        progress?.evaluations ?? []
+        evaluation.evaluations
     }
 
     private var averageScore: Double? {
         let items = evaluated.compactMap(\.totalScore)
-
-        guard !items.isEmpty else {
-            return nil
-        }
-
+        guard !items.isEmpty else { return nil }
         return items.reduce(0, +) / Double(items.count)
     }
 
@@ -92,7 +95,7 @@ struct FairsDashboardView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 DashboardHeader(initials: sign(for: sessionUser))
-                DashboardHero(fairName: fair?.name ?? "Feria de Proyectos 2026")
+                DashboardHero(fairName: fair?.name ?? "Feria de Proyectos")
 
                 JurySummaryCard(
                     progress: progress,
@@ -126,10 +129,8 @@ struct FairsDashboardView: View {
                         ForEach(evaluated) { item in
                             EvaluatedProjectRow(
                                 item: item,
-                                standCode: item.projectId.flatMap { standCode(for: $0) },
-                                evaluatedAt: item.updatedAt.flatMap {
-                                    ISO8601DateFormatter().date(from: $0)
-                                }
+                                standCode: item.resolvedProjectId.flatMap { standCode(for: $0) },
+                                evaluatedAt: fechaISO(item.updatedAt)
                             )
                         }
                     } else {
@@ -168,9 +169,6 @@ struct FairsDashboardView: View {
     }
 }
 
-// MARK: - Pestaña Mi avance
-
-/// Resumen global de la feria: el total de calificaciones y la lista de todas las notas.
 struct AdvanceDashboardView: View {
     @Environment(FairsStore.self) private var fairs
     @Environment(EvaluationStore.self) private var evaluation
@@ -180,25 +178,25 @@ struct AdvanceDashboardView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                DashboardHero(fairName: fair?.name ?? "Feria de Proyectos 2026")
+                DashboardHero(fairName: fair?.name ?? "Feria de Proyectos")
 
                 JurySummaryCard(progress: evaluation.progress, averageScore: average, maxTotal: maxTotal)
 
                 JurySectionHeader(title: "TODAS MIS NOTAS") {
-                    if let progress = evaluation.progress {
-                        ForEach(progress.evaluations ?? []) { item in
+                    if evaluation.evaluations.isEmpty {
+                        Text("Aquí aparecerán tus calificaciones.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 12)
+                    } else {
+                        ForEach(evaluation.evaluations) { item in
                             EvaluatedProjectRow(
                                 item: item,
                                 standCode: nil,
-                                evaluatedAt: item.updatedAt.flatMap {
-                                    ISO8601DateFormatter().date(from: $0)
-                                }
+                                evaluatedAt: fechaISO(item.updatedAt)
                             )
                         }
-                    } else {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
                     }
                 }
             }
@@ -216,12 +214,8 @@ struct AdvanceDashboardView: View {
     }
 
     private var average: Double? {
-        guard let items = evaluation.progress?.evaluations?
-            .compactMap(\.totalScore),
-              !items.isEmpty else {
-            return nil
-        }
-
+        let items = evaluation.evaluations.compactMap(\.totalScore)
+        guard !items.isEmpty else { return nil }
         return items.reduce(0, +) / Double(items.count)
     }
 
@@ -230,11 +224,14 @@ struct AdvanceDashboardView: View {
     }
 }
 
-// MARK: - Pestaña Perfil
-
-/// Perfil del jurado con su rol, organización y salida de sesión.
 struct ProfileDashboardView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(FairsStore.self) private var fairs
+
+    private var sede: String {
+        let partes = [fairs.organizationName, fairs.siteName].compactMap { $0 }
+        return partes.isEmpty ? "Sin sede asignada" : partes.joined(separator: " · ")
+    }
 
     var body: some View {
         ScrollView {
@@ -261,11 +258,9 @@ struct ProfileDashboardView: View {
                     .shadow(color: .black.opacity(0.06), radius: 12, y: 4)
 
                     VStack(alignment: .leading, spacing: 10) {
-                        ProfileRow(label: "Organización", value: user.organizationId ?? "Tecsup")
+                        ProfileRow(label: "Sede", value: sede)
                         Divider()
-                        ProfileRow(label: "Rol", value: user.role)
-                        Divider()
-                        ProfileRow(label: "Usuario", value: user.id)
+                        ProfileRow(label: "Rol", value: "Jurado")
                     }
                     .padding(18)
                     .background(RoundedRectangle(cornerRadius: 20).fill(.white))
@@ -290,6 +285,11 @@ struct ProfileDashboardView: View {
             .padding(20)
         }
         .background(Color(.systemGroupedBackground))
+        .task {
+            if fairs.activeFairs.isEmpty && fairs.closedFairs.isEmpty {
+                await fairs.fetchMyAssignments()
+            }
+        }
     }
 
     private var sessionUser: User? {
@@ -304,7 +304,6 @@ struct ProfileDashboardView: View {
     }
 }
 
-/// Fila de perfil: etiqueta a la izquierda y valor a la derecha.
 private struct ProfileRow: View {
     let label: String
     let value: String
@@ -316,14 +315,12 @@ private struct ProfileRow: View {
             Spacer()
             Text(value)
                 .fontWeight(.medium)
+                .multilineTextAlignment(.trailing)
         }
         .font(.subheadline)
     }
 }
 
-// MARK: - Encabezado
-
-/// Marca, título de la pestaña e icono de perfil.
 struct DashboardHeader: View {
     let initials: String
 
@@ -341,7 +338,6 @@ struct DashboardHeader: View {
     }
 }
 
-/// Feria en curso y título grande "Mi avance".
 struct DashboardHero: View {
     let fairName: String
 
@@ -357,7 +353,6 @@ struct DashboardHero: View {
     }
 }
 
-/// Avatar circular con las iniciales del usuario.
 struct ProfileCircle: View {
     let initials: String
     var size: CGFloat = 44
@@ -371,9 +366,6 @@ struct ProfileCircle: View {
     }
 }
 
-// MARK: - Tarjeta de resumen
-
-/// Aro de progreso con el conteo y el porcentaje en el centro.
 struct ProgressRing: View {
     let value: Double
     let total: Double
@@ -407,7 +399,6 @@ struct ProgressRing: View {
     }
 }
 
-/// Tarjeta blanca "Mi avance": aro, texto, tiempo estimado y dos métricas.
 struct JurySummaryCard: View {
     let progress: JuryProgress?
     let averageScore: Double?
@@ -462,15 +453,12 @@ struct JurySummaryCard: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 6) {
-                    Text("Mesa asignada")
+                    Text("Pendientes")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    HStack(spacing: 8) {
-                        Text("Mesa 04")
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
-                            .foregroundStyle(JuryTheme.brandDeep)
-                        ACTIVABadge()
-                    }
+                    Text("\(remaining)")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundStyle(JuryTheme.brandDeep)
                 }
             }
         }
@@ -481,26 +469,6 @@ struct JurySummaryCard: View {
     }
 }
 
-/// Badge dorado/marrón de estado ACTIVA.
-struct ACTIVABadge: View {
-    var body: some View {
-        Text("ACTIVA")
-            .font(.system(size: 10, weight: .black))
-            .tracking(0.5)
-            .foregroundStyle(JuryTheme.goldDeep)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(
-                Capsule()
-                    .fill(JuryTheme.gold.opacity(0.18))
-                    .overlay(Capsule().stroke(JuryTheme.gold, lineWidth: 1))
-            )
-    }
-}
-
-// MARK: - Encabezados de sección
-
-/// Título de sección con su recuento y una acción o nota a la derecha.
 struct JurySectionHeader<Content: View>: View {
     let title: String
     var trailing: String? = nil
@@ -542,7 +510,6 @@ struct JurySectionHeader<Content: View>: View {
     }
 }
 
-/// Chip pequeño redondeado para categorías, stands y estados.
 struct Chip: View {
     let text: String
     var background: Color
@@ -559,9 +526,6 @@ struct Chip: View {
     }
 }
 
-// MARK: - Tarjeta de proyecto pendiente
-
-/// Proyecto por calificar: portada, nombre, chips de stand y categoría, y chevron.
 struct PendingProjectRow: View {
     let project: ProjectCard
 
@@ -598,9 +562,6 @@ struct PendingProjectRow: View {
     }
 }
 
-// MARK: - Tarjeta de proyecto calificado
-
-/// Proyecto ya evaluado: check verde, nombre, stand y hora, y la nota destacada.
 struct EvaluatedProjectRow: View {
     let item: Evaluation
     var standCode: String?
@@ -655,73 +616,12 @@ struct EvaluatedProjectRow: View {
     }
 }
 
-// MARK: - Pie de página
-
-/// Firma digital activa institucional al pie de las listas.
 struct FooterNote: View {
     var body: some View {
-        Label("Firma digital institucional activa · Tecsup Jurado", systemImage: "checkmark.shield.fill")
+        Label("CampusVote · Jurado", systemImage: "checkmark.shield.fill")
             .font(.caption)
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity)
             .padding(.top, 6)
     }
-}
-
-// MARK: - Previews
-
-#Preview {
-    VStack(alignment: .leading, spacing: 18) {
-        DashboardHeader(initials: "JR")
-        DashboardHero(fairName: "Feria de Proyectos 2026")
-        JurySummaryCard(
-            progress: JuryProgress(
-                fairId: "f1",
-                fairName: "Feria de Proyectos 2026",
-                fairStatus: "ACTIVE",
-                declaration: nil,
-                totalProjects: 8,
-                completedProjects: 3,
-                pendingProjects: 5,
-                progressPercentage: 37.5
-            ),
-            averageScore: 15.4,
-            maxTotal: 20
-        )
-        JurySectionHeader(title: "PENDIENTES (5)", trailing: "Por orden de stand") {
-            PendingProjectRow(
-                project: ProjectCard(
-                    id: "p1",
-                    name: "Brazo robótico de bajo costo",
-                    description: nil,
-                    logoUrl: nil,
-                    coverUrl: nil,
-                    categoryName: "Ingeniería y Tecnología",
-                    standCode: "Stand 14"
-                )
-            )
-            EvaluatedProjectRow(
-                item: Evaluation(
-                    id: "e1",
-                    fairId: "f1",
-                    projectId: "p1",
-                    rubricId: "r1",
-                    totalScore: 16.8,
-                    comment: nil,
-                    createdAt: nil,
-                    updatedAt: nil,
-                    details: [],
-                    project: Evaluation.NestedProject(
-                        id: "p1",
-                        name: "Sistema hidropónico vertical",
-                        description: "Proyecto de sistema hidropónico vertical",
-                        status: "ACTIVE"
-                    )
-                ),
-                standCode: "Stand 08"
-            )        }
-        FooterNote()
-    }
-    .padding(20)
-    .background(Color(.systemGroupedBackground))
 }

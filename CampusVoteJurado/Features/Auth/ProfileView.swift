@@ -2,20 +2,23 @@ import SwiftUI
 
 struct ProfileView: View {
     @Environment(SessionStore.self) private var session
-    @State private var notificationsEnabled: Bool = true
+    @Environment(FairsStore.self) private var fairsStore
     @State private var isLoggingOut = false
 
-    // Paleta de colores oficiales Tecsup / CampusVote
     private let tealDark = Color(red: 0.03, green: 0.32, blue: 0.28)
     private let tealLight = Color(red: 0.88, green: 0.96, blue: 0.93)
     private let lightGreenBg = Color(red: 0.82, green: 0.95, blue: 0.88)
     private let textGreen = Color(red: 0.05, green: 0.45, blue: 0.30)
 
+    private var sede: String {
+        let partes = [fairsStore.organizationName, fairsStore.siteName].compactMap { $0 }
+        return partes.isEmpty ? "Sin sede asignada" : partes.joined(separator: " · ")
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
 
-                // MARK: - Header Profile Info
                 VStack(spacing: 12) {
                     ZStack(alignment: .bottomTrailing) {
                         Image(systemName: "person.crop.circle.fill")
@@ -58,7 +61,6 @@ struct ProfileView: View {
                 }
                 .padding(.top, 8)
 
-                // MARK: - Card Sede y Asignación
                 VStack(spacing: 12) {
                     HStack {
                         HStack(spacing: 10) {
@@ -76,9 +78,10 @@ struct ProfileView: View {
 
                         Spacer()
 
-                        Text("Tecsup · Trujillo")
+                        Text(sede)
                             .font(.subheadline).bold()
                             .foregroundColor(.primary)
+                            .multilineTextAlignment(.trailing)
                     }
 
                     Divider()
@@ -109,7 +112,6 @@ struct ProfileView: View {
                 .cornerRadius(16)
                 .shadow(color: .black.opacity(0.03), radius: 4, x: 0, y: 2)
 
-                // MARK: - Sección 1: Credenciales y Seguridad
                 VStack(alignment: .leading, spacing: 8) {
                     Text("CREDENCIALES Y SEGURIDAD")
                         .font(.system(size: 11, weight: .bold))
@@ -140,7 +142,6 @@ struct ProfileView: View {
                         .padding(.leading, 4)
                 }
 
-                // MARK: - Sección 2: Soporte
                 VStack(alignment: .leading, spacing: 8) {
                     Text("SOPORTE")
                         .font(.system(size: 11, weight: .bold))
@@ -158,7 +159,6 @@ struct ProfileView: View {
                     .cornerRadius(16)
                 }
 
-                // MARK: - Botón Cerrar Sesión
                 VStack(spacing: 8) {
                     Button(action: logout) {
                         HStack(spacing: 8) {
@@ -184,7 +184,6 @@ struct ProfileView: View {
                         .multilineTextAlignment(.center)
                 }
 
-                // MARK: - Footer de Versión
                 VStack(spacing: 4) {
                     Text("CampusVote v2.0.1 (Build 108)")
                         .font(.caption2).bold()
@@ -194,7 +193,7 @@ struct ProfileView: View {
                         .background(Color(.systemGray5))
                         .cornerRadius(6)
 
-                    Text("Tecsup Dirección Académica - Sistema Electoral")
+                    Text("CampusVote · Sistema de evaluación")
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                 }
@@ -206,6 +205,11 @@ struct ProfileView: View {
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationTitle("Perfil")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            if fairsStore.activeFairs.isEmpty && fairsStore.closedFairs.isEmpty {
+                await fairsStore.fetchMyAssignments()
+            }
+        }
     }
 
     @MainActor
@@ -213,13 +217,10 @@ struct ProfileView: View {
         isLoggingOut = true
         Task {
             await session.logout()
-            // session.logout() ya pone la fase en signedOut;
-            // RootView vuelve a mostrar LoginView automáticamente.
         }
     }
 }
 
-// MARK: - Componente Reutilizable de Fila
 struct ProfileRowLink<Accessory: View>: View {
     let icon: String
     let iconBg: Color

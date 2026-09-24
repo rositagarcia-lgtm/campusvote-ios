@@ -65,6 +65,11 @@ struct Evaluation: Decodable, Identifiable {
         let status: String?
     }
 
+    /// El backend a veces manda `project_id` y a veces solo `project.id`.
+    var resolvedProjectId: String? {
+        projectId ?? project?.id
+    }
+
     enum CodingKeys: String, CodingKey {
         case id
         case fairId = "fair_id"
@@ -93,9 +98,6 @@ struct JuryProgress: Decodable {
     /// Nombres que ya usaban las pantallas.
     var evaluatedProjects: Int { completedProjects }
     var remaining: Int { pendingProjects }
-    /// El backend no manda las evaluaciones en este endpoint; se consultan en
-    /// /fairs/my-evaluations.
-    var evaluations: [Evaluation]? { nil }
 
     /// Ya firmó la declaración de conflicto de interés de esta feria.
     var declarationSigned: Bool {

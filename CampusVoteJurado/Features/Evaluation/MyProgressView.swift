@@ -1,10 +1,13 @@
 import SwiftUI
 
-/// Panel de avance del jurado en una feria (GET /fairs/my-progress/:fairId).
+/// Panel de avance del jurado en una feria.
+/// El conteo sale de GET /fairs/my-progress/:fairId.
+/// La lista de calificados sale de GET /fairs/my-evaluations.
 struct MyProgressView: View {
     let fairId: String
 
     @State private var progress: JuryProgress?
+    @State private var evaluations: [Evaluation] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
 
@@ -28,16 +31,15 @@ struct MyProgressView: View {
                         .frame(maxWidth: .infinity, minHeight: 200)
                 } else if let progress {
                     header(progress)
-
                     statsGrid(progress)
 
-                    if let declarations = progress.evaluations, !declarations.isEmpty {
-                        evaluatedSection(declarations)
-                    } else {
+                    if evaluations.isEmpty {
                         Text("Aún no has calificado proyectos en esta feria.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .padding(.vertical, 8)
+                    } else {
+                        evaluatedSection(evaluations)
                     }
                 }
             }
@@ -50,8 +52,6 @@ struct MyProgressView: View {
             await load()
         }
     }
-
-    // MARK: - Encabezado con anillo
 
     private func header(_ progress: JuryProgress) -> some View {
         VStack(spacing: 12) {
@@ -80,7 +80,7 @@ struct MyProgressView: View {
                 .multilineTextAlignment(.center)
 
             if let declaration = progress.declaration, let date = declaration.signedAt {
-                Label("Declaración firmada \(date)", systemImage: "checkmark.seal.fill")
+                Label("Declaración firmada \(fechaLegible(date))", systemImage: "checkmark.seal.fill")
                     .font(.caption).bold()
                     .foregroundColor(.green)
             } else {
@@ -95,8 +95,6 @@ struct MyProgressView: View {
         .cornerRadius(16)
         .shadow(color: .black.opacity(0.03), radius: 4, x: 0, y: 2)
     }
-
-    // MARK: - Tarjetas de conteo
 
     private func statsGrid(_ progress: JuryProgress) -> some View {
         HStack(spacing: 12) {
@@ -124,8 +122,6 @@ struct MyProgressView: View {
         .background(Color(.systemBackground))
         .cornerRadius(14)
     }
-
-    // MARK: - Evaluados
 
     private func evaluatedSection(_ evaluations: [Evaluation]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -162,8 +158,6 @@ struct MyProgressView: View {
         }
     }
 
-    // MARK: - Carga
-
     @MainActor
     private func load() async {
         isLoading = true
@@ -172,8 +166,20 @@ struct MyProgressView: View {
 
         do {
             progress = try await api.send(Endpoint.myProgress(fairId: fairId), as: JuryProgress.self)
+            evaluations = try await api.send(Endpoint.myEvaluations(fairId: fairId), as: [Evaluation].self)
         } catch {
             errorMessage = error.userMessage
         }
+    }
+
+    private func fechaLegible(_ raw: String) -> String {
+        let withMillis = ISO8601DateFormatter()
+        withMillis.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let plain = ISO8601DateFormatter()
+        plain.formatOptions = [.withInternetDateTime]
+        if let date = withMillis.date(from: raw) ?? plain.date(from: raw) {
+            return date.formatted(date: .abbreviated, time: .shortened)
+        }
+        return raw
     }
 }
