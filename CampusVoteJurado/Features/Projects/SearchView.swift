@@ -434,7 +434,7 @@ private struct SearchResultRow: View {
                     }
 
                     if let category = result.categoryName {
-                        Chip(text: category, background: JuryTheme.surface, textColor: .secondary)
+                        Chip(text: category, background: JuryTheme.surface, textColor: Color.secondary)
                     }
                 }
 

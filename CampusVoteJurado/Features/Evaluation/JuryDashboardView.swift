@@ -52,7 +52,7 @@ struct FairsDashboardView: View {
     private var progress: JuryProgress? { evaluation.progress }
 
     private var evaluatedIds: Set<String> {
-        Set((progress?.evaluations ?? []).map(\.projectId))
+        Set((progress?.evaluations ?? []).compactMap(\.projectId))
     }
 
     private var pending: [ProjectCard] {
@@ -64,8 +64,12 @@ struct FairsDashboardView: View {
     }
 
     private var averageScore: Double? {
-        let items = evaluated.map(\.totalScore)
-        guard !items.isEmpty else { return nil }
+        let items = evaluated.compactMap(\.totalScore)
+
+        guard !items.isEmpty else {
+            return nil
+        }
+
         return items.reduce(0, +) / Double(items.count)
     }
 
@@ -122,8 +126,10 @@ struct FairsDashboardView: View {
                         ForEach(evaluated) { item in
                             EvaluatedProjectRow(
                                 item: item,
-                                standCode: standCode(for: item.projectId),
-                                evaluatedAt: item.updatedAt
+                                standCode: item.projectId.flatMap { standCode(for: $0) },
+                                evaluatedAt: item.updatedAt.flatMap {
+                                    ISO8601DateFormatter().date(from: $0)
+                                }
                             )
                         }
                     } else {
@@ -184,7 +190,9 @@ struct AdvanceDashboardView: View {
                             EvaluatedProjectRow(
                                 item: item,
                                 standCode: nil,
-                                evaluatedAt: item.updatedAt
+                                evaluatedAt: item.updatedAt.flatMap {
+                                    ISO8601DateFormatter().date(from: $0)
+                                }
                             )
                         }
                     } else {
@@ -208,7 +216,12 @@ struct AdvanceDashboardView: View {
     }
 
     private var average: Double? {
-        guard let items = evaluation.progress?.evaluations?.map(\.totalScore), !items.isEmpty else { return nil }
+        guard let items = evaluation.progress?.evaluations?
+            .compactMap(\.totalScore),
+              !items.isEmpty else {
+            return nil
+        }
+
         return items.reduce(0, +) / Double(items.count)
     }
 
@@ -624,7 +637,7 @@ struct EvaluatedProjectRow: View {
             Spacer(minLength: 8)
 
             HStack(alignment: .firstTextBaseline, spacing: 3) {
-                Text(item.totalScore, format: .number.precision(.fractionLength(1)))
+                Text(item.totalScore ?? 0, format: .number.precision(.fractionLength(1)))
                     .font(.system(size: 21, weight: .heavy, design: .rounded))
                     .foregroundStyle(JuryTheme.brandDeep)
                 Text("/ 20")
@@ -668,10 +681,9 @@ struct FooterNote: View {
                 fairStatus: "ACTIVE",
                 declaration: nil,
                 totalProjects: 8,
-                evaluatedProjects: 3,
-                remaining: 5,
-                progressPercentage: 37.5,
-                evaluations: []
+                completedProjects: 3,
+                pendingProjects: 5,
+                progressPercentage: 37.5
             ),
             averageScore: 15.4,
             maxTotal: 20
@@ -691,16 +703,23 @@ struct FooterNote: View {
             EvaluatedProjectRow(
                 item: Evaluation(
                     id: "e1",
+                    fairId: "f1",
                     projectId: "p1",
+                    rubricId: "r1",
                     totalScore: 16.8,
                     comment: nil,
-                    project: ProjectSummary(id: "p1", name: "Sistema hidropónico vertical"),
+                    createdAt: nil,
+                    updatedAt: nil,
                     details: [],
-                    updatedAt: .now
+                    project: Evaluation.NestedProject(
+                        id: "p1",
+                        name: "Sistema hidropónico vertical",
+                        description: "Proyecto de sistema hidropónico vertical",
+                        status: "ACTIVE"
+                    )
                 ),
                 standCode: "Stand 08"
-            )
-        }
+            )        }
         FooterNote()
     }
     .padding(20)

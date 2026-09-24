@@ -450,7 +450,7 @@ private struct MyVoteRow: View {
 
             VStack(alignment: .trailing) {
                 Text(
-                    evaluation.totalScore.formatted(
+                    (evaluation.totalScore ?? 0).formatted(
                         .number.precision(
                             .fractionLength(0...1)
                         )
