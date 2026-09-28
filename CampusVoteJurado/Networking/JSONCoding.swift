@@ -42,3 +42,16 @@ enum JSONCoding {
         JSONEncoder()
     }
 }
+
+/// Permite codificar un `any Encodable` con JSONEncoder.
+struct AnyEncodable: Encodable {
+    private let encodeFunc: (Encoder) throws -> Void
+
+    init(_ wrapped: any Encodable) {
+        encodeFunc = wrapped.encode
+    }
+
+    func encode(to encoder: Encoder) throws {
+        try encodeFunc(encoder)
+    }
+}

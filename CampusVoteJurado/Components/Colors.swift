@@ -1,19 +1,60 @@
 import SwiftUI
 import UIKit
 
+/// Marca de la institución. Se aplica al entrar y se borra al salir.
+/// El login no la consulta: sigue con los colores de CampusVote.
+enum InstitutionAppearance {
+    static var name: String?
+    static var logoURL: URL?
+    static var primaryHex: String?
+    static var secondaryHex: String?
+
+    static func apply(_ brand: OrganizationBrand) {
+        name = brand.name
+        primaryHex = brand.primaryColor
+        secondaryHex = brand.secondaryColor
+        if let logo = brand.logo, let url = URL(string: logo) {
+            logoURL = url
+        } else {
+            logoURL = nil
+        }
+    }
+
+    static func reset() {
+        name = nil
+        logoURL = nil
+        primaryHex = nil
+        secondaryHex = nil
+    }
+}
+
 /// Colores de CampusVote.
 /// Compatible con modo claro y oscuro.
 extension Color {
 
     // MARK: - Colores principales
 
-    /// Verde principal de CampusVote.
-    /// Botones, títulos e íconos principales.
-    static let brand = Color(light: 0x004D40, dark: 0x4DB6AC)
+    /// Verde de CampusVote. La pantalla de entrar siempre usa este color.
+    static let campusGreen = Color(light: 0x004D40, dark: 0x4DB6AC)
 
-    /// Verde secundario.
-    /// Enlaces, acciones secundarias e íconos.
-    static let brandTeal = Color(light: 0x00695C, dark: 0x80CBC4)
+    /// Verde secundario de CampusVote, fijo, para el login y el código.
+    static let campusTeal = Color(light: 0x00695C, dark: 0x80CBC4)
+
+    /// Después de entrar, el primario de la institución. Antes, el de CampusVote.
+    static var brand: Color {
+        if let hex = InstitutionAppearance.primaryHex, !hex.isEmpty {
+            return Color(hex: hex)
+        }
+        return campusGreen
+    }
+
+    /// Después de entrar, el secundario de la institución.
+    static var brandTeal: Color {
+        if let hex = InstitutionAppearance.secondaryHex, !hex.isEmpty {
+            return Color(hex: hex)
+        }
+        return campusTeal
+    }
 
     /// Dorado de CampusVote.
     /// Acentos, indicadores y detalles importantes.
@@ -30,8 +71,7 @@ extension Color {
     // MARK: - Colores suaves
 
     /// Verde principal con transparencia.
-    static let appPrimaryLight = Color(light: 0x004D40, dark: 0x4DB6AC)
-        .opacity(0.12)
+    static var appPrimaryLight: Color { brand.opacity(0.12) }
 
     /// Dorado suave.
     static let appTertiaryLight = Color(light: 0xD4AF37, dark: 0xE0C060)
@@ -53,14 +93,14 @@ extension Color {
 
     // MARK: - Alias compatibles con el código existente
 
-    /// Alias del color principal.
-    static let appPrimary = brand
+    /// Alias del color principal. Sigue a la institución después del login.
+    static var appPrimary: Color { brand }
 
     /// Alias del color secundario.
-    static let appSecondary = brandTeal
+    static var appSecondary: Color { brandTeal }
 
     /// Alias del color terciario.
-    static let appTertiary = brandGold
+    static var appTertiary: Color { brandGold }
 }
 
 // MARK: - Color hexadecimal (#RRGGBB)

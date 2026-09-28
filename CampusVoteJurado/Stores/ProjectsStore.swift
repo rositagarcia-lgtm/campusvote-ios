@@ -20,9 +20,7 @@ final class ProjectsStore {
     // Estado del buscador (modo observador).
     var searchText = ""
     var searchCategoryId: String?
-    var minScore: Double?
-    var maxScore: Double?
-    var sortBy: SearchSort = .name
+    var searchStandId: String?
 
     private var currentFairId: String?
     private let api: APIClient
@@ -49,11 +47,33 @@ final class ProjectsStore {
             clearSearch()
         }
         do {
-            categories = try await api.send(.categories(fairId: fairId), as: CategoryList.self).categories
-            stands = try await api.send(.stands(fairId: fairId), as: StandList.self).stands
+            let loaded = try await api.send(.projects(fairId: fairId), as: [ProjectCard].self)
+            projects = loaded
+            categories = uniqueCategories(in: loaded)
+            stands = uniqueStands(in: loaded)
             currentFairId = fairId
         } catch {
             errorMessage = error.userMessage
+        }
+    }
+
+    private func uniqueCategories(in projects: [Project]) -> [Category] {
+        var seen = Set<String>()
+        return projects.compactMap { project in
+            guard let id = project.categoryId, let name = project.categoryName, seen.insert(id).inserted else {
+                return nil
+            }
+            return Category(id: id, fairId: project.fairId, name: name, description: nil)
+        }
+    }
+
+    private func uniqueStands(in projects: [Project]) -> [Stand] {
+        var seen = Set<String>()
+        return projects.compactMap { project in
+            guard let id = project.standId, let code = project.standCode, seen.insert(id).inserted else {
+                return nil
+            }
+            return Stand(id: id, fairId: project.fairId, code: code, description: nil)
         }
     }
 
@@ -89,9 +109,7 @@ final class ProjectsStore {
     /// Clave que cambia con cada filtro del buscador; la vista la usa como
     /// `.task(id:)` para relanzar la búsqueda y recargar los resultados.
     var searchRevision: String {
-        let min = minScore.map { String($0) } ?? ""
-        let max = maxScore.map { String($0) } ?? ""
-        return "\(searchText)|\(searchCategoryId ?? "")|\(min)|\(max)|\(sortBy.rawValue)"
+        "\(searchText)|\(searchCategoryId ?? "")|\(searchStandId ?? "")"
     }
 
     /// Busca proyectos (modo observador) y actualiza `searchResults`.
@@ -103,17 +121,16 @@ final class ProjectsStore {
         defer { isLoading = false }
 
         do {
-            searchResults = try await api.send(
-                .searchProjects(
+            let found = try await api.send(
+                .projects(
                     fairId: fairId,
                     search: text.isEmpty ? nil : text,
                     categoryId: searchCategoryId,
-                    minScore: minScore,
-                    maxScore: maxScore,
-                    sort: sortBy.rawValue
+                    standId: searchStandId
                 ),
-                as: [ProjectSearchResult].self
+                as: [Project].self
             )
+            searchResults = found.map(ProjectSearchResult.init(project:))
         } catch {
             searchResults = []
             errorMessage = error.userMessage
@@ -124,8 +141,6 @@ final class ProjectsStore {
     func clearSearch() {
         searchText = ""
         searchCategoryId = nil
-        minScore = nil
-        maxScore = nil
-        sortBy = .name
+        searchStandId = nil
     }
 }

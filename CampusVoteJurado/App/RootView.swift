@@ -23,10 +23,6 @@ struct RootView: View {
                 case .signedOut:
                     LoginView()
 
-                // Primer acceso: la cuenta todavía no tiene autenticador.
-                case .needsSetup:
-                    TotpSetupView()
-
                 case .needsCode:
                     TotpView()
 

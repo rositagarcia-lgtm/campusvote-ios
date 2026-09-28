@@ -17,22 +17,22 @@ final class FairsStore {
         self.api = api
     }
 
-    /// Institución del jurado, tal como la manda el backend en sus asignaciones.
+    /// Institución del jurado. Si la marca ya cargó, ese nombre manda.
     var organizationName: String? {
-        (activeFairs + closedFairs).compactMap { $0.fair.organization?.name }.first
+        if let name = InstitutionAppearance.name, !name.isEmpty { return name }
+        return (activeFairs + closedFairs).compactMap { $0.fair.organizationName }.first
     }
 
-    /// Sede de la feria activa (o de la última asignación que tenga una).
+    /// Una sola sede para el encabezado. Si hay varias, cada feria trae la suya.
     var siteName: String? {
-        (activeFairs + closedFairs)
-            .compactMap { $0.fair.site }
-            .map { $0.city?.isEmpty == false ? $0.city! : $0.name }
-            .first
+        let names = Set((activeFairs + closedFairs).compactMap { $0.fair.siteName })
+        guard names.count == 1 else { return nil }
+        return names.first
     }
 
     /// Hay al menos una feria abierta ahora mismo.
     var hasLiveFair: Bool {
-        activeFairs.contains { $0.fair.status.uppercased() == "OPEN" }
+        activeFairs.contains { $0.fair.isOpen }
     }
     
     /// ¿Ya firmó la declaración de conflicto de interés de esa feria?

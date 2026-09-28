@@ -47,32 +47,18 @@ final class RankingStore {
             return
         }
 
-        do {
-            let response = try await api.send(
-                .categories(fairId: fairId),
-                as: CategoryList.self
-            )
-            categories = response.categories
-        } catch {
-            categories = []
-        }
+        categories = uniqueCategories(in: projects)
+        rubric = nil
+        evaluations = []
+    }
 
-        do {
-            rubric = try await api.send(
-                .rubric(fairId: fairId),
-                as: Rubric.self
-            )
-        } catch {
-            rubric = nil
-        }
-
-        do {
-            evaluations = try await api.send(
-                .myEvaluations(fairId: fairId),
-                as: [Evaluation].self
-            )
-        } catch {
-            evaluations = []
+    private func uniqueCategories(in projects: [Project]) -> [Category] {
+        var seen = Set<String>()
+        return projects.compactMap { project in
+            guard let id = project.categoryId, let name = project.categoryName, seen.insert(id).inserted else {
+                return nil
+            }
+            return Category(id: id, fairId: project.fairId, name: name, description: nil)
         }
     }
 

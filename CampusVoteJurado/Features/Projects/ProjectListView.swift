@@ -8,8 +8,6 @@ struct ProjectListView: View {
     /// true cuando la pantalla viene del flujo de Ferias (muestra el botón atrás).
     var showsFairsBack: Bool = true
 
-    @State private var showRanking = false
-
     private let tealDark = Color(red: 0.03, green: 0.32, blue: 0.28)
     private let tealLight = Color(red: 0.88, green: 0.96, blue: 0.93)
     private let goldBadgeBg = Color(red: 0.99, green: 0.95, blue: 0.82)
@@ -48,13 +46,6 @@ struct ProjectListView: View {
                 }
 
                 Spacer()
-
-                Button(action: { showRanking = true }) {
-                    Image(systemName: "list.number")
-                        .font(.title3)
-                        .foregroundColor(.gray)
-                }
-                .accessibilityLabel("Ranking provisional")
             }
             .padding(.horizontal)
             .padding(.top, 8)
@@ -159,7 +150,7 @@ struct ProjectListView: View {
                         }
                     }
 
-                    Text("Toque cualquier proyecto para ingresar la rúbrica de calificación oficial y comentarios de jurado.")
+                    Text("Toca un proyecto para marcar su rúbrica. El voto de la feria es aparte y es uno solo.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -205,9 +196,6 @@ struct ProjectListView: View {
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationBarHidden(true)
-        .navigationDestination(isPresented: $showRanking) {
-            RankingView(fairId: viewModel.fairId, categoryId: nil)
-        }
         .task {
             await viewModel.loadProjects()
         }

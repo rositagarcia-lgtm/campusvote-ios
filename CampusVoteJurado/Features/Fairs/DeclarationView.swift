@@ -280,6 +280,9 @@ struct DeclarationView: View {
                 viewModel.jurorName = user.fullName
             }
             await viewModel.fetchDeclarationStatus()
+            if viewModel.navigateToProjects {
+                onSigned()
+            }
         }
         // La declaración se firma sin la barra inferior; al salir vuelve.
         .onAppear { tabBar.isHidden = true }

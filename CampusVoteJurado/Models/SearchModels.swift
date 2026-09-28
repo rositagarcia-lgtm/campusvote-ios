@@ -21,6 +21,22 @@ struct ProjectSearchResult: Decodable, Identifiable, Hashable {
     /// Cantidad de calificaciones recibidas.
     let ratingsCount: Int?
 
+    init(project: Project) {
+        id = project.id
+        fairId = project.fairId
+        name = project.name
+        description = project.description
+        logoUrl = project.logoUrl
+        coverUrl = project.coverUrl
+        status = project.status
+        categoryId = project.categoryId
+        categoryName = project.categoryName
+        standId = project.standId
+        standCode = project.standCode
+        averageScore = nil
+        ratingsCount = nil
+    }
+
     private struct NestedItem: Decodable {
         let id: String
         let name: String?

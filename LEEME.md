@@ -9,8 +9,8 @@ pantallas en una versión simple y funcional. Falta aplicarle el diseño (Stitch
 ## Requisitos
 
 - Mac con **Xcode 15 o superior** (la app usa `@Observable`, que exige iOS 17).
-- Internet: la app se conecta al backend en Render.
-- Una cuenta demo: `jurado1@demo.campusvote.edu.pe` con la contraseña de `DEMO_PASSWORD`.
+- Internet: la app se conecta a `https://campusvote-rg13.onrender.com/api`.
+- Una cuenta con rol `JURY`. El mismo correo pertenece a una sola institución.
 
 ## Abrir el proyecto
 
@@ -18,7 +18,7 @@ pantallas en una versión simple y funcional. Falta aplicarle el diseño (Stitch
 2. Doble clic en **`CampusVoteJurado.xcodeproj`**: se abre en Xcode con todas las
    carpetas y archivos ya incluidos.
 3. Arriba, elige un simulador de iPhone (por ejemplo, *iPhone 15*) y presiona **⌘R**.
-4. Entra con `jurado1@demo.campusvote.edu.pe`.
+4. Entra con el correo del jurado. Si el servidor pide el código, usa el de 6 dígitos que llega al correo.
 
 Abrir solo la carpeta no sirve: Xcode necesita el `.xcodeproj` para compilar y ejecutar.
 El proyecto usa Swift 5 e iOS 17 como mínimo. Para instalarlo en un iPhone físico,
@@ -49,7 +49,7 @@ copian encima.
 6. Clic en el proyecto → target **CampusVoteJurado → General → Minimum Deployments:
    iOS 17.0**.
 7. Revisa la URL del backend en `Networking/APIConfig.swift`.
-8. Elige un simulador de iPhone y presiona **⌘R**. Entra con `jurado1`.
+8. Elige un simulador de iPhone y presiona **⌘R**. Entra con el correo del jurado.
 
 ## Si no compila
 
@@ -82,7 +82,7 @@ un store. Los stores son `@Observable` y `@MainActor`, y se comparten con
 
 | # | Pantalla | Archivo |
 |---|---|---|
-| 01 | Acceso (y código 2FA si la cuenta lo tiene) | `Features/Auth/LoginView.swift`, `TotpView.swift` |
+| 01 | Acceso y código de correo | `Features/Auth/LoginView.swift`, `TotpView.swift` |
 | 02 | Mis ferias | `Features/Fairs/FairListView.swift` |
 | 03 | Declaración de imparcialidad | `Features/Fairs/DeclarationView.swift` |
 | 04 | Proyectos, búsqueda y filtros | `Features/Projects/ProjectListView.swift` |

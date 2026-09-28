@@ -203,17 +203,11 @@ struct SearchView: View {
                 }
             )
         }
-        if let minScore = projectsStore.minScore {
+        if let standId = projectsStore.searchStandId,
+           let stand = projectsStore.stands.first(where: { $0.id == standId }) {
             chips.append(
-                ActiveChip(label: "Nota ≥ \(minScore.formatted(.number.precision(.fractionLength(0...1))))") {
-                    projectsStore.minScore = nil
-                }
-            )
-        }
-        if let maxScore = projectsStore.maxScore {
-            chips.append(
-                ActiveChip(label: "Nota ≤ \(maxScore.formatted(.number.precision(.fractionLength(0...1))))") {
-                    projectsStore.maxScore = nil
+                ActiveChip(label: "Stand \(stand.code)") {
+                    projectsStore.searchStandId = nil
                 }
             )
         }
@@ -231,7 +225,7 @@ struct SearchView: View {
 
             Spacer()
 
-            Text("MODO OBSERVADOR")
+            Text("TUS CATEGORÍAS")
                 .font(.caption2.bold())
                 .tracking(1)
                 .foregroundStyle(.secondary)
@@ -279,7 +273,7 @@ struct SearchView: View {
 
     private var footerNote: some View {
         Label(
-            "Como observador institucional, la vista de notas es de solo lectura y se sincroniza en tiempo real con las actas.",
+            "Solo ves los proyectos aprobados de tus categorías.",
             systemImage: "checkmark.shield.fill"
         )
         .font(.caption)
@@ -349,45 +343,13 @@ private struct FiltersSheet: View {
                     }
                 }
 
-                Section("Rango de nota") {
-                    HStack {
-                        Text("Mínima")
-                        Spacer()
-                        Text("\(Int(store.minScore ?? 0))")
-                            .foregroundStyle(.secondary)
-                    }
-                    Slider(
-                        value: Binding(
-                            get: { store.minScore ?? 0 },
-                            set: { store.minScore = $0 == 0 ? nil : $0 }
-                        ),
-                        in: 0...20,
-                        step: 0.5
-                    )
-
-                    HStack {
-                        Text("Máxima")
-                        Spacer()
-                        Text("\(Int(store.maxScore ?? 20))")
-                            .foregroundStyle(.secondary)
-                    }
-                    Slider(
-                        value: Binding(
-                            get: { store.maxScore ?? 20 },
-                            set: { store.maxScore = $0 == 20 ? nil : $0 }
-                        ),
-                        in: 0...20,
-                        step: 0.5
-                    )
-                }
-
-                Section("Ordenar por") {
-                    Picker("Orden", selection: $store.sortBy) {
-                        ForEach(SearchSort.allCases) { sort in
-                            Text(sort.label).tag(sort)
+                Section("Stand") {
+                    Picker("Stand", selection: $store.searchStandId) {
+                        Text("Todos").tag(String?.none)
+                        ForEach(store.stands) { stand in
+                            Text(stand.code).tag(Optional(stand.id))
                         }
                     }
-                    .pickerStyle(.inline)
                 }
             }
             .navigationTitle("Filtros")
@@ -439,21 +401,6 @@ private struct SearchResultRow: View {
                 }
 
                 Spacer(minLength: 8)
-
-                VStack(alignment: .trailing, spacing: 3) {
-                    if let average = result.averageScore {
-                        Text(average.formatted(.number.precision(.fractionLength(1))))
-                            .font(.system(size: 22, weight: .heavy, design: .rounded))
-                            .foregroundStyle(JuryTheme.brandDeep)
-                        Text("\(result.ratingsCount ?? 0) cal.")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("—")
-                            .font(.system(size: 22, weight: .heavy, design: .rounded))
-                            .foregroundStyle(.secondary)
-                    }
-                }
 
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.bold))

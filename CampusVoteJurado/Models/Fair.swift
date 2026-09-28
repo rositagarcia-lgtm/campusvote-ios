@@ -1,20 +1,8 @@
 import Foundation
 
-struct APIResponse<T: Decodable>: Decodable {
-    let success: Bool
-    let message: String?
-    let data: T
-}
-
-struct FairAssignment: Codable, Identifiable, Hashable {
+struct FairAssignment: Decodable, Identifiable, Hashable {
     var id: String { fair.id }
-    let assignedAt: String?
     let fair: Fair
-
-    enum CodingKeys: String, CodingKey {
-        case fair
-        case assignedAt = "assigned_at"
-    }
 
     static func == (lhs: FairAssignment, rhs: FairAssignment) -> Bool {
         lhs.id == rhs.id
@@ -25,42 +13,97 @@ struct FairAssignment: Codable, Identifiable, Hashable {
     }
 }
 
-/// Institución dueña de la feria (la cabecera muestra su nombre).
-struct FairOrganization: Codable, Hashable {
+struct FairOrganization: Decodable, Hashable {
     let id: String
     let name: String
 }
 
-/// Sede donde se realiza la feria.
-struct FairSite: Codable, Hashable {
+struct FairSite: Decodable, Hashable {
     let id: String
     let name: String
     let city: String?
 }
 
-struct Fair: Codable, Identifiable, Hashable {
+struct Fair: Decodable, Identifiable, Hashable {
     let id: String
     let name: String
     let description: String?
     let status: String
     let startsAt: String?
     let endsAt: String?
-    /// Vienen de GET /fairs/my-assignments: son opcionales porque una feria
-    /// puede no tener sede asignada.
-    let organization: FairOrganization?
-    let site: FairSite?
+    let organizationId: String?
+    let organizationName: String?
+    let siteId: String?
+    let siteName: String?
+
+    var isOpen: Bool { status.uppercased() == "OPEN" }
+
+    /// Compatibilidad con las pantallas que leían el objeto anidado.
+    var organization: FairOrganization? {
+        guard let organizationName, !organizationName.isEmpty else { return nil }
+        return FairOrganization(id: organizationId ?? organizationName, name: organizationName)
+    }
+
+    var site: FairSite? {
+        guard let siteName, !siteName.isEmpty else { return nil }
+        return FairSite(id: siteId ?? siteName, name: siteName, city: nil)
+    }
+
+    /// "Institución" o "Institución · sede". Si no hay sede, solo la institución.
+    var heading: String {
+        if let siteName, !siteName.isEmpty, let organizationName, !organizationName.isEmpty {
+            return "\(organizationName) · \(siteName)"
+        }
+        return organizationName ?? siteName ?? ""
+    }
 
     enum CodingKeys: String, CodingKey {
         case id, name, description, status, organization, site
         case startsAt = "starts_at"
         case endsAt = "ends_at"
+        case organizationId = "organization_id"
+        case organizationName = "organization_name"
+        case siteId = "site_id"
+        case siteName = "site_name"
+        case fair
     }
 
-    static func == (lhs: Fair, rhs: Fair) -> Bool {
-        lhs.id == rhs.id
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if !container.contains(.id), container.contains(.fair) {
+            self = try container.decode(Fair.self, forKey: .fair)
+            return
+        }
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decodeIfPresent(String.self, forKey: .name) ?? "Feria"
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        status = try container.decodeIfPresent(String.self, forKey: .status) ?? ""
+        startsAt = try container.decodeIfPresent(String.self, forKey: .startsAt)
+        endsAt = try container.decodeIfPresent(String.self, forKey: .endsAt)
+
+        var orgId = try container.decodeIfPresent(String.self, forKey: .organizationId)
+        var orgName = try container.decodeIfPresent(String.self, forKey: .organizationName)
+        if let nested = try container.decodeIfPresent(FairOrganization.self, forKey: .organization) {
+            orgId = orgId ?? nested.id
+            orgName = orgName ?? nested.name
+        }
+        organizationId = orgId
+        organizationName = orgName
+
+        var parsedSiteId = try container.decodeIfPresent(String.self, forKey: .siteId)
+        var parsedSiteName = try container.decodeIfPresent(String.self, forKey: .siteName)
+        if let nested = try container.decodeIfPresent(FairSite.self, forKey: .site) {
+            parsedSiteId = parsedSiteId ?? nested.id
+            parsedSiteName = parsedSiteName ?? nested.name
+        }
+        siteId = parsedSiteId
+        siteName = parsedSiteName
     }
 
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
+    static func == (lhs: Fair, rhs: Fair) -> Bool { lhs.id == rhs.id }
+
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
+
+/// El detalle de asignación es la feria, o `{ fair }` si el servidor la envuelve.
+typealias AssignedFair = Fair

@@ -30,12 +30,13 @@ final class DeclarationViewModel {
 
         do {
             let response = try await APIClient.shared.send(
-                Endpoint.getDeclaration(fairId: fairId),
+                Endpoint.declaration(fairId: fairId),
                 as: DeclarationResponse.self
             )
-            if response.signed, let declaration = response.declaration {
+            if response.signed {
                 self.isToggled = true
-                self.signedAtDate = declaration.signedAt
+                self.signedAtDate = response.declaration?.signedAt ?? "Firmada"
+                self.navigateToProjects = true
             }
         } catch {
             self.errorMessage = error.userMessage
@@ -53,13 +54,13 @@ final class DeclarationViewModel {
         errorMessage = nil
 
         do {
-            let statementText = "Declaro formalmente no tener conflicto de interés académico ni personal para evaluar los proyectos asignados."
+            let statementText = Self.statement
             let result = try await APIClient.shared.send(
                 Endpoint.signDeclaration(
                     fairId: fairId,
                     statement: statementText
                 ),
-                as: Declaration.self
+                as: DeclarationAck.self
             )
             self.isSigning = false
             self.signedAtDate = result.signedAt ?? Date().formatted(date: .long, time: .shortened)
@@ -71,4 +72,10 @@ final class DeclarationViewModel {
             return false
         }
     }
+
+    static let statement = """
+    Declaro no tener conflicto de interés para evaluar los proyectos de esta feria: \
+    no tengo parentesco con los expositores, no fui su asesor ni integrante de ningún equipo, \
+    y me comprometo a calificar con imparcialidad.
+    """
 }

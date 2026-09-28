@@ -8,6 +8,7 @@ struct FairListView: View {
     @Environment(FairsStore.self) private var fairsStore
 
     @State private var path: [FairRoute] = []
+    @State private var blockedMessage: String?
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -53,6 +54,14 @@ struct FairListView: View {
             .refreshable {
                 await fairsStore.fetchMyAssignments()
             }
+            .alert("Feria no disponible", isPresented: Binding(
+                get: { blockedMessage != nil },
+                set: { if !$0 { blockedMessage = nil } }
+            )) {
+                Button("Entendido", role: .cancel) {}
+            } message: {
+                Text(blockedMessage ?? "")
+            }
         }
     }
 
@@ -61,6 +70,15 @@ struct FairListView: View {
     private var cabecera: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
+                if let logo = InstitutionAppearance.logoURL {
+                    AsyncImage(url: logo) { image in
+                        image.resizable().scaledToFit()
+                    } placeholder: {
+                        Color.clear
+                    }
+                    .frame(height: 36)
+                    .frame(maxWidth: 140, alignment: .leading)
+                }
                 Text("Ferias")
                     .font(.title.bold())
 
@@ -166,7 +184,7 @@ struct FairListView: View {
             } else {
                 ForEach(fairsStore.activeFairs) { assignment in
                     Button {
-                        abrir(fairId: assignment.fair.id)
+                        abrir(assignment.fair)
                     } label: {
                         FilaDeFeria(
                             fair: assignment.fair,
@@ -185,7 +203,7 @@ struct FairListView: View {
 
             ForEach(fairsStore.closedFairs) { assignment in
                 Button {
-                    abrir(fairId: assignment.fair.id)
+                    abrir(assignment.fair)
                 } label: {
                     FilaDeFeria(fair: assignment.fair, progress: nil)
                 }
@@ -196,11 +214,15 @@ struct FairListView: View {
 
     /// La declaración se firma UNA vez por feria: si ya está firmada, se entra
     /// directo a los proyectos en lugar de volver a pedirla.
-    private func abrir(fairId: String) {
-        if fairsStore.hasSignedDeclaration(fairId: fairId) {
-            path.append(.projects(fairId: fairId))
+    private func abrir(_ fair: Fair) {
+        guard fair.isOpen else {
+            blockedMessage = "Solo puedes evaluar una feria abierta."
+            return
+        }
+        if fairsStore.hasSignedDeclaration(fairId: fair.id) {
+            path.append(.projects(fairId: fair.id))
         } else {
-            path.append(.declaration(fairId: fairId))
+            path.append(.declaration(fairId: fair.id))
         }
     }
 
@@ -271,7 +293,7 @@ private struct FilaDeFeria: View {
             let total = progress.totalProjects
             return "\(total) proyecto\(total == 1 ? "" : "s") asignado\(total == 1 ? "" : "s")"
         }
-        return fair.description
+        return fair.siteName ?? fair.description
     }
 
     private var avance: Double? {

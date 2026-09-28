@@ -101,7 +101,7 @@ struct JuryProgress: Decodable {
 
     /// Ya firmó la declaración de conflicto de interés de esta feria.
     var declarationSigned: Bool {
-        declaration?.signedAt?.isEmpty == false
+        declaration?.signed == true || declaration?.signedAt?.isEmpty == false
     }
 
     enum CodingKeys: String, CodingKey {

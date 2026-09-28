@@ -89,7 +89,7 @@ struct LoginView: View {
                 }
                 .font(.system(size: 15))
                 .foregroundStyle(Color.gray.opacity(0.8))
-                .tint(Color.brand)
+                .tint(Color.campusGreen)
                 .textContentType(.username)
                 .keyboardType(.emailAddress)
                 .textInputAutocapitalization(.never)
@@ -181,7 +181,7 @@ struct LoginView: View {
             .frame(height: 48)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.brand)
+                    .fill(Color.campusGreen)
             )
         }
         .disabled(!canSubmit)
@@ -202,8 +202,8 @@ struct LoginView: View {
                 .foregroundStyle(Color.brandGold)
 
             Text(
-                "Si tu cuenta tiene verificación en dos pasos, " +
-                "te pediremos el código de 6 dígitos en el siguiente paso."
+                "Te enviaremos un código de 6 dígitos a tu correo. " +
+                "Caduca en 10 minutos."
             )
             .font(.system(size: 12))
             .foregroundStyle(.secondary)
@@ -227,7 +227,7 @@ struct LoginView: View {
             )
             .font(.system(size: 12))
             .multilineTextAlignment(.center)
-            .foregroundStyle(Color.brandTeal)
+            .foregroundStyle(Color.campusTeal)
         }
     }
 
@@ -265,7 +265,7 @@ private struct FieldRow<Content: View>: View {
 
             Image(systemName: icon)
                 .font(.system(size: 18))
-                .foregroundStyle(Color.brand)
+                .foregroundStyle(Color.campusGreen)
                 .frame(width: 38, height: 38)
                 .background(
                     RoundedRectangle(cornerRadius: 10)

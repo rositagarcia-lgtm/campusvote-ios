@@ -13,6 +13,8 @@ struct Project: Identifiable, Decodable, Hashable {
     let categoryName: String?
     let standId: String?
     let standCode: String?
+    let imageUrls: [String]
+    let videoUrl: String?
 
     /// Número de stand tal como se muestra en las tarjetas (ej. "A1").
     var tableNumber: String? {
@@ -41,6 +43,8 @@ struct Project: Identifiable, Decodable, Hashable {
         case standCode = "stand_code"
         case category
         case stand
+        case imageUrls = "image_urls"
+        case videoUrl = "video_url"
     }
 
     // MARK: - Sub-objetos anidados (category { id, name }, stand { id, code })
@@ -65,11 +69,13 @@ struct Project: Identifiable, Decodable, Hashable {
 
         if let stand = try container.decodeIfPresent(NestedStand.self, forKey: .stand) {
             standId = stand.id
-            standCode = stand.code
+            standCode = stand.code ?? stand.name
         } else {
             standId = nil
             standCode = nil
         }
+        imageUrls = try container.decodeIfPresent([String].self, forKey: .imageUrls) ?? []
+        videoUrl = try container.decodeIfPresent(String.self, forKey: .videoUrl)
     }
 
     init(
@@ -83,7 +89,9 @@ struct Project: Identifiable, Decodable, Hashable {
         categoryId: String? = nil,
         categoryName: String? = nil,
         standId: String? = nil,
-        standCode: String? = nil
+        standCode: String? = nil,
+        imageUrls: [String] = [],
+        videoUrl: String? = nil
     ) {
         self.id = id
         self.fairId = fairId
@@ -96,6 +104,8 @@ struct Project: Identifiable, Decodable, Hashable {
         self.categoryName = categoryName
         self.standId = standId
         self.standCode = standCode
+        self.imageUrls = imageUrls
+        self.videoUrl = videoUrl
     }
 
     private struct NestedCategory: Decodable {
@@ -105,7 +115,8 @@ struct Project: Identifiable, Decodable, Hashable {
 
     private struct NestedStand: Decodable {
         let id: String
-        let code: String
+        let code: String?
+        let name: String?
     }
 }
 
@@ -125,7 +136,14 @@ struct ProjectDetail: Decodable {
     let categoryName: String?
     let standId: String?
     let standCode: String?
+    let imageUrls: [String]
+    let videoUrl: String?
+    let criteria: [Criterion]
     let members: [Member]
+
+    var activeCriteria: [Criterion] {
+        criteria.filter(\.isActive).sorted { $0.position < $1.position }
+    }
 
     struct Member: Decodable, Identifiable {
         let id: String
@@ -134,14 +152,15 @@ struct ProjectDetail: Decodable {
         let role: String?
 
         enum CodingKeys: String, CodingKey {
-            case id
-            case firstName = "first_name"
-            case lastName = "last_name"
-            case role
+        case id
+        case firstName = "first_name"
+        case lastName = "last_name"
+        case role
         }
     }
 
     enum CodingKeys: String, CodingKey {
+        case id
         case projectId = "project_id"
         case fairId = "fair_id"
         case name
@@ -149,23 +168,30 @@ struct ProjectDetail: Decodable {
         case logoUrl = "logo_url"
         case coverUrl = "cover_url"
         case projectUrl = "project_url"
+        case videoUrl = "video_url"
+        case imageUrls = "image_urls"
         case status
         case category
         case stand
         case members
+        case rubric
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        projectId = try container.decode(String.self, forKey: .projectId)
+        projectId = try container.decodeIfPresent(String.self, forKey: .projectId)
+            ?? container.decode(String.self, forKey: .id)
         fairId = try container.decodeIfPresent(String.self, forKey: .fairId)
         name = try container.decode(String.self, forKey: .name)
         description = try container.decodeIfPresent(String.self, forKey: .description)
         logoUrl = try container.decodeIfPresent(String.self, forKey: .logoUrl)
         coverUrl = try container.decodeIfPresent(String.self, forKey: .coverUrl)
         projectUrl = try container.decodeIfPresent(String.self, forKey: .projectUrl)
+        videoUrl = try container.decodeIfPresent(String.self, forKey: .videoUrl)
+        imageUrls = try container.decodeIfPresent([String].self, forKey: .imageUrls) ?? []
         status = try container.decodeIfPresent(String.self, forKey: .status)
         members = (try container.decodeIfPresent([Member].self, forKey: .members)) ?? []
+        criteria = try container.decodeIfPresent(NestedRubric.self, forKey: .rubric)?.criteria ?? []
 
         if let category = try container.decodeIfPresent(NestedItem.self, forKey: .category) {
             categoryId = category.id
@@ -188,6 +214,10 @@ struct ProjectDetail: Decodable {
         let id: String
         let name: String?
         let code: String?
+    }
+
+    private struct NestedRubric: Decodable {
+        let criteria: [Criterion]
     }
 }
 
