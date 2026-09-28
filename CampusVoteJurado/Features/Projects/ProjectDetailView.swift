@@ -1,6 +1,6 @@
 import SwiftUI
+import UIKit
 
-/// Detalle de un proyecto para revisión del jurado (GET /fairs/:id/projects/:projectId).
 struct ProjectDetailView: View {
     let fairId: String
     let projectId: String
@@ -10,7 +10,7 @@ struct ProjectDetailView: View {
     @State private var errorMessage: String?
 
     private let api = APIClient.shared
-    private let tealDark = Color(red: 0.03, green: 0.32, blue: 0.28)
+    private var tealDark: Color { Color.brand }
 
     var body: some View {
         ScrollView {
@@ -38,11 +38,63 @@ struct ProjectDetailView: View {
                         }
                     }
 
+                    ProjectVotePanel(fairId: fairId, projectId: projectId)
+
+                    NavigationLink {
+                        EvaluateView(
+                            fairId: fairId,
+                            project: detail.asProject,
+                            onSaved: {}
+                        )
+                    } label: {
+                        Text("Calificar rúbrica")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.onBrand)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.brand))
+                    }
+                    .buttonStyle(.plain)
+
+                    if !detail.imageUrls.isEmpty || detail.coverUrl != nil || detail.logoUrl != nil {
+                        section("FOTOS") {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(gallery(detail), id: \.self) { url in
+                                        CoverImage(url: URL(string: url))
+                                            .frame(width: 140, height: 90)
+                                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if let video = detail.videoUrl, let url = URL(string: video) {
+                        Link(destination: url) {
+                            Label("Ver video", systemImage: "play.rectangle")
+                                .font(.subheadline).bold()
+                        }
+                    }
+
                     if let urlString = detail.projectUrl, let url = URL(string: urlString) {
                         Link(destination: url) {
                             Label("Abrir URL del proyecto", systemImage: "link")
                                 .font(.subheadline).bold()
                                 .foregroundColor(tealDark)
+                        }
+                    }
+
+                    if !detail.activeCriteria.isEmpty {
+                        section("CRITERIOS") {
+                            ForEach(detail.activeCriteria) { criterion in
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(criterion.name).font(.subheadline.bold())
+                                    if let description = criterion.description, !description.isEmpty {
+                                        Text(description).font(.caption).foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -132,6 +184,14 @@ struct ProjectDetailView: View {
         }
     }
 
+    private func gallery(_ detail: ProjectDetail) -> [String] {
+        var urls: [String] = []
+        if let cover = detail.coverUrl { urls.append(cover) }
+        if let logo = detail.logoUrl { urls.append(logo) }
+        urls.append(contentsOf: detail.imageUrls)
+        return urls
+    }
+
     @MainActor
     private func load() async {
         isLoading = true
@@ -140,6 +200,100 @@ struct ProjectDetailView: View {
 
         do {
             detail = try await api.send(Endpoint.projectDetail(fairId: fairId, projectId: projectId), as: ProjectDetail.self)
+        } catch {
+            errorMessage = error.userMessage
+        }
+    }
+}
+
+struct ProjectVotePanel: View {
+    let fairId: String
+    let projectId: String
+
+    @Environment(FairsStore.self) private var fairs
+    @State private var hasVoted = false
+    @State private var receipt: String?
+    @State private var errorMessage: String?
+    @State private var isWorking = false
+    @State private var confirm = false
+
+    private var fairIsReady: Bool {
+        guard let fair = (fairs.activeFairs + fairs.closedFairs).first(where: { $0.fair.id == fairId })?.fair else {
+            return true
+        }
+        guard fair.isOpen else { return false }
+        guard let startsAt = fair.startsAt else { return true }
+        let parser = ISO8601DateFormatter()
+        parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let plain = ISO8601DateFormatter()
+        plain.formatOptions = [.withInternetDateTime]
+        guard let date = parser.date(from: startsAt) ?? plain.date(from: startsAt) else { return true }
+        return date <= Date()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if hasVoted {
+                Label("Tu voto en esta feria ya fue emitido.", systemImage: "checkmark.seal")
+                    .font(.footnote.bold())
+                    .foregroundStyle(.secondary)
+            } else if fairIsReady {
+                Button("Elegir como mi voto") { confirm = true }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.brand)
+                    .disabled(isWorking)
+            }
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .task { await loadStatus() }
+        .confirmationDialog(
+            "Este voto es uno solo para toda la feria.",
+            isPresented: $confirm,
+            titleVisibility: .visible
+        ) {
+            Button("Emitir voto") { Task { await cast() } }
+            Button("Cancelar", role: .cancel) {}
+        }
+        .alert("Comprobante", isPresented: Binding(
+            get: { receipt != nil },
+            set: { if !$0 { receipt = nil } }
+        )) {
+            Button("Copiar") {
+                if let receipt {
+                    UIPasteboard.general.string = receipt
+                }
+            }
+            Button("Listo", role: .cancel) {}
+        } message: {
+            Text("Guárdalo ahora: \(receipt ?? ""). No se vuelve a mostrar.")
+        }
+    }
+
+    private func loadStatus() async {
+        guard let status = try? await APIClient.shared.send(
+            .votingStatus(fairId: fairId),
+            as: VotingStatus.self
+        ) else { return }
+        hasVoted = status.hasVoted
+    }
+
+    private func cast() async {
+        isWorking = true
+        errorMessage = nil
+        defer { isWorking = false }
+        do {
+            let result = try await APIClient.shared.send(
+                .castVote(fairId: fairId, projectId: projectId),
+                as: VoteReceipt.self
+            )
+            receipt = result.receiptCode
+            hasVoted = true
         } catch {
             errorMessage = error.userMessage
         }

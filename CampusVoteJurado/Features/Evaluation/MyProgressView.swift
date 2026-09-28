@@ -7,12 +7,12 @@ struct MyProgressView: View {
     let fairId: String
 
     @State private var progress: JuryProgress?
-    @State private var evaluations: [Evaluation] = []
+    @State private var groups: [CategoryRubricSummary] = []
     @State private var isLoading = true
     @State private var errorMessage: String?
 
     private let api = APIClient.shared
-    private let tealDark = Color(red: 0.03, green: 0.32, blue: 0.28)
+    private var tealDark: Color { Color.brand }
 
     var body: some View {
         ScrollView {
@@ -33,21 +33,20 @@ struct MyProgressView: View {
                     header(progress)
                     statsGrid(progress)
 
-                    if evaluations.isEmpty {
-                        Text("Aún no has calificado proyectos en esta feria.")
+                    if groups.isEmpty {
+                        Text("Todavía no hay rúbricas registradas en esta feria.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .padding(.vertical, 8)
                     } else {
-                        evaluatedSection(evaluations)
+                        rubricSection(groups)
                     }
                 }
             }
             .padding()
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .navigationTitle("Mi avance")
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             await load()
         }
@@ -123,34 +122,26 @@ struct MyProgressView: View {
         .cornerRadius(14)
     }
 
-    private func evaluatedSection(_ evaluations: [Evaluation]) -> some View {
+    private func rubricSection(_ groups: [CategoryRubricSummary]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("CALIFICADOS")
+            Text("POR CATEGORÍA")
                 .font(.caption).bold()
                 .foregroundColor(.secondary)
 
-            ForEach(evaluations) { evaluation in
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(evaluation.project?.name ?? "Proyecto")
-                            .font(.subheadline).bold()
-                            .lineLimit(1)
-                        if let comment = evaluation.comment, !comment.isEmpty {
-                            Text(comment)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .lineLimit(2)
-                        }
-                    }
-
-                    Spacer()
-
-                    if let total = evaluation.totalScore {
-                        Text(total.formatted(.number.precision(.fractionLength(0...1))))
-                            .font(.headline.bold().monospacedDigit())
+            ForEach(groups) { group in
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(group.categoryName)
+                        .font(.subheadline).bold()
+                    Text("Enviadas: \(group.submittedCount) · Marcados \(group.checkedCount) de \(group.criteriaCount)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    if let score = group.score {
+                        Text("Puntaje \(score.formatted(.number.precision(.fractionLength(0...2)))) de 20")
+                            .font(.caption.bold())
                             .foregroundColor(tealDark)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
                 .background(Color(.systemBackground))
                 .cornerRadius(12)
@@ -166,7 +157,7 @@ struct MyProgressView: View {
 
         do {
             progress = try await api.send(Endpoint.myProgress(fairId: fairId), as: JuryProgress.self)
-            evaluations = try await api.send(Endpoint.myEvaluations(fairId: fairId), as: [Evaluation].self)
+            groups = try await api.send(Endpoint.myRubrics(fairId: fairId), as: MyRubricsPayload.self).groups
         } catch {
             errorMessage = error.userMessage
         }

@@ -23,10 +23,6 @@ struct RootView: View {
                 case .signedOut:
                     LoginView()
 
-                // Primer acceso: la cuenta todavía no tiene autenticador.
-                case .needsSetup:
-                    TotpSetupView()
-
                 case .needsCode:
                     TotpView()
 
@@ -36,8 +32,6 @@ struct RootView: View {
             }
         }
         .task {
-            // Restaura la sesión guardada: si hay tokens válidos entra directo,
-            // si no, pasa a la pantalla de login.
             await session.restore()
         }
     }

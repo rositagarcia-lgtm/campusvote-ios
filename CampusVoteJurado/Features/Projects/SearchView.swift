@@ -1,14 +1,10 @@
 import SwiftUI
 
-/// Buscador de proyectos en modo observador (solo lectura).
-/// Usa el diseño Stitch: JuryTheme, JuryTypography y componentes reutilizables.
 struct SearchView: View {
     @Environment(FairsStore.self) private var fairsStore
     @Environment(ProjectsStore.self) private var projectsStore
-    @Environment(SessionStore.self) private var session
 
     @State private var selectedFairId: String?
-    @State private var showFilters = false
 
     private var activeFairs: [FairAssignment] {
         fairsStore.activeFairs
@@ -18,16 +14,8 @@ struct SearchView: View {
         selectedFairId ?? activeFairs.first?.fair.id
     }
 
-    private var sessionUser: User? {
-        if case .signedIn(let user) = session.phase {
-            return user
-        }
-        return nil
-    }
-
-    private var initials: String {
-        guard let user = sessionUser else { return "?" }
-        return "\(user.firstName.prefix(1))\(user.lastName.prefix(1))".uppercased()
+    private var selectedFairName: String {
+        activeFairs.first { $0.fair.id == fairId }?.fair.name ?? "Feria"
     }
 
     var body: some View {
@@ -45,7 +33,9 @@ struct SearchView: View {
                 content
             }
         }
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .background(Color.appBackground.ignoresSafeArea())
+        .navigationTitle("Buscar")
+        .navigationBarTitleDisplayMode(.large)
         .task {
             await fairsStore.fetchMyAssignments()
             if selectedFairId == nil {
@@ -64,31 +54,26 @@ struct SearchView: View {
                 }
             }
         }
-        .sheet(isPresented: $showFilters) {
-            FiltersSheet(store: projectsStore)
-                .presentationDetents([.medium])
-        }
     }
-
-    // MARK: - Contenido
 
     private var content: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                header
+            VStack(alignment: .leading, spacing: 16) {
+                if activeFairs.count > 1 {
+                    fairPicker
+                } else {
+                    Text(selectedFairName)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
 
-                fairPicker
-
-                searchBar
-
-                activeFilterChips
-
+                searchCard
+                filterCard
                 counterRow
-
                 results
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
+            .padding(.horizontal, 18)
+            .padding(.top, 8)
             .padding(.bottom, 24)
         }
         .refreshable { await refresh() }
@@ -100,23 +85,6 @@ struct SearchView: View {
         }
     }
 
-    // MARK: - Encabezado
-
-    private var header: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 2) {
-                JuryTypography.eyebrow("CAMPUSVOTE · OBSERVADOR")
-                    .foregroundStyle(.secondary)
-                JuryTypography.display("Buscar")
-                    .foregroundStyle(JuryTheme.brandDeep)
-            }
-            Spacer()
-            ProfileCircle(initials: initials, size: 44)
-        }
-    }
-
-    // MARK: - Selector de feria
-
     private var fairPicker: some View {
         Picker("Feria", selection: $selectedFairId) {
             ForEach(activeFairs) { assignment in
@@ -125,21 +93,17 @@ struct SearchView: View {
             }
         }
         .pickerStyle(.menu)
-        .tint(JuryTheme.brandDeep)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .tint(Color.brand)
     }
 
-    // MARK: - Barra de búsqueda
-
-    @ViewBuilder
-    private var searchBar: some View {
+    private var searchCard: some View {
         @Bindable var store = projectsStore
 
-        HStack(spacing: 10) {
+        return HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.brand)
 
-            TextField("Buscar proyecto o stand...", text: $store.searchText)
+            TextField("Nombre o stand", text: $store.searchText)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
                 .submitLabel(.search)
@@ -151,119 +115,118 @@ struct SearchView: View {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
                 }
+                .buttonStyle(.plain)
                 .accessibilityLabel("Limpiar búsqueda")
             }
-
-            Divider()
-                .frame(height: 18)
-
-            Button {
-                showFilters = true
-            } label: {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(JuryTheme.brandDeep)
-            }
-            .accessibilityLabel("Filtros")
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Color.cardBackground))
     }
 
-    // MARK: - Chips de filtros activos
+    private var filterCard: some View {
+        @Bindable var store = projectsStore
 
-    @ViewBuilder
-    private var activeFilterChips: some View {
-        let chips = buildActiveChips()
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("FILTROS")
+                    .font(.caption2.weight(.bold))
+                    .tracking(0.8)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                if store.searchCategoryId != nil || store.searchStandId != nil || !store.searchText.isEmpty {
+                    Button("Limpiar") {
+                        store.clearSearch()
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.brand)
+                }
+            }
 
-        if !chips.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(chips) { chip in
-                        FilterChip(label: chip.label) {
-                            chip.onRemove()
-                        }
+            filterRow(
+                title: "Categoría",
+                value: categoryName(store.searchCategoryId)
+            ) {
+                Picker("Categoría", selection: $store.searchCategoryId) {
+                    Text("Todas").tag(String?.none)
+                    ForEach(store.categories) { category in
+                        Text(category.name).tag(Optional(category.id))
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Divider()
+
+            filterRow(
+                title: "Stand",
+                value: standName(store.searchStandId)
+            ) {
+                Picker("Stand", selection: $store.searchStandId) {
+                    Text("Todos").tag(String?.none)
+                    ForEach(store.stands) { stand in
+                        Text(stand.code).tag(Optional(stand.id))
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
+    }
+
+    private func filterRow<Menu: View>(
+        title: String,
+        value: String,
+        @ViewBuilder menu: () -> Menu
+    ) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+            }
+            Spacer()
+            menu()
+                .labelsHidden()
+                .tint(Color.brand)
         }
     }
 
-    private func buildActiveChips() -> [ActiveChip] {
-        var chips: [ActiveChip] = []
-
-        if let categoryId = projectsStore.searchCategoryId,
-           let category = projectsStore.categories.first(where: { $0.id == categoryId }) {
-            chips.append(
-                ActiveChip(label: category.name) {
-                    projectsStore.searchCategoryId = nil
-                }
-            )
-        }
-        if let minScore = projectsStore.minScore {
-            chips.append(
-                ActiveChip(label: "Nota ≥ \(minScore.formatted(.number.precision(.fractionLength(0...1))))") {
-                    projectsStore.minScore = nil
-                }
-            )
-        }
-        if let maxScore = projectsStore.maxScore {
-            chips.append(
-                ActiveChip(label: "Nota ≤ \(maxScore.formatted(.number.precision(.fractionLength(0...1))))") {
-                    projectsStore.maxScore = nil
-                }
-            )
-        }
-
-        return chips
+    private func categoryName(_ id: String?) -> String {
+        guard let id else { return "Todas" }
+        return projectsStore.categories.first { $0.id == id }?.name ?? "Todas"
     }
 
-    // MARK: - Contador
+    private func standName(_ id: String?) -> String {
+        guard let id else { return "Todos" }
+        return projectsStore.stands.first { $0.id == id }?.code ?? "Todos"
+    }
 
     private var counterRow: some View {
-        HStack {
-            Text("\(projectsStore.searchResults.count) proyectos encontrados")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-
-            Spacer()
-
-            Text("MODO OBSERVADOR")
-                .font(.caption2.bold())
-                .tracking(1)
-                .foregroundStyle(.secondary)
-        }
+        Text("\(projectsStore.searchResults.count) proyectos de tus categorías")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
     }
-
-    // MARK: - Resultados
 
     @ViewBuilder
     private var results: some View {
         if let errorMessage = projectsStore.errorMessage {
             ErrorBanner(message: errorMessage)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(12)
         }
 
         if projectsStore.isLoading && projectsStore.searchResults.isEmpty {
             ProgressView("Buscando proyectos...")
                 .frame(maxWidth: .infinity, minHeight: 180)
         } else if projectsStore.searchResults.isEmpty {
-            VStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 40))
-                    .foregroundStyle(.tertiary)
-                Text("No se encontraron proyectos con estos filtros")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity, minHeight: 200)
+            ContentUnavailableView(
+                "Sin resultados",
+                systemImage: "magnifyingglass",
+                description: Text("Prueba otro nombre, otra categoría o otro stand.")
+            )
+            .frame(maxWidth: .infinity, minHeight: 220)
         } else {
             LazyVStack(spacing: 12) {
                 ForEach(projectsStore.searchResults) { result in
@@ -271,24 +234,7 @@ struct SearchView: View {
                 }
             }
         }
-
-        footerNote
     }
-
-    // MARK: - Pie
-
-    private var footerNote: some View {
-        Label(
-            "Como observador institucional, la vista de notas es de solo lectura y se sincroniza en tiempo real con las actas.",
-            systemImage: "checkmark.shield.fill"
-        )
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 4)
-    }
-
-    // MARK: - Acciones
 
     private func refresh() async {
         guard let fairId else { return }
@@ -297,129 +243,16 @@ struct SearchView: View {
     }
 }
 
-// MARK: - Chip de filtro activo (con X para remover)
-
-private struct FilterChip: View {
-    let label: String
-    let onRemove: () -> Void
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Text(label)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(JuryTheme.mintText)
-                .lineLimit(1)
-            Button(action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 13))
-                    .foregroundStyle(JuryTheme.mintText)
-            }
-            .accessibilityLabel("Quitar filtro \(label)")
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(Capsule().fill(JuryTheme.mint))
-    }
-}
-
-private struct ActiveChip: Identifiable {
-    let id = UUID()
-    let label: String
-    let onRemove: () -> Void
-}
-
-// MARK: - Hoja de filtros
-
-private struct FiltersSheet: View {
-    let store: ProjectsStore
-
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        @Bindable var store = store
-
-        NavigationStack {
-            Form {
-                Section("Categoría") {
-                    Picker("Categoría", selection: $store.searchCategoryId) {
-                        Text("Todas").tag(String?.none)
-                        ForEach(store.categories) { category in
-                            Text(category.name).tag(Optional(category.id))
-                        }
-                    }
-                }
-
-                Section("Rango de nota") {
-                    HStack {
-                        Text("Mínima")
-                        Spacer()
-                        Text("\(Int(store.minScore ?? 0))")
-                            .foregroundStyle(.secondary)
-                    }
-                    Slider(
-                        value: Binding(
-                            get: { store.minScore ?? 0 },
-                            set: { store.minScore = $0 == 0 ? nil : $0 }
-                        ),
-                        in: 0...20,
-                        step: 0.5
-                    )
-
-                    HStack {
-                        Text("Máxima")
-                        Spacer()
-                        Text("\(Int(store.maxScore ?? 20))")
-                            .foregroundStyle(.secondary)
-                    }
-                    Slider(
-                        value: Binding(
-                            get: { store.maxScore ?? 20 },
-                            set: { store.maxScore = $0 == 20 ? nil : $0 }
-                        ),
-                        in: 0...20,
-                        step: 0.5
-                    )
-                }
-
-                Section("Ordenar por") {
-                    Picker("Orden", selection: $store.sortBy) {
-                        ForEach(SearchSort.allCases) { sort in
-                            Text(sort.label).tag(sort)
-                        }
-                    }
-                    .pickerStyle(.inline)
-                }
-            }
-            .navigationTitle("Filtros")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Limpiar") {
-                        store.clearSearch()
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Listo") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Fila de resultado
-
 private struct SearchResultRow: View {
     let result: ProjectSearchResult
     let fairId: String
 
     var body: some View {
         NavigationLink(destination: ProjectDetailView(fairId: fairId, projectId: result.id)) {
-            HStack(spacing: 14) {
+            HStack(spacing: 12) {
                 CoverImage(url: result.coverUrl.flatMap { URL(string: $0) })
-                    .frame(width: 68, height: 68)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .frame(width: 64, height: 64)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(result.name)
@@ -427,51 +260,37 @@ private struct SearchResultRow: View {
                         .foregroundStyle(.primary)
                         .lineLimit(2)
 
-                    if let standCode = result.standCode, !standCode.isEmpty {
-                        Text("Stand \(standCode)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    if let category = result.categoryName {
-                        Chip(text: category, background: JuryTheme.surface, textColor: Color.secondary)
-                    }
-                }
-
-                Spacer(minLength: 8)
-
-                VStack(alignment: .trailing, spacing: 3) {
-                    if let average = result.averageScore {
-                        Text(average.formatted(.number.precision(.fractionLength(1))))
-                            .font(.system(size: 22, weight: .heavy, design: .rounded))
-                            .foregroundStyle(JuryTheme.brandDeep)
-                        Text("\(result.ratingsCount ?? 0) cal.")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("—")
-                            .font(.system(size: 22, weight: .heavy, design: .rounded))
-                            .foregroundStyle(.secondary)
+                    HStack(spacing: 8) {
+                        if let standCode = result.standCode, !standCode.isEmpty {
+                            Text(standCode)
+                                .font(.caption.bold())
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.brandGold.opacity(0.2))
+                                .foregroundStyle(Color.brandGold)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
+                        if let category = result.categoryName, !category.isEmpty {
+                            Text(category)
+                                .font(.caption)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.brand.opacity(0.12))
+                                .foregroundStyle(Color.brand)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
                     }
                 }
+
+                Spacer(minLength: 4)
 
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.tertiary)
             }
-            .padding(14)
-            .background(RoundedRectangle(cornerRadius: 20).fill(.white))
-            .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 14).fill(Color.cardBackground))
         }
         .buttonStyle(.plain)
     }
-}
-
-// MARK: - Previews
-
-#Preview {
-    SearchView()
-        .environment(FairsStore(api: APIClient.shared))
-        .environment(ProjectsStore(api: APIClient.shared))
-        .environment(SessionStore(api: APIClient.shared))
 }

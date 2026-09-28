@@ -1,9 +1,5 @@
 import Foundation
 
-/// Resultado de la búsqueda de proyectos en modo observador.
-/// El backend devuelve el proyecto (mapApprovedProject) más sus agregados
-/// de calificación (average_score, ratings_count). Los agregados son
-/// opcionales: si el backend aún no los incluye, la UI oculta la nota.
 struct ProjectSearchResult: Decodable, Identifiable, Hashable {
     let id: String
     let fairId: String?
@@ -16,10 +12,24 @@ struct ProjectSearchResult: Decodable, Identifiable, Hashable {
     let categoryName: String?
     let standId: String?
     let standCode: String?
-    /// Nota promedio de todas las calificaciones del proyecto.
     let averageScore: Double?
-    /// Cantidad de calificaciones recibidas.
     let ratingsCount: Int?
+
+    init(project: Project) {
+        id = project.id
+        fairId = project.fairId
+        name = project.name
+        description = project.description
+        logoUrl = project.logoUrl
+        coverUrl = project.coverUrl
+        status = project.status
+        categoryId = project.categoryId
+        categoryName = project.categoryName
+        standId = project.standId
+        standCode = project.standCode
+        averageScore = nil
+        ratingsCount = nil
+    }
 
     private struct NestedItem: Decodable {
         let id: String
@@ -71,7 +81,6 @@ struct ProjectSearchResult: Decodable, Identifiable, Hashable {
     }
 }
 
-/// Orden de los resultados de la búsqueda (parámetro `sort` del backend).
 enum SearchSort: String, CaseIterable, Identifiable {
     case name = "name"
     case scoreDesc = "score_desc"

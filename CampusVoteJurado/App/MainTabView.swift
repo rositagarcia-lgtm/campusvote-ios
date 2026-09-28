@@ -84,36 +84,51 @@ private struct MiAvanceTab: View {
     }
 
     var body: some View {
-        Group {
-            if fairsStore.isLoading && fairs.isEmpty {
-                ProgressView("Cargando ferias...")
-            } else if fairs.isEmpty {
-                ContentUnavailableView(
-                    "Sin ferias",
-                    systemImage: "chart.bar.xaxis",
-                    description: Text("Cuando tengas una feria asignada, aquí verás tu avance.")
-                )
-            } else {
-                VStack(alignment: .leading, spacing: 0) {
-                    if fairs.count > 1 {
-                        Picker("Feria", selection: $selectedFairId) {
-                            ForEach(fairs) { assignment in
-                                Text(assignment.fair.name)
-                                    .tag(Optional(assignment.fair.id))
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .padding(.horizontal)
-                        .padding(.top, 8)
-                    }
+        VStack(spacing: 0) {
+            Text("Mi avance")
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 8)
+                .padding(.bottom, 12)
 
-                    if let fairId = selectedFairId {
-                        MyProgressView(fairId: fairId)
-                            .id(fairId)
+            Divider()
+
+            Group {
+                if fairsStore.isLoading && fairs.isEmpty {
+                    ProgressView("Cargando ferias...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if fairs.isEmpty {
+                    ContentUnavailableView(
+                        "Sin ferias",
+                        systemImage: "chart.bar.xaxis",
+                        description: Text("Cuando tengas una feria asignada, aquí verás tu avance.")
+                    )
+                } else {
+                    VStack(alignment: .leading, spacing: 0) {
+                        if fairs.count > 1 {
+                            Picker("Feria", selection: $selectedFairId) {
+                                ForEach(fairs) { assignment in
+                                    Text(assignment.fair.name)
+                                        .tag(Optional(assignment.fair.id))
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .padding(.horizontal)
+                            .padding(.top, 8)
+                        }
+
+                        if let fairId = selectedFairId {
+                            MyProgressView(fairId: fairId)
+                                .id(fairId)
+                        }
                     }
                 }
             }
+            .padding(.top, 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
+        .background(Color.appBackground.ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             await fairsStore.fetchMyAssignments()
             if selectedFairId == nil {

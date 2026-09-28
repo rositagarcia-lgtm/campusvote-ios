@@ -5,16 +5,13 @@ struct ProjectListView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(FairsStore.self) private var fairsStore
 
-    /// true cuando la pantalla viene del flujo de Ferias (muestra el botón atrás).
     var showsFairsBack: Bool = true
 
-    @State private var showRanking = false
-
-    private let tealDark = Color(red: 0.03, green: 0.32, blue: 0.28)
-    private let tealLight = Color(red: 0.88, green: 0.96, blue: 0.93)
+    private var tealDark: Color { Color.brand }
+    private var tealLight: Color { Color.brand.opacity(0.15) }
     private let goldBadgeBg = Color(red: 0.99, green: 0.95, blue: 0.82)
     private let goldBadgeTxt = Color(red: 0.55, green: 0.40, blue: 0.05)
-    private let bannerBg = Color(red: 0.02, green: 0.22, blue: 0.19)
+    private var bannerBg: Color { Color.brand }
 
     private var tituloInstitucion: String {
         let nombre = (fairsStore.activeFairs + fairsStore.closedFairs)
@@ -48,13 +45,6 @@ struct ProjectListView: View {
                 }
 
                 Spacer()
-
-                Button(action: { showRanking = true }) {
-                    Image(systemName: "list.number")
-                        .font(.title3)
-                        .foregroundColor(.gray)
-                }
-                .accessibilityLabel("Ranking provisional")
             }
             .padding(.horizontal)
             .padding(.top, 8)
@@ -134,14 +124,9 @@ struct ProjectListView: View {
                             LazyVStack(spacing: 12) {
                                 ForEach(currentList) { project in
                                     NavigationLink(
-                                        destination: EvaluateView(
+                                        destination: ProjectDetailView(
                                             fairId: viewModel.fairId,
-                                            project: project,
-                                            onSaved: {
-                                                Task {
-                                                    await viewModel.loadProjects()
-                                                }
-                                            }
+                                            projectId: project.id
                                         )
                                     ) {
                                         ProjectRowCard(
@@ -159,7 +144,7 @@ struct ProjectListView: View {
                         }
                     }
 
-                    Text("Toque cualquier proyecto para ingresar la rúbrica de calificación oficial y comentarios de jurado.")
+                    Text("Toca un proyecto para ver el detalle, la rúbrica y el voto.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -205,9 +190,6 @@ struct ProjectListView: View {
         }
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
         .navigationBarHidden(true)
-        .navigationDestination(isPresented: $showRanking) {
-            RankingView(fairId: viewModel.fairId, categoryId: nil)
-        }
         .task {
             await viewModel.loadProjects()
         }

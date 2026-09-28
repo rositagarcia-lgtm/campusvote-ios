@@ -8,15 +8,25 @@ struct ProjectRowCard: View {
     let tealBg: Color
     let tealTxt: Color
 
+    private var imageURL: URL? {
+        if let cover = project.coverUrl, let url = URL(string: cover) { return url }
+        if let logo = project.logoUrl, let url = URL(string: logo) { return url }
+        return nil
+    }
+
     var body: some View {
         HStack(spacing: 12) {
+            CoverImage(url: imageURL)
+                .frame(width: 64, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+
             VStack(alignment: .leading, spacing: 6) {
                 Text(project.name)
                     .font(.headline)
                     .foregroundColor(.primary)
                     .lineLimit(2)
 
-                if let description = project.description {
+                if let description = project.description, !description.isEmpty {
                     Text(description)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
@@ -33,7 +43,6 @@ struct ProjectRowCard: View {
                             .foregroundColor(goldTxt)
                             .cornerRadius(6)
                     }
-
                     if let category = project.category {
                         Text(category)
                             .font(.caption)

@@ -202,8 +202,8 @@ struct LoginView: View {
                 .foregroundStyle(Color.brandGold)
 
             Text(
-                "Si tu cuenta tiene verificación en dos pasos, " +
-                "te pediremos el código de 6 dígitos en el siguiente paso."
+                "Te enviaremos un código de 6 dígitos a tu correo. " + 
+                "Caduca en 10 minutos."
             )
             .font(.system(size: 12))
             .foregroundStyle(.secondary)

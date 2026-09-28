@@ -34,62 +34,54 @@ final class ProjectsViewModel {
         defer { isLoading = false }
 
         do {
-            async let progressTask = api.send(
-                Endpoint.myProgress(fairId: fairId),
-                as: JuryProgress.self
-            )
             async let projectsTask = api.send(
                 Endpoint.projects(fairId: fairId),
                 as: [Project].self
             )
-            async let evaluationsTask = api.send(
-                Endpoint.myEvaluations(fairId: fairId),
-                as: [Evaluation].self
+            async let assignmentTask = api.send(
+                Endpoint.assignment(fairId: fairId),
+                as: AssignedFair.self
             )
 
-            let (progress, projects, evaluations) = try await (
-                progressTask,
-                projectsTask,
-                evaluationsTask
-            )
-
-            if let fairName = progress.fairName, !fairName.isEmpty {
-                self.fairName = fairName
+            let projects = try await projectsTask
+            if let assigned = try? await assignmentTask {
+                fairName = assigned.name
+                if !assigned.heading.isEmpty {
+                    juryTable = assigned.heading
+                }
             }
 
-            let evaluatedIds = Set(evaluations.compactMap(\.resolvedProjectId))
-
-            // Calificados: los que ya tienen evaluación propia. Si el proyecto no
-            // aparece en la lista (p. ej. cambió de estado), se usa el proyectito
-            // que trae la evaluación.
+            let submitted = await submittedProjectIds(in: projects)
             evaluatedProjects = projects
-                .filter { evaluatedIds.contains($0.id) }
-                + evaluations
-                    .compactMap { evaluation -> Project? in
-                        guard
-                            let nested = evaluation.project,
-                            !projects.contains(where: { $0.id == nested.id })
-                        else {
-                            return nil
-                        }
-                        return Project(
-                            id: nested.id,
-                            fairId: fairId,
-                            name: nested.name,
-                            description: nested.description,
-                            status: nested.status
-                        )
-                    }
-
+                .filter { submitted.contains($0.id) }
+                .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
             pendingProjects = projects
-                .filter { !evaluatedIds.contains($0.id) }
+                .filter { !submitted.contains($0.id) }
                 .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-
-            evaluatedProjects = evaluatedProjects
-                .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-
         } catch {
             errorMessage = error.userMessage
+        }
+    }
+
+    private func submittedProjectIds(in projects: [Project]) async -> Set<String> {
+        let fairId = fairId
+        return await withTaskGroup(of: String?.self) { group in
+            for project in projects {
+                group.addTask {
+                    guard let saved = try? await APIClient.shared.send(
+                        .projectRubric(fairId: fairId, projectId: project.id),
+                        as: SavedRubric.self
+                    ), saved.isSubmitted else {
+                        return nil
+                    }
+                    return project.id
+                }
+            }
+            var ids = Set<String>()
+            for await id in group {
+                if let id { ids.insert(id) }
+            }
+            return ids
         }
     }
 }

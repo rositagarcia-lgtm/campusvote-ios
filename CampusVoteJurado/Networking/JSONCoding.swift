@@ -1,17 +1,9 @@
 import Foundation
 
-/// Decodificador y codificador que entienden el formato del backend.
 enum JSONCoding {
-    /// Respuestas: claves snake_case y fechas ISO 8601 con milisegundos.
-    /// El decoder usa claves tal cual (useDefaultKeys) porque todos los modelos
-    /// declaran sus CodingKeys con el nombre exacto del backend (first_name,
-    /// fair_id, refreshToken…). Convertir de snake_case a camelCase automáticamente
-    /// rompería los CodingKeys explícitos de snake_case (firstName = "first_name").
     static func makeDecoder() -> JSONDecoder {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .useDefaultKeys
-        // El .iso8601 de JSONDecoder no acepta milisegundos ("2026-09-14T12:04:02.978Z").
-        // El código va dentro del cierre para que funcione con cualquier aislamiento de Xcode.
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let text = try container.decode(String.self)
@@ -36,9 +28,19 @@ enum JSONCoding {
         return decoder
     }
 
-    /// Cuerpos de las peticiones: sin estrategia de claves. Cada cuerpo declara sus
-    /// CodingKeys, porque el backend mezcla estilos (project_id, pero refreshToken).
     static func makeEncoder() -> JSONEncoder {
         JSONEncoder()
+    }
+}
+
+struct AnyEncodable: Encodable {
+    private let encodeFunc: (Encoder) throws -> Void
+
+    init(_ wrapped: any Encodable) {
+        encodeFunc = wrapped.encode
+    }
+
+    func encode(to encoder: Encoder) throws {
+        try encodeFunc(encoder)
     }
 }

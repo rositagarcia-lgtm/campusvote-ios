@@ -1,6 +1,5 @@
 import Foundation
 
-/// Puntuación de un criterio al enviar una evaluación.
 struct ScoreInput: Codable {
     let criterionId: String
     let score: Double
@@ -11,7 +10,6 @@ struct ScoreInput: Codable {
     }
 }
 
-/// Cuerpo de POST/PUT /fairs/:id/evaluations.
 struct EvaluationInput: Codable {
     let projectId: String
     let comment: String?
@@ -24,7 +22,6 @@ struct EvaluationInput: Codable {
     }
 }
 
-/// Evaluación tal como la devuelve el backend (mapEvaluation).
 struct Evaluation: Decodable, Identifiable {
     let id: String
     let fairId: String?
@@ -54,8 +51,6 @@ struct Evaluation: Decodable, Identifiable {
     }
 
     let details: [Detail]?
-
-    /// Proyecto embebido (mapEvaluation.project): { id, name, description, status }.
     let project: NestedProject?
 
     struct NestedProject: Decodable {
@@ -65,7 +60,6 @@ struct Evaluation: Decodable, Identifiable {
         let status: String?
     }
 
-    /// El backend a veces manda `project_id` y a veces solo `project.id`.
     var resolvedProjectId: String? {
         projectId ?? project?.id
     }
@@ -84,7 +78,6 @@ struct Evaluation: Decodable, Identifiable {
     }
 }
 
-/// Panel de avance del JURY en una feria (GET /fairs/my-progress/:fairId).
 struct JuryProgress: Decodable {
     let fairId: String
     let fairName: String?
@@ -95,13 +88,11 @@ struct JuryProgress: Decodable {
     let pendingProjects: Int
     let progressPercentage: Double?
 
-    /// Nombres que ya usaban las pantallas.
     var evaluatedProjects: Int { completedProjects }
     var remaining: Int { pendingProjects }
 
-    /// Ya firmó la declaración de conflicto de interés de esta feria.
     var declarationSigned: Bool {
-        declaration?.signedAt?.isEmpty == false
+        declaration?.signed == true || declaration?.signedAt?.isEmpty == false
     }
 
     enum CodingKeys: String, CodingKey {
@@ -113,5 +104,17 @@ struct JuryProgress: Decodable {
         case completedProjects = "completed_projects"
         case pendingProjects = "pending_projects"
         case progressPercentage = "progress_percentage"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        fairId = try container.decodeIfPresent(String.self, forKey: .fairId) ?? ""
+        fairName = try container.decodeIfPresent(String.self, forKey: .fairName)
+        fairStatus = try container.decodeIfPresent(String.self, forKey: .fairStatus)
+        declaration = try container.decodeIfPresent(Declaration.self, forKey: .declaration)
+        totalProjects = try container.decodeIfPresent(Int.self, forKey: .totalProjects) ?? 0
+        completedProjects = try container.decodeIfPresent(Int.self, forKey: .completedProjects) ?? 0
+        pendingProjects = try container.decodeIfPresent(Int.self, forKey: .pendingProjects) ?? 0
+        progressPercentage = try container.decodeIfPresent(Double.self, forKey: .progressPercentage)
     }
 }
