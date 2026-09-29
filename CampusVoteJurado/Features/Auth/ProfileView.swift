@@ -4,6 +4,7 @@ import UIKit
 
 struct ProfileView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(TabBarVisibility.self) private var tabBar
     @State private var profile: JuryProfile?
     @State private var localAvatar: UIImage?
     @State private var isLoading = false
@@ -15,6 +16,7 @@ struct ProfileView: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var showEdit = false
     @State private var showPassword = false
+    @State private var avatarHidden = ProfileAvatarStore.isHidden
 
     private var institutionName: String {
         if let name = InstitutionAppearance.name, !name.isEmpty { return name }
@@ -22,70 +24,104 @@ struct ProfileView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 22) {
-                header
-
-                if let errorMessage {
-                    ErrorBanner(message: errorMessage)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                section(title: "DATOS ACADÉMICOS") {
-                    infoRow("Institución", institutionName)
-                    Divider()
-                    infoRow("Código institucional", profile?.institutionalId ?? "—")
-                    Divider()
-                    infoRow("Documento", profile?.documentLine ?? "—")
-                }
-
-                section(title: "SEGURIDAD Y CUENTA") {
-                    actionRow(icon: "person", title: "Editar datos") { showEdit = true }
-                    Divider()
-                    actionRow(icon: "lock", title: "Cambiar contraseña") { showPassword = true }
-                }
-
-                Button(action: logout) {
-                    HStack(spacing: 8) {
-                        if isLoggingOut {
-                            ProgressView()
-                        } else {
-                            Image(systemName: "rectangle.portrait.and.arrow.right")
-                        }
-                        Text("Cerrar sesión")
-                            .font(.subheadline.bold())
-                    }
-                    .foregroundStyle(.red)
+        VStack(spacing: 0) {
+            VStack(spacing: 0) {
+                Text("Perfil")
+                    .font(.headline)
+                    .foregroundStyle(Color.onBrand)
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                }
-                .disabled(isLoggingOut)
-                .padding(.top, 4)
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
+
+                Rectangle()
+                    .fill(Color.onBrand.opacity(0.35))
+                    .frame(height: 0.5)
             }
-            .padding(.horizontal)
-            .padding(.bottom, 28)
+            .background(Color.brand.ignoresSafeArea(edges: .top))
+
+            ScrollView {
+                VStack(spacing: 22) {
+                    avatarBlock
+
+                    if let errorMessage {
+                        ErrorBanner(message: errorMessage)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    section(title: "DATOS ACADÉMICOS") {
+                        infoRow("Institución", institutionName)
+                        Divider()
+                        infoRow("Código institucional", profile?.institutionalId ?? "—")
+                        Divider()
+                        infoRow("Documento", profile?.documentLine ?? "—")
+                    }
+
+                    section(title: "SEGURIDAD Y CUENTA") {
+                        actionRow(icon: "person", title: "Editar datos") { showEdit = true }
+                        Divider()
+                        actionRow(icon: "lock", title: "Cambiar contraseña") { showPassword = true }
+                    }
+
+                    Button(action: logout) {
+                        HStack(spacing: 8) {
+                            if isLoggingOut {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "rectangle.portrait.and.arrow.right")
+                            }
+                            Text("Cerrar sesión")
+                                .font(.subheadline.bold())
+                        }
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.cardBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .disabled(isLoggingOut)
+                    .padding(.top, 4)
+                }
+                .padding(.horizontal)
+                .padding(.top, 12)
+                .padding(.bottom, 28)
+            }
         }
         .background(Color.appBackground.ignoresSafeArea())
-        .navigationTitle("Perfil")
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
         .task { await load() }
-        .sheet(isPresented: $showPhotoMenu) {
-            PhotoSourceSheet(
-                canUseCamera: UIImagePickerController.isSourceTypeAvailable(.camera),
-                onGallery: {
-                    showPhotoMenu = false
-                    showLibrary = true
-                },
-                onCamera: {
-                    showPhotoMenu = false
-                    showCamera = true
+        .onChange(of: showPhotoMenu) { _, visible in
+            tabBar.isHidden = visible
+        }
+        .onDisappear {
+            tabBar.isHidden = false
+        }
+        .overlay {
+            if showPhotoMenu {
+                ZStack(alignment: .bottom) {
+                    Color.black.opacity(0.35)
+                        .ignoresSafeArea()
+                        .onTapGesture { showPhotoMenu = false }
+
+                    PhotoSourceSheet(
+                        onClose: { showPhotoMenu = false },
+                        onCamera: {
+                            showPhotoMenu = false
+                            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                                showCamera = true
+                            }
+                        },
+                        onGallery: {
+                            showPhotoMenu = false
+                            showLibrary = true
+                        },
+                        onDelete: {
+                            showPhotoMenu = false
+                            deleteAvatar()
+                        }
+                    )
                 }
-            )
-            .presentationDetents([.height(230)])
-            .presentationDragIndicator(.hidden)
-            .presentationCornerRadius(12)
+                .ignoresSafeArea()
+            }
         }
         .photosPicker(isPresented: $showLibrary, selection: $photoItem, matching: .images)
         .onChange(of: photoItem) { _, item in
@@ -103,20 +139,16 @@ struct ProfileView: View {
                 EditProfileSheet(profile: profile) { updated in
                     self.profile = updated
                 }
-                .presentationDetents([.large])
-                .presentationDragIndicator(.hidden)
-                .presentationCornerRadius(12)
+                .juryBottomSheet(background: Color.appBackground)
             }
         }
         .sheet(isPresented: $showPassword) {
             ChangePasswordSheet()
-                .presentationDetents([.large])
-                .presentationDragIndicator(.hidden)
-                .presentationCornerRadius(12)
+                .juryBottomSheet(background: Color.appBackground)
         }
     }
 
-    private var header: some View {
+    private var avatarBlock: some View {
         VStack(spacing: 12) {
             ZStack(alignment: .bottomTrailing) {
                 avatar
@@ -165,7 +197,7 @@ struct ProfileView: View {
             Image(uiImage: localAvatar)
                 .resizable()
                 .scaledToFill()
-        } else if let url = profile?.avatarURL {
+        } else if !avatarHidden, let url = profile?.avatarURL {
             AsyncImage(url: url) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
@@ -234,6 +266,7 @@ struct ProfileView: View {
         errorMessage = nil
         defer { isLoading = false }
         localAvatar = ProfileAvatarStore.load()
+        avatarHidden = ProfileAvatarStore.isHidden
         do {
             profile = try await APIClient.shared.send(
                 Endpoint(path: "users/me", method: "GET"),
@@ -260,7 +293,14 @@ struct ProfileView: View {
 
     private func storeAvatar(_ image: UIImage) {
         localAvatar = image
+        avatarHidden = false
         ProfileAvatarStore.save(image)
+    }
+
+    private func deleteAvatar() {
+        localAvatar = nil
+        avatarHidden = true
+        ProfileAvatarStore.delete()
     }
 
     private func logout() {
@@ -269,56 +309,95 @@ struct ProfileView: View {
     }
 }
 
-private struct PhotoSourceSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    let canUseCamera: Bool
-    let onGallery: () -> Void
-    let onCamera: () -> Void
+private struct SheetTopBar: View {
+    let title: String
+    let onClose: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        ZStack {
+            Text(title)
+                .font(.headline)
+
             HStack {
-                Text("Foto de perfil")
-                    .font(.headline)
                 Spacer()
-                Button {
-                    dismiss()
-                } label: {
+                Button(action: onClose) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.primary)
                         .frame(width: 32, height: 32)
-                        .background(Circle().fill(Color(.systemGray5)))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Cerrar")
             }
-            .padding(.bottom, 8)
-
-            Button(action: onGallery) {
-                Label("Galería", systemImage: "photo.on.rectangle")
-                    .font(.subheadline.weight(.semibold))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 12)
-            }
-            .buttonStyle(.plain)
-
-            if canUseCamera {
-                Divider()
-                Button(action: onCamera) {
-                    Label("Tomarse foto", systemImage: "camera")
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 12)
-                }
-                .buttonStyle(.plain)
-            }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 18)
         .padding(.top, 18)
-        .padding(.bottom, 12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Color.cardBackground)
+        .padding(.bottom, 10)
+    }
+}
+
+private extension View {
+    func juryBottomSheet(height: CGFloat? = nil, background: Color) -> some View {
+        let sheet = self
+            .presentationDragIndicator(.hidden)
+            .presentationCornerRadius(12)
+            .presentationBackground(background)
+        if let height {
+            return AnyView(sheet.presentationDetents([.height(height)]))
+        }
+        return AnyView(sheet.presentationDetents([.large]))
+    }
+}
+
+private struct PhotoSourceSheet: View {
+    let onClose: () -> Void
+    let onCamera: () -> Void
+    let onGallery: () -> Void
+    let onDelete: () -> Void
+
+    private let deleteColor = Color(red: 0.86, green: 0.18, blue: 0.38)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            SheetTopBar(title: "Edición de foto", onClose: onClose)
+
+            photoRow(icon: "camera", title: "Tomar una foto", color: .primary, action: onCamera)
+            photoRow(icon: "photo", title: "Elegir de la galería", color: .primary, action: onGallery)
+            photoRow(icon: "trash", title: "Eliminar foto", color: deleteColor, action: onDelete)
+        }
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, alignment: .top)
+        .background(
+            Color.cardBackground
+                .ignoresSafeArea(edges: .bottom)
+        )
+        .clipShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: 12,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: 12
+            )
+        )
+    }
+
+    private func photoRow(icon: String, title: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 17))
+                    .frame(width: 24)
+                Text(title)
+                    .font(.subheadline)
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(color)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 13)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -339,7 +418,9 @@ private struct EditProfileSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            SheetTopBar(title: "Editar datos") { dismiss() }
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     field("Nombres", text: $firstName)
@@ -393,21 +474,9 @@ private struct EditProfileSheet: View {
                 }
                 .padding()
             }
-            .background(Color.appBackground.ignoresSafeArea())
-            .navigationTitle("Editar datos")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .bold))
-                    }
-                    .accessibilityLabel("Cerrar")
-                }
-            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color.appBackground)
     }
 
     private func field(_ title: String, text: Binding<String>) -> some View {
@@ -488,7 +557,9 @@ private struct ChangePasswordSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        VStack(spacing: 0) {
+            SheetTopBar(title: "Contraseña") { dismiss() }
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     HStack(spacing: 12) {
@@ -556,21 +627,9 @@ private struct ChangePasswordSheet: View {
                 }
                 .padding()
             }
-            .background(Color.appBackground.ignoresSafeArea())
-            .navigationTitle("Contraseña")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .bold))
-                    }
-                    .accessibilityLabel("Cerrar")
-                }
-            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color.appBackground)
     }
 
     private func secretField(_ title: String, text: Binding<String>, visible: Binding<Bool>, prompt: String) -> some View {
@@ -708,19 +767,31 @@ private struct PasswordUpdate: Encodable {
 }
 
 private enum ProfileAvatarStore {
+    private static let hiddenKey = "campusvote.jury.avatar.hidden"
+
     private static var fileURL: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("jury-profile-avatar.jpg")
     }
 
+    static var isHidden: Bool {
+        UserDefaults.standard.bool(forKey: hiddenKey)
+    }
+
     static func save(_ image: UIImage) {
         guard let data = image.jpegData(compressionQuality: 0.85) else { return }
         try? data.write(to: fileURL, options: .atomic)
+        UserDefaults.standard.set(false, forKey: hiddenKey)
     }
 
     static func load() -> UIImage? {
-        guard let data = try? Data(contentsOf: fileURL) else { return nil }
+        guard !isHidden, let data = try? Data(contentsOf: fileURL) else { return nil }
         return UIImage(data: data)
+    }
+
+    static func delete() {
+        try? FileManager.default.removeItem(at: fileURL)
+        UserDefaults.standard.set(true, forKey: hiddenKey)
     }
 }
 

@@ -39,6 +39,12 @@ struct DeclarationView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    if !contexto.isEmpty {
+                        Text(contexto)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
                     Image("banner_principal")
                         .resizable()
                         .scaledToFill()
@@ -63,11 +69,11 @@ struct DeclarationView: View {
                         .background(RoundedRectangle(cornerRadius: 12).fill(Color.brand.opacity(0.08)))
 
                     HStack(alignment: .center, spacing: 12) {
-                        Image(systemName: "person.text.rectangle.fill")
+                        Image(systemName: "person.text.rectangle")
                             .font(.body)
-                            .foregroundStyle(Color.onBrand)
+                            .foregroundStyle(Color.brand)
                             .frame(width: 40, height: 40)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.brand))
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.brand.opacity(0.12)))
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text("IDENTIDAD DEL JURADO")
@@ -177,16 +183,17 @@ struct DeclarationView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(spacing: 0) {
             ZStack {
                 Text("Declaración")
                     .font(.headline)
+                    .foregroundStyle(Color.onBrand)
 
                 HStack {
                     Button(action: onBack) {
                         Image(systemName: "chevron.left")
                             .font(.body.weight(.semibold))
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(Color.onBrand)
                             .frame(width: 28, height: 28, alignment: .leading)
                     }
                     .buttonStyle(.plain)
@@ -197,19 +204,12 @@ struct DeclarationView: View {
             .padding(.top, 8)
             .padding(.bottom, 12)
 
-            Divider()
-
-            if !contexto.isEmpty {
-                Text(contexto)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 18)
-                    .padding(.top, 14)
-                    .padding(.bottom, 12)
-            }
+            Rectangle()
+                .fill(Color.onBrand.opacity(0.35))
+                .frame(height: 0.5)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.appBackground.ignoresSafeArea(edges: .top))
+        .background(Color.brand.ignoresSafeArea(edges: .top))
     }
 
     private var detalleJurado: String {

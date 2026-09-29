@@ -10,7 +10,7 @@ struct RankingView: View {
     @State private var selectedTab = 0
 
     private var fair: Fair? {
-        fairsStore.activeFairs
+        (fairsStore.activeFairs + fairsStore.closedFairs)
             .first(where: { $0.fair.id == fairId })?
             .fair
     }
@@ -55,8 +55,7 @@ struct RankingView: View {
             .padding(.vertical, 16)
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("Ranking provisional")
-        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             await rankingStore.load(fairId: fairId)
         }
@@ -66,27 +65,22 @@ struct RankingView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
-
             HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Ranking provisional")
-                        .font(.title2.bold())
-
-                    Text(fair?.name ?? "Feria de proyectos")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+                Text(fair?.name ?? "Feria de proyectos")
+                    .font(.subheadline.weight(.semibold))
 
                 Spacer()
 
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(.green)
-                        .frame(width: 8, height: 8)
+                if fair?.isOpen == true {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(.green)
+                            .frame(width: 8, height: 8)
 
-                    Text("EN VIVO")
-                        .font(.caption.bold())
-                        .foregroundStyle(.green)
+                        Text("EN VIVO")
+                            .font(.caption.bold())
+                            .foregroundStyle(.green)
+                    }
                 }
             }
 

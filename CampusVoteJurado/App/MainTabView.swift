@@ -8,7 +8,7 @@ struct MainTabView: View {
     private let pestanas: [(icono: String, titulo: String)] = [
         ("building.columns", "Ferias"),
         ("chart.bar.xaxis", "Mi avance"),
-        ("magnifyingglass", "Buscar"),
+        ("list.number", "Ranking"),
         ("person.circle", "Perfil"),
     ]
 
@@ -26,7 +26,7 @@ struct MainTabView: View {
             .tag(1)
 
             NavigationStack {
-                SearchView()
+                RankingTab()
             }
             .toolbar(.hidden, for: .tabBar)
             .tag(2)
@@ -84,14 +84,71 @@ private struct MiAvanceTab: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Text("Mi avance")
-                .font(.headline)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 8)
-                .padding(.bottom, 12)
+        Group {
+            if fairsStore.isLoading && fairs.isEmpty {
+                ProgressView("Cargando ferias...")
+            } else if fairs.isEmpty {
+                ContentUnavailableView(
+                    "Sin ferias",
+                    systemImage: "chart.bar.xaxis",
+                    description: Text("Cuando tengas una feria asignada, aquí verás tu avance.")
+                )
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    if fairs.count > 1 {
+                        Picker("Feria", selection: $selectedFairId) {
+                            ForEach(fairs) { assignment in
+                                Text(assignment.fair.name)
+                                    .tag(Optional(assignment.fair.id))
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                    }
 
-            Divider()
+                    if let fairId = selectedFairId {
+                        MyProgressView(fairId: fairId)
+                            .id(fairId)
+                    }
+                }
+            }
+        }
+        .task {
+            await fairsStore.fetchMyAssignments()
+            if selectedFairId == nil {
+                selectedFairId = fairs.first?.fair.id
+            }
+        }
+    }
+}
+
+/// Ranking de la feria abierta. Si hay varias, el jurado elige cuál ver.
+private struct RankingTab: View {
+    @Environment(FairsStore.self) private var fairsStore
+    @State private var selectedFairId: String?
+
+    private var fairs: [FairAssignment] {
+        let open = fairsStore.activeFairs.filter { $0.fair.isOpen }
+        if !open.isEmpty { return open }
+        return fairsStore.activeFairs + fairsStore.closedFairs
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 0) {
+                Text("Ranking")
+                    .font(.headline)
+                    .foregroundStyle(Color.onBrand)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
+
+                Rectangle()
+                    .fill(Color.onBrand.opacity(0.35))
+                    .frame(height: 0.5)
+            }
+            .background(Color.brand.ignoresSafeArea(edges: .top))
 
             Group {
                 if fairsStore.isLoading && fairs.isEmpty {
@@ -100,8 +157,8 @@ private struct MiAvanceTab: View {
                 } else if fairs.isEmpty {
                     ContentUnavailableView(
                         "Sin ferias",
-                        systemImage: "chart.bar.xaxis",
-                        description: Text("Cuando tengas una feria asignada, aquí verás tu avance.")
+                        systemImage: "list.number",
+                        description: Text("Cuando tengas una feria asignada, aquí verás el ranking.")
                     )
                 } else {
                     VStack(alignment: .leading, spacing: 0) {
@@ -113,21 +170,20 @@ private struct MiAvanceTab: View {
                                 }
                             }
                             .pickerStyle(.menu)
+                            .tint(Color.brand)
                             .padding(.horizontal)
                             .padding(.top, 8)
                         }
 
                         if let fairId = selectedFairId {
-                            MyProgressView(fairId: fairId)
+                            RankingView(fairId: fairId, categoryId: nil)
                                 .id(fairId)
                         }
                     }
                 }
             }
-            .padding(.top, 12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        .background(Color.appBackground.ignoresSafeArea())
+        .background(Color.appBackground)
         .toolbar(.hidden, for: .navigationBar)
         .task {
             await fairsStore.fetchMyAssignments()
