@@ -77,7 +77,7 @@ struct RankingView: View {
                             .fill(.green)
                             .frame(width: 8, height: 8)
 
-                        Text("EN VIVO")
+                        Text("ABIERTO")
                             .font(.caption.bold())
                             .foregroundStyle(.green)
                     }
