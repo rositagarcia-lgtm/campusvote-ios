@@ -1,7 +1,18 @@
 import Foundation
 
+extension Notification.Name {
+    /// La sesión del jurado ya no es válida. SessionStore vuelve al login.
+    static let campusVoteSessionExpired = Notification.Name("campusvote.session.expired")
+}
+
+/// Cliente HTTP que habla con el backend de CampusVote.
+///
+/// Cada respuesta viaja en un envelope `{ success, message, data }`.
+/// `send(_:as:)` desempaqueta `data`. Un 401 con el token de sesión cierra la sesión.
 final class APIClient: Sendable {
     static let shared = APIClient()
+
+    // MARK: - Envelope
 
     private struct Envelope<Payload: Decodable>: Decodable {
         let success: Bool
@@ -12,6 +23,8 @@ final class APIClient: Sendable {
     private struct VoidPayload: Decodable {}
 
     private init() {}
+
+    // MARK: - Sesión persistida
 
     var hasSavedSession: Bool {
         KeychainStore.readToken(for: .access) != nil
@@ -31,6 +44,8 @@ final class APIClient: Sendable {
         KeychainStore.deleteToken(for: .refresh)
     }
 
+    // MARK: - Peticiones
+
     func send<T: Decodable>(_ event: Endpoint, as type: T.Type) async throws -> T {
         let data = try await perform(event)
         let envelope = try decodeEnvelope(Envelope<T>.self, from: data)
@@ -44,6 +59,8 @@ final class APIClient: Sendable {
         let data = try await perform(event)
         _ = try? decodeEnvelope(Envelope<VoidPayload>.self, from: data)
     }
+
+    // MARK: - Ejecución
 
     private func perform(_ event: Endpoint) async throws -> Data {
         let request: URLRequest
@@ -70,6 +87,7 @@ final class APIClient: Sendable {
 
         if httpResponse.statusCode == 401, event.usesStoredToken {
             clearTokens()
+            NotificationCenter.default.post(name: .campusVoteSessionExpired, object: nil)
             throw APIError.sessionExpired
         }
 

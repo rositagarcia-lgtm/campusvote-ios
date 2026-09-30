@@ -1,34 +1,45 @@
 import SwiftUI
+
 struct CodeInputView: View {
     @Binding var code: String
     var length = 6
+    var onComplete: () -> Void = {}
+
     @FocusState private var focused: Bool
 
     var body: some View {
         ZStack {
-            TextField("", text: $code)
-                .keyboardType(.numberPad)
-                .textContentType(.oneTimeCode)
-                .focused($focused)
-                .frame(width: 1, height: 1)
-                .opacity(0.01)
-                .onChange(of: code) { _, nuevo in
-                    // Solo dígitos y como máximo `length`.
-                    let limpio = String(nuevo.filter(\.isNumber).prefix(length))
-                    if limpio != nuevo {
-                        code = limpio
-                    }
-                }
-
             HStack(spacing: 10) {
                 ForEach(0..<length, id: \.self) { index in
                     box(at: index)
                 }
             }
+
+            TextField("", text: Binding(
+                get: { code },
+                set: { nuevo in
+                    let limpio = String(nuevo.filter(\.isNumber).prefix(length))
+                    guard limpio != code else { return }
+                    code = limpio
+                    if limpio.count == length {
+                        onComplete()
+                    }
+                }
+            ))
+            .keyboardType(.numberPad)
+            .textContentType(.oneTimeCode)
+            .textFieldStyle(.plain)
+            .focused($focused)
+            .foregroundStyle(.clear)
+            .tint(.clear)
+            .autocorrectionDisabled()
+            .textInputAutocapitalization(.never)
+            .frame(maxWidth: .infinity)
+            .frame(height: 64)
         }
         .contentShape(Rectangle())
         .onTapGesture { focused = true }
-        .onAppear { focused = true }
+        .task { focused = true }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Código de verificación")
         .accessibilityValue(code.isEmpty ? "vacío" : code.map(String.init).joined(separator: " "))
@@ -48,10 +59,10 @@ struct CodeInputView: View {
             if index < digits.count {
                 Text(String(digits[index]))
                     .font(.system(size: 28, weight: .semibold, design: .rounded))
-                    .foregroundStyle(Color.brand)
+                    .foregroundStyle(Color.campusGreen)
             } else if isCurrent {
                 Rectangle()
-                    .fill(Color.brand)
+                    .fill(Color.campusGreen)
                     .frame(width: 2, height: 30)
             } else {
                 Circle()
@@ -60,5 +71,6 @@ struct CodeInputView: View {
             }
         }
         .frame(height: 64)
+        .allowsHitTesting(false)
     }
 }

@@ -1,9 +1,13 @@
 import SwiftUI
 
+/// Rúbrica de un proyecto: cada criterio se marca o se deja sin marcar.
+/// El borrador se puede repetir. Al enviar, la hoja queda solo lectura.
 struct EvaluateView: View {
     let fairId: String
     let project: Project
     let onSaved: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
 
     @State private var criteria: [Criterion] = []
     @State private var checked: [String: Bool] = [:]
@@ -14,132 +18,211 @@ struct EvaluateView: View {
     @State private var errorMessage: String?
     @State private var savedMessage: String?
 
-    @Environment(\.dismiss) private var dismiss
-
     private let api = APIClient.shared
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(project.name)
-                        .font(.title2).bold()
-                    HStack(spacing: 8) {
-                        if let stand = project.tableNumber {
-                            Label(stand, systemImage: "shippingbox.fill")
-                                .font(.caption).bold()
-                        }
-                        if let category = project.category {
-                            Text(category)
-                                .font(.caption)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(Color.brand.opacity(0.12))
-                                .foregroundStyle(Color.brand)
-                                .cornerRadius(6)
-                        }
-                    }
-                    .foregroundStyle(.secondary)
+        VStack(spacing: 0) {
+            encabezado
 
-                    NavigationLink {
-                        ProjectDetailView(fairId: fairId, projectId: project.id)
-                    } label: {
-                        Label("Ver detalle del proyecto", systemImage: "doc.text.magnifyingglass")
-                            .font(.caption).bold()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    identidad
+
+                    if let errorMessage {
+                        ErrorBanner(message: errorMessage)
+                    }
+                    if let savedMessage {
+                        Label(savedMessage, systemImage: "checkmark.seal")
+                            .font(.caption)
+                            .foregroundStyle(Color.brand)
                     }
 
-                    ProjectVotePanel(fairId: fairId, projectId: project.id)
-                }
-
-                if let errorMessage {
-                    ErrorBanner(message: errorMessage)
-                }
-                if let savedMessage {
-                    Label(savedMessage, systemImage: "checkmark.seal.fill")
-                        .font(.subheadline).bold()
-                        .foregroundStyle(.green)
-                }
-
-                if isLoading {
-                    ProgressView("Cargando rúbrica...")
-                        .frame(maxWidth: .infinity, minHeight: 160)
-                } else if criteria.isEmpty {
-                    Text("Este proyecto no tiene criterios activos.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text("Marca los criterios que cumple. Todos valen igual.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-
-                    ForEach(criteria) { criterion in
-                        Toggle(isOn: binding(for: criterion.id)) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("\(criterion.position). \(criterion.name)")
-                                    .font(.subheadline.bold())
-                                if let description = criterion.description, !description.isEmpty {
-                                    Text(description)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        .toggleStyle(.switch)
-                        .disabled(isSubmitted)
-                        .padding(12)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(12)
-                    }
-
-                    if isSubmitted {
-                        Text("Enviada. Puntaje \(scoreText). No hay aprobado ni reprobado, y este número no elige al ganador.")
-                            .font(.footnote)
+                    if isLoading {
+                        ProgressView("Cargando rúbrica...")
+                            .frame(maxWidth: .infinity, minHeight: 160)
+                    } else if criteria.isEmpty {
+                        vacio
+                    } else {
+                        Text("Marca los criterios que cumple. Todos valen igual.")
+                            .font(.caption)
                             .foregroundStyle(.secondary)
+
+                        ForEach(criteria) { criterion in
+                            criterio(criterion)
+                        }
+
+                        if isSubmitted {
+                            Text("Enviada. Tu calificación es \(scoreText) / 20. No hay aprobado ni reprobado, y este número no elige al ganador.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        ProjectVotePanel(fairId: fairId, projectId: project.id)
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 24)
             }
-            .padding()
         }
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
-        .navigationTitle("Rúbrica")
-        .navigationBarTitleDisplayMode(.inline)
+        .background(Color.appBackground.ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationBarBackButtonHidden(true)
         .safeAreaInset(edge: .bottom) {
             if !isSubmitted && !criteria.isEmpty {
-                actionBar
+                barra
             }
         }
         .task { await load() }
     }
 
-    private var scoreText: String {
-        let value = score ?? draftScore
-        return value.formatted(.number.precision(.fractionLength(0...2)))
+    private var encabezado: some View {
+        VStack(spacing: 0) {
+            ZStack {
+                Text("Rúbrica")
+                    .font(.headline)
+                    .foregroundStyle(Color.onBrand)
+
+                HStack {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(Color.onBrand)
+                            .frame(width: 32, height: 32)
+                    }
+                    .accessibilityLabel("Volver")
+                    Spacer()
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 12)
+
+            Rectangle()
+                .fill(Color.onBrand.opacity(0.35))
+                .frame(height: 0.5)
+        }
+        .background(Color.brand.ignoresSafeArea(edges: .top))
     }
 
+    private var identidad: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(project.name)
+                .font(.headline)
+            HStack(spacing: 8) {
+                if let category = project.category, !category.isEmpty {
+                    Text(category)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Color.brand)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(Color.brand.opacity(0.12)))
+                }
+                if let stand = project.tableNumber, !stand.isEmpty {
+                    Label("Stand \(stand)", systemImage: "mappin.and.ellipse")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.cardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
+    }
+
+    private func criterio(_ criterion: Criterion) -> some View {
+        let marcado = checked[criterion.id] == true
+        return Button {
+            guard !isSubmitted else { return }
+            checked[criterion.id] = !marcado
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: marcado ? "checkmark.square.fill" : "square")
+                    .font(.title3)
+                    .foregroundStyle(marcado ? Color.brand : Color.appNeutral)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(criterion.name)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.leading)
+                    if let description = criterion.description, !description.isEmpty {
+                        Text(description)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.leading)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.cardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .disabled(isSubmitted)
+    }
+
+    private var vacio: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "checklist")
+                .font(.system(size: 36))
+                .foregroundStyle(Color.brand)
+                .frame(width: 72, height: 72)
+                .background(Circle().fill(Color.brand.opacity(0.12)))
+            Text("Sin criterios activos")
+                .font(.headline)
+            Text("Este proyecto no tiene criterios para calificar.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 24)
+    }
+
+    private var barra: some View {
+        HStack(spacing: 10) {
+            Button("Guardar borrador") { Task { await save(finalize: false) } }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.brand)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.brand, lineWidth: 1)
+                )
+
+            Button("Enviar rúbrica") { Task { await save(finalize: true) } }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.onBrand)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(Color.brand)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .disabled(isSaving)
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 8)
+        .background(Color.appBackground)
+    }
+
+    private var scoreText: String {
+        let value = score ?? draftScore
+        return value.formatted(.number.precision(.fractionLength(0...1)))
+    }
+
+    /// Solo se muestra después de enviar. Marcados / activos × 20.
     private var draftScore: Double {
         guard !criteria.isEmpty else { return 0 }
         let marked = criteria.filter { checked[$0.id] == true }.count
         return Double(marked) / Double(criteria.count) * 20
-    }
-
-    private var actionBar: some View {
-        HStack(spacing: 10) {
-            Button("Guardar borrador") { Task { await save(finalize: false) } }
-                .buttonStyle(.bordered)
-            Button("Enviar rúbrica") { Task { await save(finalize: true) } }
-                .buttonStyle(.borderedProminent)
-        }
-        .disabled(isSaving)
-        .padding()
-        .frame(maxWidth: .infinity)
-        .background(.bar)
-    }
-
-    private func binding(for id: String) -> Binding<Bool> {
-        Binding(
-            get: { checked[id] ?? false },
-            set: { checked[id] = $0 }
-        )
     }
 
     @MainActor

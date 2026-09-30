@@ -1,15 +1,17 @@
 import SwiftUI
 
+/// Código de 6 dígitos que el servidor envió al correo. Caduca en 10 minutos.
 struct TotpView: View {
     @Environment(SessionStore.self) private var session
     @State private var code = ""
     @State private var sentAt = Date()
     @State private var didResend = false
+    @State private var isVerifying = false
 
     private let lifetime: TimeInterval = 10 * 60
 
     private var canVerify: Bool {
-        !session.isWorking && code.count == 6
+        !session.isWorking && !isVerifying && code.count == 6
     }
 
     var body: some View {
@@ -28,7 +30,7 @@ struct TotpView: View {
                             .multilineTextAlignment(.center)
                     }
 
-                    CodeInputView(code: $code)
+                    CodeInputView(code: $code, onComplete: verify)
                     expiry
 
                     if didResend {
@@ -58,16 +60,12 @@ struct TotpView: View {
                     .disabled(session.isWorking)
                 }
                 .padding(.horizontal, 20)
+                .padding(.top, 40)
                 .padding(.bottom, 24)
             }
             .scrollDismissesKeyboard(.interactively)
         }
         .background(Color.appBackground.ignoresSafeArea())
-        .onChange(of: code) { _, nuevo in
-            if nuevo.count == 6 {
-                verify()
-            }
-        }
     }
 
     private var topBar: some View {
@@ -119,12 +117,14 @@ struct TotpView: View {
 
     private func verify() {
         guard canVerify else { return }
+        let current = code
+        isVerifying = true
         Task {
-            await session.verifyCode(code)
+            await session.verifyCode(current)
+            isVerifying = false
             if session.errorMessage != nil {
                 code = ""
             }
         }
     }
 }
-

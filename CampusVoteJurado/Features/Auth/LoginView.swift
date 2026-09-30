@@ -77,7 +77,7 @@ struct LoginView: View {
 
             FieldRow(
                 icon: "envelope",
-                label: "CORREO INSTITUCIONAL"
+                label: "CORREO"
             ) {
 
                 TextField(
@@ -290,13 +290,4 @@ private struct FieldRow<Content: View>: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
     }
-}
-
-// MARK: - Preview
-
-#Preview("Acceso") {
-    LoginView()
-        .environment(
-            SessionStore(api: .shared)
-        )
 }

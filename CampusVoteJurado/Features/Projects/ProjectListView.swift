@@ -42,9 +42,9 @@ struct ProjectListView: View {
                         LazyVStack(spacing: 12) {
                             ForEach(visibles) { item in
                                 NavigationLink {
-                                    EvaluateView(
+                                    ProjectDetailView(
                                         fairId: viewModel.fairId,
-                                        project: item.project,
+                                        projectId: item.project.id,
                                         onSaved: {
                                             Task { await viewModel.loadProjects() }
                                         }

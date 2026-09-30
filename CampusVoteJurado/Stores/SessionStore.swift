@@ -8,6 +8,7 @@ final class SessionStore {
     enum Phase: Equatable {
         case checking
         case signedOut
+        /// El servidor envió un código de 6 dígitos al correo. Caduca en 10 minutos.
         case needsCode(tempToken: String)
         case signedIn(User)
     }
@@ -18,9 +19,19 @@ final class SessionStore {
     private(set) var pendingEmail = ""
 
     private let api: APIClient
+    @ObservationIgnored private var sessionObserver: NSObjectProtocol?
 
     init(api: APIClient) {
         self.api = api
+        sessionObserver = NotificationCenter.default.addObserver(
+            forName: .campusVoteSessionExpired,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.expireSession()
+            }
+        }
     }
 
     func restore() async {
@@ -113,6 +124,17 @@ final class SessionStore {
         InstitutionAppearance.reset()
         errorMessage = nil
         pendingEmail = ""
+        phase = .signedOut
+    }
+
+    /// El token ya no vale. RootView, al ver `.signedOut`, muestra el login.
+    private func expireSession() {
+        guard case .signedIn = phase else { return }
+        api.clearTokens()
+        SessionArchive.clear()
+        InstitutionAppearance.reset()
+        pendingEmail = ""
+        errorMessage = APIError.sessionExpired.message
         phase = .signedOut
     }
 
