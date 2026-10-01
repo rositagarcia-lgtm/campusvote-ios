@@ -8,8 +8,8 @@ final class SessionStore {
     enum Phase: Equatable {
         case checking
         case signedOut
-        /// El servidor envió un código de 6 dígitos al correo. Caduca en 10 minutos.
         case needsCode(tempToken: String)
+        case mustChangePassword(User)
         case signedIn(User)
     }
 
@@ -50,7 +50,7 @@ final class SessionStore {
         if let organizationId = user.organizationId {
             await loadBrand(organizationId: organizationId)
         }
-        phase = .signedIn(user)
+        phase = user.mustChangePassword ? .mustChangePassword(user) : .signedIn(user)
     }
 
     func login(email: String, password: String) async {
@@ -118,7 +118,18 @@ final class SessionStore {
         phase = .signedOut
     }
 
+    func changePassword(current: String, new: String) async {
+        guard case .mustChangePassword(var user) = phase else { return }
+        await run {
+            try await api.send(.changePassword(current: current, new: new))
+            user.mustChangePassword = false
+            SessionArchive.save(user)
+            phase = .signedIn(user)
+        }
+    }
+
     func logout() async {
+        try? await api.send(Endpoint.logout())
         api.clearTokens()
         SessionArchive.clear()
         InstitutionAppearance.reset()
@@ -127,9 +138,13 @@ final class SessionStore {
         phase = .signedOut
     }
 
-    /// El token ya no vale. RootView, al ver `.signedOut`, muestra el login.
     private func expireSession() {
-        guard case .signedIn = phase else { return }
+        switch phase {
+        case .signedIn, .mustChangePassword:
+            break
+        default:
+            return
+        }
         api.clearTokens()
         SessionArchive.clear()
         InstitutionAppearance.reset()
@@ -142,7 +157,7 @@ final class SessionStore {
         guard let token = result.token else {
             throw APIError.decoding("La verificación no devolvió el token de sesión.")
         }
-        guard let user = result.user else {
+        guard var user = result.user else {
             throw APIError.decoding("La verificación no devolvió el usuario.")
         }
         guard user.isJury else {
@@ -156,10 +171,14 @@ final class SessionStore {
             throw APIError.decoding("La sesión no trae la institución del jurado.")
         }
 
+        if result.mustChangePassword == true {
+            user.mustChangePassword = true
+        }
+
         api.saveTokens(access: token, refresh: nil)
         SessionArchive.save(user)
         await loadBrand(organizationId: organizationId)
-        phase = .signedIn(user)
+        phase = user.mustChangePassword ? .mustChangePassword(user) : .signedIn(user)
     }
 
     private func loadBrand(organizationId: String) async {

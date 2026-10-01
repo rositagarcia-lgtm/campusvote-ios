@@ -4,13 +4,17 @@ import UIKit
 
 struct ProfileView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(FairsStore.self) private var fairsStore
+    @Environment(ProjectsStore.self) private var projectsStore
     @Environment(TabBarVisibility.self) private var tabBar
+
     @State private var profile: JuryProfile?
     @State private var localAvatar: UIImage?
     @State private var isLoading = false
     @State private var isLoggingOut = false
     @State private var errorMessage: String?
     @State private var showPhotoMenu = false
+    @State private var showInstitution = false
     @State private var showLibrary = false
     @State private var showCamera = false
     @State private var photoItem: PhotosPickerItem?
@@ -18,80 +22,157 @@ struct ProfileView: View {
     @State private var showPassword = false
     @State private var avatarHidden = ProfileAvatarStore.isHidden
 
+    private var activeFair: Fair? {
+        fairsStore.activeFairs.first?.fair
+    }
+
+    private var greetingName: String {
+        let first = (profile?.firstName ?? signedInUser?.firstName ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let last = (profile?.lastName ?? signedInUser?.lastName ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if first.isEmpty { return last }
+        if last.isEmpty || first.localizedCaseInsensitiveContains(last) { return first }
+        return "\(first) \(last)"
+    }
+
+    private var initials: String {
+        let first = profile?.firstName ?? signedInUser?.firstName ?? ""
+        let last = profile?.lastName ?? signedInUser?.lastName ?? ""
+        let letters = [first, last].compactMap { $0.first }.map { String($0) }
+        let text = letters.joined().uppercased()
+        return text.isEmpty ? "·" : text
+    }
+
+    private var institutionCode: String {
+        let code = profile?.institutionalId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return code.isEmpty ? "—" : code
+    }
+
     private var institutionName: String {
-        if let name = InstitutionAppearance.name, !name.isEmpty { return name }
-        return "—"
+        let name = (fairsStore.organizationName ?? InstitutionAppearance.name ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? "—" : name
+    }
+
+    private var institutionSite: String {
+        let site = fairsStore.siteName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return site.isEmpty ? "—" : site
+    }
+
+    private var institutionBadge: String? {
+        switch InstitutionAppearance.kindLabel {
+        case "Instituto de Educación Superior": return "Superior"
+        case "Universidad": return "Universidad"
+        case "Colegio": return "Colegio"
+        case "Empresa": return "Empresa"
+        case "Asociación": return "Asociación"
+        default:
+            let label = InstitutionAppearance.kindLabel?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return label.isEmpty ? nil : label
+        }
+    }
+
+    private var focusCategory: String? {
+        let names = projectsStore.pending.compactMap(\.categoryName).filter { !$0.isEmpty }
+        guard !names.isEmpty else { return nil }
+        let counts = Dictionary(grouping: names, by: { $0 }).mapValues(\.count)
+        return counts.max { $0.value < $1.value }?.key
+    }
+
+    private var pendingLine: String {
+        let count = projectsStore.summary.pending
+        if projectsStore.isLoading && projectsStore.projects.isEmpty {
+            return "Cargando proyectos..."
+        }
+        let proyecto = count == 1 ? "proyecto" : "proyectos"
+        let pendiente = count == 1 ? "pendiente" : "pendientes"
+        if count == 0 {
+            return "No tienes proyectos pendientes."
+        }
+        if let focusCategory {
+            return "Tienes \(count) \(proyecto) \(pendiente) en \(focusCategory)."
+        }
+        return "Tienes \(count) \(proyecto) \(pendiente)."
+    }
+
+    private var progressValue: CGFloat {
+        let total = projectsStore.summary.total
+        guard total > 0 else { return 0 }
+        return CGFloat(projectsStore.summary.rated) / CGFloat(total)
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            VStack(spacing: 0) {
-                Text("Perfil")
-                    .font(.headline)
-                    .foregroundStyle(Color.onBrand)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 8)
-                    .padding(.bottom, 12)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                header
 
-                Rectangle()
-                    .fill(Color.onBrand.opacity(0.35))
-                    .frame(height: 0.5)
-            }
-            .background(Color.brand.ignoresSafeArea(edges: .top))
-
-            ScrollView {
-                VStack(spacing: 22) {
-                    avatarBlock
-
-                    if let errorMessage {
-                        ErrorBanner(message: errorMessage)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-
-                    section(title: "DATOS ACADÉMICOS") {
-                        infoRow("Institución", institutionName)
-                        Divider()
-                        infoRow("Código institucional", profile?.institutionalId ?? "—")
-                        Divider()
-                        infoRow("Documento", profile?.documentLine ?? "—")
-                    }
-
-                    section(title: "SEGURIDAD Y CUENTA") {
-                        actionRow(icon: "person", title: "Editar datos") { showEdit = true }
-                        Divider()
-                        actionRow(icon: "lock", title: "Cambiar contraseña") { showPassword = true }
-                    }
-
-                    Button(action: logout) {
-                        HStack(spacing: 8) {
-                            if isLoggingOut {
-                                ProgressView()
-                            } else {
-                                Image(systemName: "rectangle.portrait.and.arrow.right")
-                            }
-                            Text("Cerrar sesión")
-                                .font(.subheadline.bold())
-                        }
-                        .foregroundStyle(.red)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.cardBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
-                    .disabled(isLoggingOut)
-                    .padding(.top, 4)
+                if let errorMessage {
+                    ErrorBanner(message: errorMessage)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.horizontal)
-                .padding(.top, 12)
-                .padding(.bottom, 28)
+
+                bannerCard
+
+                shortcuts
+
+                progressCard
+
+                Text("Perfil")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 4)
+
+                Button {
+                    showPassword = true
+                } label: {
+                    HStack(spacing: 14) {
+                        Image(systemName: "lock")
+                            .font(.system(size: 18))
+                            .foregroundStyle(.primary)
+                            .frame(width: 24)
+                        Text("Seguridad y Credenciales")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+
+                Button(action: logout) {
+                    HStack(spacing: 8) {
+                        if isLoggingOut {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                        }
+                        Text("Cerrar sesión")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .foregroundStyle(.red)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(Color.red.opacity(0.08))
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(isLoggingOut)
+                .padding(.top, 8)
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 28)
         }
         .background(Color.appBackground.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .task { await load() }
-        .onChange(of: showPhotoMenu) { _, visible in
-            tabBar.isHidden = visible
-        }
+        .task { await reload() }
+        .onChange(of: showPhotoMenu) { _, _ in syncTabBar() }
+        .onChange(of: showInstitution) { _, _ in syncTabBar() }
         .onDisappear {
             tabBar.isHidden = false
         }
@@ -123,6 +204,24 @@ struct ProfileView: View {
                 .ignoresSafeArea()
             }
         }
+        .overlay {
+            if showInstitution {
+                ZStack(alignment: .bottom) {
+                    Color.black.opacity(0.35)
+                        .ignoresSafeArea()
+                        .onTapGesture { showInstitution = false }
+
+                    InstitutionSheet(
+                        code: institutionCode,
+                        name: institutionName,
+                        site: institutionSite,
+                        badge: institutionBadge,
+                        onClose: { showInstitution = false }
+                    )
+                }
+                .ignoresSafeArea()
+            }
+        }
         .photosPicker(isPresented: $showLibrary, selection: $photoItem, matching: .images)
         .onChange(of: photoItem) { _, item in
             guard let item else { return }
@@ -148,51 +247,35 @@ struct ProfileView: View {
         }
     }
 
-    private var avatarBlock: some View {
-        VStack(spacing: 12) {
-            ZStack(alignment: .bottomTrailing) {
-                avatar
-                    .frame(width: 96, height: 96)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.cardBackground, lineWidth: 4))
+    private var header: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Text(greetingName.isEmpty ? "¡Hola!" : "¡Hola, \(greetingName)!")
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Button {
-                    showPhotoMenu = true
-                } label: {
-                    Image(systemName: "camera.fill")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Color.onBrand)
-                        .frame(width: 30, height: 30)
-                        .background(Circle().fill(Color.brand))
-                        .overlay(Circle().stroke(Color.cardBackground, lineWidth: 2))
+            Button {
+                showPhotoMenu = true
+            } label: {
+                ZStack(alignment: .bottomTrailing) {
+                    avatarFace
+                        .frame(width: 48, height: 48)
+                        .clipShape(Circle())
+
+                    Circle()
+                        .fill(Color(red: 0.22, green: 0.78, blue: 0.38))
+                        .frame(width: 12, height: 12)
+                        .overlay(Circle().stroke(Color.appBackground, lineWidth: 2))
+                        .offset(x: 1, y: 1)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Cambiar foto de perfil")
             }
-
-            if let profile {
-                Text(profile.fullName)
-                    .font(.title3.bold())
-                    .multilineTextAlignment(.center)
-                Text(profile.email)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            } else if isLoading {
-                ProgressView()
-            }
-
-            Text("JURADO EVALUADOR OFICIAL")
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(Color.brand)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 6)
-                .background(Capsule().fill(Color.brand.opacity(0.15)))
+            .buttonStyle(.plain)
+            .accessibilityLabel("Cambiar foto de perfil")
         }
-        .padding(.top, 8)
     }
 
     @ViewBuilder
-    private var avatar: some View {
+    private var avatarFace: some View {
         if let localAvatar {
             Image(uiImage: localAvatar)
                 .resizable()
@@ -201,63 +284,159 @@ struct ProfileView: View {
             AsyncImage(url: url) { image in
                 image.resizable().scaledToFill()
             } placeholder: {
-                placeholderAvatar
+                initialsFace
             }
         } else {
-            placeholderAvatar
+            initialsFace
         }
     }
 
-    private var placeholderAvatar: some View {
-        Image(systemName: "person.crop.circle.fill")
-            .resizable()
-            .scaledToFit()
-            .foregroundStyle(.gray.opacity(0.35))
-            .background(Circle().fill(Color.cardBackground))
-    }
-
-    private func section<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(.secondary)
-                .padding(.leading, 4)
-            VStack(spacing: 0) { content() }
-                .padding(.horizontal, 14)
-                .background(Color.cardBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
-    }
-
-    private func infoRow(_ title: String, _ value: String) -> some View {
-        HStack {
-            Text(title)
-                .font(.subheadline)
-            Spacer()
-            Text(value)
-                .font(.subheadline.weight(.semibold))
-                .multilineTextAlignment(.trailing)
-        }
-        .padding(.vertical, 14)
-    }
-
-    private func actionRow(icon: String, title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .frame(width: 22)
-                    .foregroundStyle(.primary)
-                Text(title)
-                    .font(.subheadline)
-                    .foregroundStyle(.primary)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+    private var initialsFace: some View {
+        Circle()
+            .fill(Color.brand)
+            .overlay {
+                Text(initials)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.onBrand)
             }
-            .padding(.vertical, 14)
+    }
+
+    private var bannerCard: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color.brand)
+
+            Image(systemName: "plus")
+                .font(.system(size: 84, weight: .ultraLight))
+                .foregroundStyle(Color.onBrand.opacity(0.18))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+                .offset(x: 16)
+                .allowsHitTesting(false)
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .center, spacing: 8) {
+                    Text(activeFair.map { "¡\($0.name)!" } ?? "Sin feria activa")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.onBrand)
+                        .lineLimit(2)
+
+                    if activeFair != nil {
+                        Text("Evaluando")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.black)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Capsule().fill(Color(red: 1, green: 0.78, blue: 0.15)))
+                    }
+                }
+
+                Text(activeFair == nil ? "Cuando haya una feria abierta vas a ver tus proyectos aquí." : pendingLine)
+                    .font(.caption)
+                    .foregroundStyle(Color.onBrand.opacity(0.95))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 18)
+            .padding(.trailing, 28)
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, minHeight: 108, alignment: .leading)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+    }
+
+    private var shortcuts: some View {
+        HStack(spacing: 48) {
+            Button {
+                showEdit = true
+            } label: {
+                shortcut(icon: "person", title: "Mis Datos")
+            }
+            .buttonStyle(.plain)
+            .disabled(profile == nil)
+
+            Button {
+                showInstitution = true
+            } label: {
+                shortcut(icon: "building.columns", title: "Institución")
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+    }
+
+    private func shortcut(icon: String, title: String) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 22, weight: .regular))
+                .foregroundStyle(.primary)
+                .frame(width: 72, height: 64)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color.cardBackground)
+                        .shadow(color: .black.opacity(0.05), radius: 8, y: 2)
+                )
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.primary)
+        }
+    }
+
+    private var progressCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Completa tu evaluación")
+                .font(.subheadline.weight(.semibold))
+            Text("\(projectsStore.summary.rated) de \(projectsStore.summary.total) proyectos calificados")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.primary.opacity(0.12))
+                    Capsule()
+                        .fill(Color.primary.opacity(0.85))
+                        .frame(width: geo.size.width * progressValue)
+                }
+            }
+            .frame(height: 6)
+            .padding(.vertical, 4)
+
+            Text(rubricLine)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.primary.opacity(0.04))
+        )
+    }
+
+    private var rubricLine: String {
+        if let focusCategory {
+            return "Describe y califica las rúbricas de la categoría \(focusCategory)."
+        }
+        return "Describe y califica las rúbricas de tu feria."
+    }
+
+    private func syncTabBar() {
+        tabBar.isHidden = showPhotoMenu || showInstitution
+    }
+
+    @MainActor
+    private func reload() async {
+        if profile == nil, let user = signedInUser {
+            profile = JuryProfile(user: user)
+        }
+        await load()
+        if fairsStore.activeFairs.isEmpty && fairsStore.closedFairs.isEmpty {
+            await fairsStore.fetchMyAssignments()
+        }
+        if let fairId = activeFair?.id {
+            await projectsStore.load(fairId: fairId)
+        }
     }
 
     @MainActor
@@ -309,6 +488,129 @@ struct ProfileView: View {
     }
 }
 
+private struct InstitutionSheet: View {
+    let code: String
+    let name: String
+    let site: String
+    let badge: String?
+    let onClose: () -> Void
+    @State private var copied = false
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            VStack(spacing: 0) {
+                Spacer(minLength: 8)
+
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Institución")
+                            .font(.subheadline.weight(.semibold))
+                        Text("Información y sede asignada para evaluación")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.trailing, 36)
+
+                    infoCard(icon: "person.text.rectangle", title: "Código institucional", value: code) {
+                        if code != "—" {
+                            Button {
+                                UIPasteboard.general.string = code
+                                copied = true
+                            } label: {
+                                Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(Color.brand)
+                                    .frame(width: 28, height: 28)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Copiar código")
+                        }
+                    }
+
+                    infoCard(icon: "graduationcap", title: "Nombre de la IE", value: name) {
+                        if let badge {
+                            Text(badge)
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(RoundedRectangle(cornerRadius: 8).fill(Color.cardBackground))
+                        }
+                    }
+
+                    infoCard(icon: "mappin.and.ellipse", title: "Sede", value: site) {
+                        Image(systemName: "mappin.and.ellipse")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 16, height: 20)
+                            .foregroundStyle(Color.brand)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 12)
+
+                Spacer(minLength: 12)
+            }
+
+            Button(action: onClose) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 2)
+            .padding(.trailing, 6)
+            .accessibilityLabel("Cerrar")
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 400)
+        .background(Color.appBackground.ignoresSafeArea(edges: .bottom))
+        .clipShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: 12,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: 12
+            )
+        )
+    }
+
+    private func infoCard<Accessory: View>(
+        icon: String,
+        title: String,
+        value: String,
+        @ViewBuilder accessory: () -> Accessory
+    ) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 16, height: 20)
+                .foregroundStyle(Color.brand)
+                .frame(width: 32, height: 32)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color.brand.opacity(0.12)))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                Text(value)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 8)
+            accessory()
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.05)))
+    }
+}
 private struct SheetTopBar: View {
     let title: String
     let onClose: () -> Void
@@ -316,7 +618,7 @@ private struct SheetTopBar: View {
     var body: some View {
         ZStack {
             Text(title)
-                .font(.headline)
+                .font(.subheadline.weight(.semibold))
 
             HStack {
                 Spacer()
@@ -444,7 +746,7 @@ private struct EditProfileSheet: View {
                         Image(systemName: "info.circle")
                             .foregroundStyle(Color.brand)
                         Text("El correo y el código institucional los asigna la institución.")
-                            .font(.footnote)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                     .padding(12)
@@ -502,10 +804,11 @@ private struct EditProfileSheet: View {
             }
             HStack {
                 Text(value)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Spacer()
                 Image(systemName: "lock")
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
             }
             .padding(12)
@@ -569,7 +872,7 @@ private struct ChangePasswordSheet: View {
                             .frame(width: 40, height: 40)
                             .background(RoundedRectangle(cornerRadius: 12).fill(Color.brand.opacity(0.12)))
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Seguridad de la cuenta").font(.subheadline.bold())
+                            Text("Seguridad de la cuenta").font(.subheadline.weight(.semibold))
                             Text("Jurado Evaluador Institucional")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -585,10 +888,10 @@ private struct ChangePasswordSheet: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         Label("REQUISITOS DE SEGURIDAD", systemImage: "clock")
-                            .font(.caption.bold())
+                            .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                         Text("La contraseña debe contener un mínimo de 8 caracteres, al menos una mayúscula, una minúscula, un número y un símbolo especial.")
-                            .font(.footnote)
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                         requirement("8+ caracteres", met: hasLength)
                         requirement("Mayúscula y minúscula", met: hasUpper && hasLower)
@@ -643,6 +946,7 @@ private struct ChangePasswordSheet: View {
                         SecureField(prompt, text: text)
                     }
                 }
+                .font(.subheadline)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 Button {

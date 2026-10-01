@@ -7,6 +7,7 @@ struct User: Codable, Hashable {
     let lastName: String
     let role: String
     let organizationId: String?
+    var mustChangePassword: Bool
 
     var fullName: String {
         let parts = [firstName, lastName].filter { !$0.isEmpty }
@@ -22,6 +23,8 @@ struct User: Codable, Hashable {
         case firstName = "first_name"
         case lastName = "last_name"
         case organizationId = "organization_id"
+        case mustChangePassword
+        case mustChangePasswordSnake = "must_change_password"
     }
 
     init(from decoder: Decoder) throws {
@@ -32,6 +35,9 @@ struct User: Codable, Hashable {
         lastName = try container.decodeIfPresent(String.self, forKey: .lastName) ?? ""
         role = try container.decodeIfPresent(String.self, forKey: .role) ?? ""
         organizationId = try container.decodeIfPresent(String.self, forKey: .organizationId)
+        let flag = try container.decodeIfPresent(Bool.self, forKey: .mustChangePassword)
+        let snake = try container.decodeIfPresent(Bool.self, forKey: .mustChangePasswordSnake)
+        mustChangePassword = flag ?? snake ?? false
     }
 
     func encode(to encoder: Encoder) throws {
@@ -42,6 +48,7 @@ struct User: Codable, Hashable {
         try container.encode(lastName, forKey: .lastName)
         try container.encode(role, forKey: .role)
         try container.encodeIfPresent(organizationId, forKey: .organizationId)
+        try container.encode(mustChangePassword, forKey: .mustChangePasswordSnake)
     }
 }
 
@@ -51,6 +58,7 @@ struct AuthResult: Decodable {
     let email: String?
     let token: String?
     let user: User?
+    let mustChangePassword: Bool?
 
     enum CodingKeys: String, CodingKey {
         case requiresEmailOtp
@@ -58,6 +66,8 @@ struct AuthResult: Decodable {
         case tempToken
         case tempTokenSnake = "temp_token"
         case email, token, user
+        case mustChangePassword
+        case mustChangePasswordSnake = "must_change_password"
     }
 
     init(from decoder: Decoder) throws {
@@ -73,6 +83,10 @@ struct AuthResult: Decodable {
         email = try container.decodeIfPresent(String.self, forKey: .email)
         token = try container.decodeIfPresent(String.self, forKey: .token)
         user = try container.decodeIfPresent(User.self, forKey: .user)
+
+        let mustFlag = try container.decodeIfPresent(Bool.self, forKey: .mustChangePassword)
+        let mustSnake = try container.decodeIfPresent(Bool.self, forKey: .mustChangePasswordSnake)
+        mustChangePassword = mustFlag ?? mustSnake
     }
 }
 

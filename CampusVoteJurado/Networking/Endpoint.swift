@@ -1,7 +1,5 @@
 import Foundation
 
-// MARK: - Payloads
-
 private struct LoginPayload: Encodable {
     let email: String
     let password: String
@@ -15,34 +13,15 @@ private struct EmailPayload: Encodable {
     let email: String
 }
 
-private struct DeclarationPayload: Encodable {
-    let statement: String
-}
-
-struct RubricResponseBody: Encodable {
-    let criterionId: String
-    let checked: Bool
+private struct PasswordChangePayload: Encodable {
+    let currentPassword: String
+    let newPassword: String
 
     enum CodingKeys: String, CodingKey {
-        case criterionId = "criterion_id"
-        case checked
+        case currentPassword = "current_password"
+        case newPassword = "new_password"
     }
 }
-
-struct RubricPutBody: Encodable {
-    let responses: [RubricResponseBody]
-    let finalize: Bool
-}
-
-private struct VotePayload: Encodable {
-    let projectId: String
-
-    enum CodingKeys: String, CodingKey {
-        case projectId = "project_id"
-    }
-}
-
-// MARK: - Endpoint
 
 struct Endpoint {
     let path: String
@@ -51,8 +30,6 @@ struct Endpoint {
     var body: (any Encodable)?
     var usesStoredToken: Bool = true
     var explicitToken: String?
-
-    // MARK: Autenticación
 
     static func login(email: String, password: String) -> Endpoint {
         Endpoint(
@@ -82,13 +59,21 @@ struct Endpoint {
         )
     }
 
-    // MARK: Marca
+    static func logout() -> Endpoint {
+        Endpoint(path: "auth/logout", method: "POST")
+    }
 
     static func organization(id: String) -> Endpoint {
         Endpoint(path: "organizations/\(id)", method: "GET")
     }
 
-    // MARK: Ferias
+    static func changePassword(current: String, new: String) -> Endpoint {
+        Endpoint(
+            path: "users/me/password",
+            method: "POST",
+            body: PasswordChangePayload(currentPassword: current, newPassword: new)
+        )
+    }
 
     static var myAssignments: Endpoint {
         Endpoint(path: "fairs/my-assignments", method: "GET")
@@ -97,12 +82,6 @@ struct Endpoint {
     static func assignment(fairId: String) -> Endpoint {
         Endpoint(path: "fairs/my-assignments/\(fairId)", method: "GET")
     }
-
-    static func myProgress(fairId: String) -> Endpoint {
-        Endpoint(path: "fairs/my-progress/\(fairId)", method: "GET")
-    }
-
-    // MARK: Reseñas
 
     static func reviewProjects(fairId: String) -> Endpoint {
         Endpoint(path: "fairs/\(fairId)/review-projects", method: "GET")
@@ -121,71 +100,6 @@ struct Endpoint {
             path: "fairs/\(fairId)/projects/\(projectId)/rating",
             method: "PUT",
             body: body
-        )
-    }
-
-    // MARK: Rutas que el jurado de iOS ya no usa
-
-    static func declaration(fairId: String) -> Endpoint {
-        Endpoint(path: "fairs/\(fairId)/jury/declaration", method: "GET")
-    }
-
-    static func signDeclaration(fairId: String, statement: String) -> Endpoint {
-        Endpoint(
-            path: "fairs/\(fairId)/jury/declaration",
-            method: "POST",
-            body: DeclarationPayload(statement: statement)
-        )
-    }
-
-    static func projects(
-        fairId: String,
-        search: String? = nil,
-        categoryId: String? = nil,
-        standId: String? = nil
-    ) -> Endpoint {
-        var items: [URLQueryItem] = []
-        if let search, !search.isEmpty {
-            items.append(URLQueryItem(name: "search", value: search))
-        }
-        if let categoryId {
-            items.append(URLQueryItem(name: "category_id", value: categoryId))
-        }
-        if let standId {
-            items.append(URLQueryItem(name: "stand_id", value: standId))
-        }
-        return Endpoint(
-            path: "fairs/\(fairId)/projects",
-            method: "GET",
-            queryItems: items
-        )
-    }
-
-    static func projectRubric(fairId: String, projectId: String) -> Endpoint {
-        Endpoint(path: "fairs/\(fairId)/projects/\(projectId)/rubric", method: "GET")
-    }
-
-    static func saveRubric(fairId: String, projectId: String, body: RubricPutBody) -> Endpoint {
-        Endpoint(
-            path: "fairs/\(fairId)/projects/\(projectId)/rubric",
-            method: "PUT",
-            body: body
-        )
-    }
-
-    static func myRubrics(fairId: String) -> Endpoint {
-        Endpoint(path: "fairs/\(fairId)/my-rubrics", method: "GET")
-    }
-
-    static func votingStatus(fairId: String) -> Endpoint {
-        Endpoint(path: "fairs/\(fairId)/voting/status", method: "GET")
-    }
-
-    static func castVote(fairId: String, projectId: String) -> Endpoint {
-        Endpoint(
-            path: "fairs/\(fairId)/votes",
-            method: "POST",
-            body: VotePayload(projectId: projectId)
         )
     }
 }

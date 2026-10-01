@@ -76,10 +76,11 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
     let coverUrl: String?
     let categoryId: String?
     let categoryName: String?
+    let standCode: String?
+    let teamName: String?
     let myRating: Int?
     let myComment: String?
 
-    /// Sin estrellas guardadas.
     var sinResena: Bool {
         myRating == nil
     }
@@ -92,6 +93,10 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
         case category
         case categoryId = "category_id"
         case categoryName = "category_name"
+        case stand
+        case standCode = "stand_code"
+        case teamName = "team_name"
+        case team
         case myRating = "my_rating"
         case myComment = "my_comment"
     }
@@ -102,6 +107,8 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
         coverUrl: String? = nil,
         categoryId: String? = nil,
         categoryName: String? = nil,
+        standCode: String? = nil,
+        teamName: String? = nil,
         myRating: Int? = nil,
         myComment: String? = nil
     ) {
@@ -110,6 +117,8 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
         self.coverUrl = coverUrl
         self.categoryId = categoryId
         self.categoryName = categoryName
+        self.standCode = standCode
+        self.teamName = teamName
         self.myRating = myRating
         self.myComment = myComment
     }
@@ -132,6 +141,18 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
             categoryName = try container.decodeIfPresent(String.self, forKey: .categoryName)
         }
 
+        let flatStand = try container.decodeIfPresent(String.self, forKey: .standCode)
+        if let stand = try? container.decode(NestedStand.self, forKey: .stand) {
+            standCode = stand.code ?? stand.name ?? flatStand
+        } else {
+            standCode = flatStand
+        }
+
+        let namedTeam = try container.decodeIfPresent(String.self, forKey: .teamName)
+        let plainTeam = try container.decodeIfPresent(String.self, forKey: .team)
+        let team = namedTeam ?? plainTeam
+        teamName = (team?.isEmpty == false) ? team : nil
+
         myRating = container.decodeLossyInt(forKey: .myRating)
         let comment = try container.decodeIfPresent(String.self, forKey: .myComment)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -140,6 +161,11 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
 
     private struct NestedCategory: Decodable {
         let id: String?
+        let name: String?
+    }
+
+    private struct NestedStand: Decodable {
+        let code: String?
         let name: String?
     }
 }

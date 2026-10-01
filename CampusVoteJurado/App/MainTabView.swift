@@ -3,6 +3,7 @@ import SwiftUI
 struct MainTabView: View {
     @Environment(TabBarVisibility.self) private var tabBar
     @State private var selectedTab: Int = 0
+    @State private var altoMenu: CGFloat = 58
 
     private let pestanas: [(icono: String, titulo: String)] = [
         ("house", "Ferias"),
@@ -15,28 +16,40 @@ struct MainTabView: View {
         return (CGFloat(selectedTab) + 0.5) / count
     }
 
+    private var espacioMenu: CGFloat {
+        tabBar.isHidden ? 0 : altoMenu
+    }
+
     var body: some View {
         TabView(selection: $selectedTab) {
             FairListView()
+                .padding(.bottom, espacioMenu)
                 .toolbar(.hidden, for: .tabBar)
                 .tag(0)
 
             NavigationStack {
                 MyProgressView()
             }
+            .padding(.bottom, espacioMenu)
             .toolbar(.hidden, for: .tabBar)
             .tag(1)
 
             NavigationStack {
                 ProfileView()
             }
+            .padding(.bottom, espacioMenu)
             .toolbar(.hidden, for: .tabBar)
             .tag(2)
         }
         .tint(Color.brand)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .overlay(alignment: .bottom) {
             if !tabBar.isHidden {
                 barraInferior
+            }
+        }
+        .onPreferenceChange(AltoMenuKey.self) { nuevo in
+            if nuevo > 0 {
+                altoMenu = nuevo
             }
         }
     }
@@ -58,16 +71,23 @@ struct MainTabView: View {
                 .accessibilityLabel(pestana.titulo)
             }
         }
-        .padding(.top, 20)
-        .padding(.bottom, 10)
+        .padding(.top, 12)
+        .padding(.bottom, 4)
+        .frame(maxWidth: .infinity)
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(key: AltoMenuKey.self, value: proxy.size.height)
+            }
+        }
         .background {
             NotchedBarShape(
-                cornerRadius: 28,
-                notchRadius: 16,
+                cornerRadius: 22,
+                notchRadius: 14,
                 notchCenter: notchCenter
             )
             .fill(Color.cardBackground)
-            .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
+            .shadow(color: .black.opacity(0.10), radius: 10, y: -3)
+            .ignoresSafeArea(edges: .bottom)
         }
         .overlay {
             GeometryReader { proxy in
@@ -80,12 +100,18 @@ struct MainTabView: View {
             .allowsHitTesting(false)
         }
         .animation(.spring(response: 0.38, dampingFraction: 0.78), value: selectedTab)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 8)
     }
 }
 
-/// Pastilla con la muesca sobre la pestaña elegida. El puntito va en el centro del hueco.
+private struct AltoMenuKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+/// Barra a todo el ancho. Arriba redondeada, con la muesca; abajo recta, pegada al borde.
 private struct NotchedBarShape: Shape {
     var cornerRadius: CGFloat
     var notchRadius: CGFloat
@@ -120,22 +146,8 @@ private struct NotchedBarShape: Shape {
             endAngle: .degrees(0),
             clockwise: false
         )
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - r))
-        path.addArc(
-            center: CGPoint(x: rect.maxX - r, y: rect.maxY - r),
-            radius: r,
-            startAngle: .degrees(0),
-            endAngle: .degrees(90),
-            clockwise: false
-        )
-        path.addLine(to: CGPoint(x: rect.minX + r, y: rect.maxY))
-        path.addArc(
-            center: CGPoint(x: rect.minX + r, y: rect.maxY - r),
-            radius: r,
-            startAngle: .degrees(90),
-            endAngle: .degrees(180),
-            clockwise: false
-        )
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
         path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + r))
         path.addArc(
             center: CGPoint(x: rect.minX + r, y: rect.minY + r),

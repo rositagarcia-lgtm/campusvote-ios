@@ -46,10 +46,8 @@ struct FairListView: View {
                         }
 
                         seccionAbiertas
-
-                        if !fairsStore.closedFairs.isEmpty {
-                            seccionCerradas
-                        }
+                        seccionProgramadas
+                        seccionCerradas
                     }
                     .padding(18)
                 }
@@ -132,14 +130,17 @@ struct FairListView: View {
 
     private var seccionAbiertas: some View {
         VStack(alignment: .leading, spacing: 10) {
-            encabezado(titulo: "ABIERTAS", derecha: "\(fairsStore.activeFairs.count)")
+            encabezado(titulo: "ABIERTAS", derecha: "\(fairsStore.activeFairs.count)", resalta: true)
 
             if fairsStore.isLoading && fairsStore.activeFairs.isEmpty {
                 ProgressView()
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 24)
             } else if fairsStore.activeFairs.isEmpty {
-                vacioAbiertas
+                vacio(
+                    titulo: "No hay ferias abiertas",
+                    mensaje: "Cuando tu institución abra una feria asignada, aparecerá aquí."
+                )
             } else {
                 ForEach(fairsStore.activeFairs) { assignment in
                     Button {
@@ -153,7 +154,41 @@ struct FairListView: View {
         }
     }
 
-    private var vacioAbiertas: some View {
+    private var seccionProgramadas: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            encabezado(titulo: "PROGRAMADAS", derecha: "\(fairsStore.scheduledFairs.count)")
+
+            if fairsStore.scheduledFairs.isEmpty {
+                vacio(
+                    titulo: "No hay ferias programadas",
+                    mensaje: "Las ferias que todavía no abren aparecen aquí."
+                )
+            } else {
+                ForEach(fairsStore.scheduledFairs) { assignment in
+                    FilaDeFeria(fair: assignment.fair, opens: false)
+                }
+            }
+        }
+    }
+
+    private var seccionCerradas: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            encabezado(titulo: "CERRADAS", derecha: "\(fairsStore.closedFairs.count)")
+
+            if fairsStore.closedFairs.isEmpty {
+                vacio(
+                    titulo: "No hay ferias cerradas",
+                    mensaje: "Cuando una feria termine, queda en esta lista."
+                )
+            } else {
+                ForEach(fairsStore.closedFairs) { assignment in
+                    FilaDeFeria(fair: assignment.fair, opens: false)
+                }
+            }
+        }
+    }
+
+    private func vacio(titulo: String, mensaje: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "building.columns")
                 .font(.title2)
@@ -161,10 +196,10 @@ struct FairListView: View {
                 .frame(width: 64, height: 64)
                 .background(Circle().fill(Color.brand.opacity(0.12)))
 
-            Text("No hay ferias abiertas")
+            Text(titulo)
                 .font(.subheadline.weight(.semibold))
 
-            Text("Cuando tu institución abra una feria asignada, aparecerá aquí.")
+            Text(mensaje)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -175,21 +210,18 @@ struct FairListView: View {
         .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
     }
 
-    private var seccionCerradas: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            encabezado(titulo: "CERRADAS", derecha: "\(fairsStore.closedFairs.count)")
-
-            ForEach(fairsStore.closedFairs) { assignment in
-                FilaDeFeria(fair: assignment.fair, opens: false)
-            }
-        }
-    }
-
-    private func encabezado(titulo: String, derecha: String) -> some View {
+    private func encabezado(titulo: String, derecha: String, resalta: Bool = false) -> some View {
         HStack {
             Text(titulo)
                 .font(.caption2.weight(.bold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(resalta ? Color.green : Color.secondary)
+                .padding(.horizontal, resalta ? 8 : 0)
+                .padding(.vertical, resalta ? 4 : 0)
+                .background {
+                    if resalta {
+                        Capsule().fill(Color.green.opacity(0.15))
+                    }
+                }
             Spacer()
             Text(derecha)
                 .font(.caption2)

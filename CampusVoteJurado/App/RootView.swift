@@ -26,6 +26,9 @@ struct RootView: View {
                 case .needsCode:
                     TotpView()
 
+                case .mustChangePassword:
+                    ChangePasswordView()
+
                 case .signedIn:
                     MainTabView()
                 }

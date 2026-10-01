@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Avance del jurado. Sale de review-projects: pendientes sin my_rating y reseñados con estrellas.
+/// Avance del jurado. El encabezado se mantiene. El cuerpo es el resumen y las tarjetas.
 struct MyProgressView: View {
     var fairId: String? = nil
 
@@ -17,8 +17,41 @@ struct MyProgressView: View {
         openFairs.first { $0.fair.id == selectedFairId }?.fair.name ?? "Feria"
     }
 
+    private var institutionName: String {
+        if let name = InstitutionAppearance.name, !name.isEmpty { return name }
+        return fairsStore.organizationName ?? "Institución"
+    }
+
     private var listMatchesFair: Bool {
         projectsStore.fairId == selectedFairId
+    }
+
+    private var ratedCount: Int {
+        listMatchesFair ? projectsStore.summary.rated : 0
+    }
+
+    private var totalCount: Int {
+        listMatchesFair ? projectsStore.summary.total : 0
+    }
+
+    private var pendingCount: Int {
+        listMatchesFair ? projectsStore.pending.count : 0
+    }
+
+    private var fraction: Double {
+        guard totalCount > 0 else { return 0 }
+        return Double(ratedCount) / Double(totalCount)
+    }
+
+    private var percent: Int {
+        Int((fraction * 100).rounded())
+    }
+
+    private var averageText: String {
+        let ratings = listMatchesFair ? projectsStore.rated.compactMap(\.myRating) : []
+        guard !ratings.isEmpty else { return "—" }
+        let value = Double(ratings.reduce(0, +)) / Double(ratings.count)
+        return String(format: "%.1f", value)
     }
 
     private var visibles: [ReviewProject] {
@@ -68,7 +101,11 @@ struct MyProgressView: View {
                                         NavigationLink {
                                             ProjectDetailView(fairId: fairId, projectId: project.id)
                                         } label: {
-                                            ProgressProjectCard(project: project)
+                                            if project.sinResena {
+                                                PendingProjectCard(project: project)
+                                            } else {
+                                                RatedProjectCard(project: project)
+                                            }
                                         }
                                         .buttonStyle(.plain)
                                     }
@@ -138,54 +175,144 @@ struct MyProgressView: View {
     }
 
     private var summaryCard: some View {
-        let rated = projectsStore.summary.rated
-        let total = projectsStore.summary.total
-        let fraction = total == 0 ? 0 : Double(rated) / Double(total)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 14) {
+                progressRing
 
-        return VStack(alignment: .leading, spacing: 10) {
-            Text("\(rated) de \(total)")
-                .font(.headline)
-            Text(openFairs.count > 1 ? "proyectos con reseña" : fairName)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.iconTile)
-                    Capsule()
-                        .fill(Color.brand)
-                        .frame(width: proxy.size.width * fraction)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(fairName.uppercased())
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Color.brand)
+                        .lineLimit(2)
+
+                    Text("Evaluación de Proyectos")
+                        .font(.subheadline.weight(.semibold))
+
+                    statusPill(
+                        text: ratedCount == 1 ? "1 completado" : "\(ratedCount) completados",
+                        color: Color(red: 0.13, green: 0.62, blue: 0.36)
+                    )
+                    statusPill(
+                        text: pendingCount == 1
+                            ? "1 pendiente de calificación"
+                            : "\(pendingCount) pendientes de calificación",
+                        color: Color(red: 0.85, green: 0.45, blue: 0.12)
+                    )
                 }
             }
-            .frame(height: 8)
+
+            HStack(alignment: .center, spacing: 12) {
+                HStack(alignment: .top, spacing: 6) {
+                    Image(systemName: "star.fill")
+                        .font(.caption)
+                        .foregroundStyle(Color.brandGold)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(averageText)
+                            .font(.subheadline.weight(.semibold))
+                        Text("calificación promedio\notorgada")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                VStack(alignment: .trailing, spacing: 0) {
+                    Text(institutionName)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Color.brand)
+                        .lineLimit(1)
+                    Text("Jurados")
+                        .font(.caption2)
+                        .foregroundStyle(Color.brand)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(RoundedRectangle(cornerRadius: 10).fill(Color.brand.opacity(0.1)))
+            }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
     }
 
+    private var progressRing: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.brand.opacity(0.15), lineWidth: 6)
+            Circle()
+                .trim(from: 0, to: fraction)
+                .stroke(Color.brand, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            VStack(spacing: 0) {
+                Text("\(ratedCount)/\(totalCount)")
+                    .font(.caption.weight(.semibold))
+                Text("\(percent)%")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(width: 64, height: 64)
+    }
+
+    private func statusPill(text: String, color: Color) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 6, height: 6)
+            Text(text)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(color)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(Capsule().fill(color.opacity(0.12)))
+    }
+
     private var selector: some View {
-        HStack(spacing: 0) {
-            TabSegmentButton(
+        HStack(spacing: 10) {
+            filterButton(
                 title: "Pendientes",
-                count: listMatchesFair ? projectsStore.pending.count : 0,
-                isSelected: !showsRated,
-                activeColor: Color.brand,
-                activeBadgeColor: Color.appPrimaryLight
+                count: pendingCount,
+                selected: !showsRated
             ) {
                 showsRated = false
             }
-            TabSegmentButton(
+            filterButton(
                 title: "Con reseña",
                 count: listMatchesFair ? projectsStore.rated.count : 0,
-                isSelected: showsRated,
-                activeColor: Color.brand,
-                activeBadgeColor: Color.appPrimaryLight
+                selected: showsRated
             ) {
                 showsRated = true
             }
         }
-        .padding(4)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.iconTile))
+    }
+
+    private func filterButton(title: String, count: Int, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text("\(count)")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(selected ? Color.onBrand : .secondary)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(selected ? Color.brand : Color.primary.opacity(0.08)))
+            }
+            .foregroundStyle(selected ? Color.brand : .secondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.cardBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(selected ? Color.brand : Color.primary.opacity(0.12), lineWidth: selected ? 1.5 : 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private func emptyState(title: String, message: String, systemImage: String) -> some View {
@@ -205,50 +332,121 @@ struct MyProgressView: View {
     }
 }
 
-private struct ProgressProjectCard: View {
+private struct PendingProjectCard: View {
     let project: ReviewProject
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            CoverImage(url: project.coverUrl.flatMap { URL(string: $0) })
-                .frame(width: 72, height: 72)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                CoverImage(url: project.coverUrl.flatMap { URL(string: $0) })
+                    .frame(width: 64, height: 64)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(project.name)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.leading)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        if let category = project.categoryName, !category.isEmpty {
+                            Text(category.uppercased())
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 8)
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(Color(red: 0.85, green: 0.45, blue: 0.12))
+                                .frame(width: 6, height: 6)
+                            Text("Pendiente")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(Color(red: 0.85, green: 0.45, blue: 0.12))
+                        }
+                    }
 
-                if let category = project.categoryName, !category.isEmpty {
-                    Text(category)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text(project.name)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.leading)
                 }
+            }
 
+            HStack {
+                Text("Sin reseña aún")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                HStack(spacing: 6) {
+                    Image(systemName: "square.and.pencil")
+                    Text("Evaluar")
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.onBrand)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(Capsule().fill(Color.brand))
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
+    }
+}
+
+private struct RatedProjectCard: View {
+    let project: ReviewProject
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 12) {
+                CoverImage(url: project.coverUrl.flatMap { URL(string: $0) })
+                    .frame(width: 64, height: 64)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark")
+                            .font(.caption2.weight(.bold))
+                        Text("Evaluado")
+                            .font(.caption2.weight(.semibold))
+                    }
+                    .foregroundStyle(Color(red: 0.13, green: 0.62, blue: 0.36))
+
+                    Text(project.name)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.leading)
+
+                    if let category = project.categoryName, !category.isEmpty {
+                        Text(category)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            HStack(spacing: 6) {
                 if let rating = project.myRating {
                     HStack(spacing: 2) {
                         ForEach(1...5, id: \.self) { star in
                             Image(systemName: star <= rating ? "star.fill" : "star")
-                                .font(.caption)
+                                .font(.caption2)
                                 .foregroundStyle(star <= rating ? Color.brandGold : Color.appNeutral)
                         }
                     }
-                    if let comment = project.myComment, !comment.isEmpty {
-                        Text(comment)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-                    }
-                } else {
-                    Text("Sin reseña")
+                    Text(String(format: "%.1f", Double(rating)))
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.brand)
                 }
+                Spacer(minLength: 8)
+                Text("Editar reseña >")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.brand)
             }
 
-            Spacer(minLength: 0)
+            if let comment = project.myComment, !comment.isEmpty {
+                Text("\"\(comment)\"")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+            }
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
