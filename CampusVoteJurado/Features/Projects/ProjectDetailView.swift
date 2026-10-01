@@ -1,112 +1,122 @@
 import SwiftUI
-import UIKit
 
-/// Detalle del proyecto: logo, título y el material que subieron.
 struct ProjectDetailView: View {
     let fairId: String
     let projectId: String
-    var onSaved: () -> Void = {}
 
-    @Environment(\.dismiss) private var dismiss
+    @Environment(ProjectsStore.self) private var store
+    @Environment(FairsStore.self) private var fairs
     @Environment(TabBarVisibility.self) private var tabBar
+    @Environment(\.dismiss) private var dismiss
 
     @State private var detail: ProjectDetail?
     @State private var isLoading = true
+    @State private var isSaving = false
     @State private var errorMessage: String?
-    @State private var photoIndex = 0
-    @State private var photoExpanded = false
+    @State private var stars = 0
+    @State private var comment = ""
+    @State private var photoIndex: Int?
+    @State private var savedNote = false
 
     private let api = APIClient.shared
 
+    private var fairIsClosed: Bool {
+        fairs.closedFairs.contains { $0.fair.id == fairId }
+    }
+
+    private var commentCount: Int {
+        comment.trimmingCharacters(in: .whitespacesAndNewlines).count
+    }
+
+    private var canSave: Bool {
+        !fairIsClosed && !isSaving && (1...5).contains(stars) && (10...1000).contains(commentCount)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            encabezado
+            header
 
-            if isLoading && detail == nil {
-                ProgressView("Cargando proyecto...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let detail {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        if let errorMessage {
-                            ErrorBanner(message: errorMessage)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if let errorMessage {
+                        ErrorBanner(message: errorMessage)
+                    }
 
-                        identidad(detail)
-                            .padding(.horizontal, 16)
-
-                        let fotos = material(detail)
-                        if !fotos.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Material")
-                                    .font(.subheadline.weight(.semibold))
-                                    .padding(.horizontal, 16)
-                                galeria(fotos)
-                            }
-                        }
-
-                        if let video = detail.videoUrl, let url = URL(string: video) {
-                            videoCard(url, poster: fotos.first)
-                                .padding(.horizontal, 16)
-                        }
+                    if isLoading {
+                        ProgressView("Cargando proyecto...")
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                    } else if let detail {
+                        titleBlock(detail)
 
                         if let description = detail.description, !description.isEmpty {
-                            bloque("Resumen") {
+                            block("Descripción") {
                                 Text(description)
                                     .font(.subheadline)
                                     .foregroundStyle(.primary)
                             }
-                            .padding(.horizontal, 16)
                         }
 
-                        if !detail.members.isEmpty {
-                            bloque("Integrantes") {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    ForEach(detail.members) { member in
-                                        integrante(member)
+                        let photos = materialURLs(for: detail)
+                        if !photos.isEmpty {
+                            block("Material") {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(Array(photos.enumerated()), id: \.offset) { index, url in
+                                            Button {
+                                                photoIndex = index
+                                            } label: {
+                                                CoverImage(url: URL(string: url))
+                                                    .frame(width: 148, height: 96)
+                                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
                                     }
                                 }
                             }
-                            .padding(.horizontal, 16)
                         }
 
-                        if let raw = detail.projectUrl, let url = URL(string: raw) {
-                            enlace(url, titulo: "Abrir el proyecto", icono: "link")
-                                .padding(.horizontal, 16)
+                        if let video = detail.videoUrl, let url = URL(string: video) {
+                            linkRow(title: "Ver video", systemImage: "play.rectangle", url: url)
                         }
 
-                        ProjectVotePanel(fairId: fairId, projectId: projectId)
-                            .padding(.horizontal, 16)
+                        if let page = detail.projectUrl, let url = URL(string: page) {
+                            linkRow(title: "Abrir el proyecto", systemImage: "link", url: url)
+                        }
+
+                        reviewCard
                     }
-                    .padding(.top, 16)
-                    .padding(.bottom, 24)
                 }
+                .padding(18)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
         .background(Color.appBackground.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .navigationBarBackButtonHidden(true)
-        .overlay {
-            if photoExpanded, let fotos = detail.map(material), !fotos.isEmpty {
-                PhotoViewer(urls: fotos, index: $photoIndex) {
-                    photoExpanded = false
-                }
-            }
+        .task {
+            await load()
         }
-        .onChange(of: photoExpanded) { _, abierto in
-            tabBar.isHidden = abierto
+        .onChange(of: photoIndex) { _, index in
+            tabBar.isHidden = index != nil
         }
         .onDisappear {
             tabBar.isHidden = false
         }
-        .task { await load() }
+        .overlay {
+            if let detail, let photoIndex {
+                PhotoViewer(
+                    urls: materialURLs(for: detail),
+                    index: photoIndex,
+                    onClose: { self.photoIndex = nil }
+                )
+            }
+        }
     }
 
-    private var encabezado: some View {
+    private var header: some View {
         VStack(spacing: 0) {
             ZStack {
-                Text("Proyecto")
+                Text("Detalle")
                     .font(.headline)
                     .foregroundStyle(Color.onBrand)
 
@@ -115,17 +125,15 @@ struct ProjectDetailView: View {
                         dismiss()
                     } label: {
                         Image(systemName: "chevron.left")
-                            .font(.body.weight(.semibold))
+                            .font(.headline.weight(.semibold))
                             .foregroundStyle(Color.onBrand)
-                            .frame(width: 32, height: 32)
+                            .frame(width: 44, height: 44)
                     }
-                    .accessibilityLabel("Volver")
+                    .buttonStyle(.plain)
                     Spacer()
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 12)
+            .padding(.horizontal, 8)
 
             Rectangle()
                 .fill(Color.onBrand.opacity(0.35))
@@ -134,393 +142,276 @@ struct ProjectDetailView: View {
         .background(Color.brand.ignoresSafeArea(edges: .top))
     }
 
-    private func identidad(_ detail: ProjectDetail) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .center, spacing: 12) {
-                logo(detail.logoUrl)
+    private func titleBlock(_ detail: ProjectDetail) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            logo(detail.logoUrl)
 
+            VStack(alignment: .leading, spacing: 4) {
                 Text(detail.name)
                     .font(.headline)
                     .foregroundStyle(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            HStack(spacing: 8) {
-                if let stand = detail.standCode, !stand.isEmpty {
-                    Label("Stand \(stand)", systemImage: "mappin.and.ellipse")
+                if let category = detail.categoryName, !category.isEmpty {
+                    Text(category)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                if let category = detail.categoryName, !category.isEmpty {
-                    Text(category)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(Color.brand)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(Color.brand.opacity(0.12)))
-                }
             }
 
-            if !detail.members.isEmpty {
-                let cantidad = detail.members.count
-                Label(
-                    cantidad == 1 ? "1 integrante" : "\(cantidad) integrantes",
-                    systemImage: "person.2"
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
+            Spacer(minLength: 0)
         }
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
     }
 
-    private func logo(_ raw: String?) -> some View {
-        let url = raw.flatMap { URL(string: $0) }
-        return AsyncImage(url: url) { phase in
-            if let image = phase.image {
-                image
-                    .resizable()
-                    .scaledToFit()
+    private func logo(_ urlString: String?) -> some View {
+        Group {
+            if let urlString, let url = URL(string: urlString) {
+                AsyncImage(url: url) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFit()
+                    } else {
+                        Color.brand.opacity(0.08)
+                    }
+                }
             } else {
                 Image(systemName: "photo")
-                    .font(.body)
                     .foregroundStyle(Color.brand)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.brand.opacity(0.08))
             }
         }
-        .padding(6)
         .frame(width: 56, height: 56)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.brand.opacity(0.08)))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    private func galeria(_ fotos: [String]) -> some View {
-        ZStack(alignment: .bottomTrailing) {
-            TabView(selection: $photoIndex) {
-                ForEach(Array(fotos.enumerated()), id: \.offset) { index, url in
-                    CoverImage(url: URL(string: url))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 230)
-                        .clipped()
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            photoIndex = index
-                            photoExpanded = true
-                        }
-                        .tag(index)
-                }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 230)
-
-            if fotos.count > 1 {
-                Text("\(photoIndex + 1) / \(fotos.count) fotos")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Capsule().fill(.black.opacity(0.55)))
-                    .padding(10)
-                    .allowsHitTesting(false)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal, 16)
-    }
-
-    private func videoCard(_ url: URL, poster: String?) -> some View {
-        Link(destination: url) {
-            ZStack {
-                CoverImage(url: poster.flatMap { URL(string: $0) })
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 170)
-                    .clipped()
-
-                VStack(spacing: 8) {
-                    Image(systemName: "play.circle.fill")
-                        .font(.system(size: 44))
-                        .foregroundStyle(.white)
-                    Text("Ver video")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 170)
-            .background(Color.black.opacity(0.35))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-        }
-    }
-
-    private func bloque(_ titulo: String, @ViewBuilder content: () -> some View) -> some View {
+    private func block(_ title: String, @ViewBuilder content: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(titulo)
+            Text(title)
                 .font(.subheadline.weight(.semibold))
             content()
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
     }
 
-    private func enlace(_ url: URL, titulo: String, icono: String) -> some View {
+    private func linkRow(title: String, systemImage: String, url: URL) -> some View {
         Link(destination: url) {
-            HStack(spacing: 12) {
-                Image(systemName: icono)
-                    .font(.body)
+            HStack(spacing: 10) {
+                Image(systemName: systemImage)
+                    .font(.subheadline)
                     .foregroundStyle(Color.brand)
-                    .frame(width: 40, height: 40)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.brand.opacity(0.12)))
-                Text(titulo)
+                Text(title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
                 Spacer()
                 Image(systemName: "arrow.up.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.tertiary)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
             .padding(14)
-            .background(Color.cardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
         }
     }
 
-    private func integrante(_ member: ProjectDetail.Member) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "person")
-                .font(.body)
-                .foregroundStyle(Color.brand)
-                .frame(width: 40, height: 40)
-                .background(RoundedRectangle(cornerRadius: 12).fill(Color.brand.opacity(0.12)))
+    private var reviewCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Tu reseña")
+                .font(.subheadline.weight(.semibold))
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text("\(member.firstName ?? "") \(member.lastName ?? "")".trimmingCharacters(in: .whitespaces))
-                    .font(.subheadline.weight(.semibold))
-                if let role = member.role, !role.isEmpty {
-                    Text(role)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            if fairIsClosed {
+                Text("Esta feria está cerrada.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 6) {
+                ForEach(1...5, id: \.self) { star in
+                    Button {
+                        guard !fairIsClosed else { return }
+                        stars = star
+                        savedNote = false
+                    } label: {
+                        Image(systemName: star <= stars ? "star.fill" : "star")
+                            .font(.title3)
+                            .foregroundStyle(star <= stars ? Color.brandGold : Color.appNeutral)
+                            .frame(width: 36, height: 36)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(fairIsClosed)
                 }
             }
-            Spacer(minLength: 0)
+
+            ZStack(alignment: .topLeading) {
+                if comment.isEmpty {
+                    Text("Escribe un comentario")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 16)
+                }
+                TextEditor(text: $comment)
+                    .font(.subheadline)
+                    .scrollContentBackground(.hidden)
+                    .frame(minHeight: 110)
+                    .padding(8)
+                    .disabled(fairIsClosed)
+            }
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color.iconTile))
+            .onChange(of: comment) { _, _ in
+                savedNote = false
+            }
+
+            Text("\(commentCount)/1000")
+                .font(.caption)
+                .foregroundStyle((10...1000).contains(commentCount) ? Color.secondary : Color.brand)
+
+            if savedNote {
+                Text("Reseña guardada.")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.brand)
+            }
+
+            Button {
+                Task { await save() }
+            } label: {
+                Group {
+                    if isSaving {
+                        ProgressView()
+                            .tint(Color.onBrand)
+                    } else {
+                        Text("Guardar reseña")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                }
+                .foregroundStyle(Color.onBrand)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color.brand.opacity(canSave ? 1 : 0.4)))
+            }
+            .buttonStyle(.plain)
+            .disabled(!canSave)
         }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
     }
 
-    /// Fotos que subió el proyecto. El logo no entra aquí.
-    private func material(_ detail: ProjectDetail) -> [String] {
-        var urls: [String] = []
-        func add(_ url: String?) {
-            guard let url, !url.isEmpty, url != detail.logoUrl, !urls.contains(url) else { return }
-            urls.append(url)
+    private func materialURLs(for detail: ProjectDetail) -> [String] {
+        var urls = detail.imageUrls.filter { $0 != detail.logoUrl }
+        if let cover = detail.coverUrl, cover != detail.logoUrl, !urls.contains(cover) {
+            urls.append(cover)
         }
-        detail.imageUrls.forEach { add($0) }
-        add(detail.coverUrl)
         return urls
     }
 
-    @MainActor
     private func load() async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
+
         do {
             detail = try await api.send(
-                Endpoint.projectDetail(fairId: fairId, projectId: projectId),
+                .projectDetail(fairId: fairId, projectId: projectId),
                 as: ProjectDetail.self
             )
         } catch {
             errorMessage = error.userMessage
         }
+
+        do {
+            let loaded = try await api.send(
+                .projectRating(fairId: fairId, projectId: projectId),
+                as: ProjectRating.self
+            )
+            stars = loaded.rating ?? 0
+            comment = loaded.comment ?? ""
+        } catch let error as APIError {
+            if case .decoding = error {
+                stars = 0
+                comment = ""
+            } else if errorMessage == nil {
+                errorMessage = error.message
+            }
+        } catch {
+            if errorMessage == nil {
+                errorMessage = error.userMessage
+            }
+        }
+    }
+
+    private func save() async {
+        guard canSave else { return }
+        isSaving = true
+        errorMessage = nil
+        defer { isSaving = false }
+
+        if let _ = await store.saveRating(
+            fairId: fairId,
+            projectId: projectId,
+            rating: stars,
+            comment: comment
+        ) {
+            savedNote = true
+        } else {
+            errorMessage = store.errorMessage
+        }
     }
 }
 
-// MARK: - Foto a pantalla completa
-
 private struct PhotoViewer: View {
     let urls: [String]
-    @Binding var index: Int
+    let index: Int
     let onClose: () -> Void
+
+    @State private var page: Int
+    @State private var scale: CGFloat = 1
+
+    init(urls: [String], index: Int, onClose: @escaping () -> Void) {
+        self.urls = urls
+        self.index = index
+        self.onClose = onClose
+        _page = State(initialValue: index)
+    }
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            TabView(selection: $index) {
+            TabView(selection: $page) {
                 ForEach(Array(urls.enumerated()), id: \.offset) { offset, url in
-                    ZoomableRemoteImage(urlString: url)
+                    CoverImage(url: URL(string: url))
+                        .scaleEffect(scale)
+                        .gesture(
+                            MagnifyGesture()
+                                .onChanged { value in
+                                    scale = min(max(value.magnification, 1), 4)
+                                }
+                                .onEnded { _ in
+                                    if scale < 1.05 { scale = 1 }
+                                }
+                        )
                         .tag(offset)
                 }
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .ignoresSafeArea()
+            .tabViewStyle(.page(indexDisplayMode: .automatic))
         }
         .overlay(alignment: .top) {
             HStack {
+                Spacer()
                 Button(action: onClose) {
                     Image(systemName: "xmark")
-                        .font(.body.weight(.semibold))
+                        .font(.headline.weight(.semibold))
                         .foregroundStyle(.white)
                         .frame(width: 44, height: 44)
-                        .background(Circle().fill(.white.opacity(0.22)))
-                        .contentShape(Rectangle())
+                        .background(Circle().fill(.black.opacity(0.45)))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Cerrar")
-
-                Spacer()
-
-                if urls.count > 1 {
-                    Text("\(index + 1) / \(urls.count)")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                }
             }
-            .padding(.horizontal, 16)
             .padding(.top, 8)
+            .padding(.trailing, 12)
             .zIndex(10)
-        }
-    }
-}
-
-private struct ZoomableRemoteImage: View {
-    let urlString: String
-    @State private var scale: CGFloat = 1
-
-    var body: some View {
-        AsyncImage(url: URL(string: urlString)) { phase in
-            if let image = phase.image {
-                image
-                    .resizable()
-                    .scaledToFit()
-            } else {
-                ProgressView().tint(.white)
-            }
-        }
-        .scaleEffect(scale)
-        .gesture(
-            MagnificationGesture()
-                .onChanged { value in
-                    scale = min(max(value, 1), 4)
-                }
-                .onEnded { _ in
-                    if scale < 1.05 { scale = 1 }
-                }
-        )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-/// Un voto por jurado en toda la feria. No muestra cuál proyecto eligió.
-struct ProjectVotePanel: View {
-    let fairId: String
-    let projectId: String
-
-    @Environment(FairsStore.self) private var fairs
-    @State private var hasVoted = false
-    @State private var receipt: String?
-    @State private var errorMessage: String?
-    @State private var isWorking = false
-    @State private var confirm = false
-
-    private var fairIsReady: Bool {
-        guard let fair = (fairs.activeFairs + fairs.closedFairs).first(where: { $0.fair.id == fairId })?.fair else {
-            return true
-        }
-        guard fair.isOpen else { return false }
-        guard let startsAt = fair.startsAt else { return true }
-        let parser = ISO8601DateFormatter()
-        parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let plain = ISO8601DateFormatter()
-        plain.formatOptions = [.withInternetDateTime]
-        guard let date = parser.date(from: startsAt) ?? plain.date(from: startsAt) else { return true }
-        return date <= Date()
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Voto de la feria")
-                .font(.subheadline.weight(.semibold))
-
-            if hasVoted {
-                Label("Tu voto en esta feria ya fue emitido.", systemImage: "checkmark.seal")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else if fairIsReady {
-                Text("Es uno solo para toda la feria y no depende de la rúbrica.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Button("Elegir como mi voto") { confirm = true }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.onBrand)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                    .background(Color.brand)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .disabled(isWorking)
-            } else {
-                Text("El voto se habilita cuando la feria está abierta.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
-        .task { await loadStatus() }
-        .confirmationDialog(
-            "Este voto es uno solo para toda la feria.",
-            isPresented: $confirm,
-            titleVisibility: .visible
-        ) {
-            Button("Emitir voto") { Task { await cast() } }
-            Button("Cancelar", role: .cancel) {}
-        }
-        .alert("Comprobante", isPresented: Binding(
-            get: { receipt != nil },
-            set: { if !$0 { receipt = nil } }
-        )) {
-            Button("Copiar") {
-                if let receipt {
-                    UIPasteboard.general.string = receipt
-                }
-            }
-            Button("Listo", role: .cancel) {}
-        } message: {
-            Text("Guárdalo ahora: \(receipt ?? ""). No se vuelve a mostrar.")
-        }
-    }
-
-    private func loadStatus() async {
-        guard let status = try? await APIClient.shared.send(
-            .votingStatus(fairId: fairId),
-            as: VotingStatus.self
-        ) else { return }
-        hasVoted = status.hasVoted
-    }
-
-    private func cast() async {
-        isWorking = true
-        errorMessage = nil
-        defer { isWorking = false }
-        do {
-            let result = try await APIClient.shared.send(
-                .castVote(fairId: fairId, projectId: projectId),
-                as: VoteReceipt.self
-            )
-            receipt = result.receiptCode
-            hasVoted = true
-        } catch {
-            errorMessage = error.userMessage
         }
     }
 }

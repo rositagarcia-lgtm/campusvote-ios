@@ -3,12 +3,14 @@ import UIKit
 
 enum InstitutionAppearance {
     static var name: String?
+    static var kindLabel: String?
     static var logoURL: URL?
     static var primaryHex: String?
     static var secondaryHex: String?
 
     static func apply(_ brand: OrganizationBrand) {
         name = brand.name
+        kindLabel = brand.kindLabel
         primaryHex = brand.primaryColor
         secondaryHex = brand.secondaryColor
         if let logo = brand.logo, let url = URL(string: logo) {
@@ -20,6 +22,7 @@ enum InstitutionAppearance {
 
     static func reset() {
         name = nil
+        kindLabel = nil
         logoURL = nil
         primaryHex = nil
         secondaryHex = nil

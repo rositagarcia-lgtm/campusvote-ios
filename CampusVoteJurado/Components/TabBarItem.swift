@@ -9,10 +9,12 @@ struct TabBarItem: View {
     var body: some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 18))
+                .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
             Text(label)
-                .font(.system(size: 10))
+                .font(.caption2.weight(isSelected ? .semibold : .regular))
         }
-        .foregroundColor(isSelected ? activeColor : .gray)
+        .foregroundStyle(isSelected ? activeColor : Color.primary)
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
     }
 }

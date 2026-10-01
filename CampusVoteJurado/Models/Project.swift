@@ -1,5 +1,6 @@
 import Foundation
 
+/// Proyecto aprobado de una feria.
 struct Project: Identifiable, Decodable, Hashable {
     let id: String
     let fairId: String?
@@ -15,22 +16,28 @@ struct Project: Identifiable, Decodable, Hashable {
     let imageUrls: [String]
     let videoUrl: String?
 
-    var tableNumber: String? { standCode }
-    var category: String? { categoryName }
+    var tableNumber: String? {
+        standCode
+    }
 
-    var isEvaluated: Bool {
-        status?.uppercased() == "EVALUATED"
+    var category: String? {
+        categoryName
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, description, status, category, stand
+        case id
         case fairId = "fair_id"
+        case name
+        case description
         case logoUrl = "logo_url"
         case coverUrl = "cover_url"
+        case status
         case categoryId = "category_id"
         case categoryName = "category_name"
         case standId = "stand_id"
         case standCode = "stand_code"
+        case category
+        case stand
         case imageUrls = "image_urls"
         case videoUrl = "video_url"
     }
@@ -39,22 +46,19 @@ struct Project: Identifiable, Decodable, Hashable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
         fairId = try container.decodeIfPresent(String.self, forKey: .fairId)
-        name = try container.decodeIfPresent(String.self, forKey: .name) ?? "Proyecto"
+        name = try container.decode(String.self, forKey: .name)
         description = try container.decodeIfPresent(String.self, forKey: .description)
         logoUrl = try container.decodeIfPresent(String.self, forKey: .logoUrl)
         coverUrl = try container.decodeIfPresent(String.self, forKey: .coverUrl)
         status = try container.decodeIfPresent(String.self, forKey: .status)
+        imageUrls = try container.decodeIfPresent([String].self, forKey: .imageUrls) ?? []
         videoUrl = try container.decodeIfPresent(String.self, forKey: .videoUrl)
-        imageUrls = Self.readUrls(container, key: .imageUrls)
 
         let flatCategoryId = try container.decodeIfPresent(String.self, forKey: .categoryId)
         let flatCategoryName = try container.decodeIfPresent(String.self, forKey: .categoryName)
         if let category = try? container.decode(NestedCategory.self, forKey: .category) {
             categoryId = category.id ?? flatCategoryId
             categoryName = category.name ?? flatCategoryName
-        } else if let name = try? container.decode(String.self, forKey: .category) {
-            categoryId = flatCategoryId
-            categoryName = name
         } else {
             categoryId = flatCategoryId
             categoryName = flatCategoryName
@@ -65,9 +69,6 @@ struct Project: Identifiable, Decodable, Hashable {
         if let stand = try? container.decode(NestedStand.self, forKey: .stand) {
             standId = stand.id ?? flatStandId
             standCode = stand.code ?? stand.name ?? flatStandCode
-        } else if let code = try? container.decode(String.self, forKey: .stand) {
-            standId = flatStandId
-            standCode = code
         } else {
             standId = flatStandId
             standCode = flatStandCode
@@ -104,16 +105,6 @@ struct Project: Identifiable, Decodable, Hashable {
         self.videoUrl = videoUrl
     }
 
-    private static func readUrls(_ container: KeyedDecodingContainer<CodingKeys>, key: CodingKeys) -> [String] {
-        if let list = try? container.decode([String].self, forKey: key) {
-            return list
-        }
-        if let boxes = try? container.decode([URLBox].self, forKey: key) {
-            return boxes.compactMap { $0.url ?? $0.src }
-        }
-        return []
-    }
-
     private struct NestedCategory: Decodable {
         let id: String?
         let name: String?
@@ -124,15 +115,11 @@ struct Project: Identifiable, Decodable, Hashable {
         let code: String?
         let name: String?
     }
-
-    private struct URLBox: Decodable {
-        let url: String?
-        let src: String?
-    }
 }
 
 typealias ProjectCard = Project
 
+/// Detalle de GET /fairs/{fairId}/projects/{projectId}.
 struct ProjectDetail: Decodable {
     let projectId: String
     let fairId: String?
@@ -148,30 +135,7 @@ struct ProjectDetail: Decodable {
     let standCode: String?
     let imageUrls: [String]
     let videoUrl: String?
-    let criteria: [Criterion]
     let members: [Member]
-
-    var activeCriteria: [Criterion] {
-        criteria.filter { $0.isActive }.sorted { $0.position < $1.position }
-    }
-
-    var asProject: Project {
-        Project(
-            id: projectId,
-            fairId: fairId,
-            name: name,
-            description: description,
-            logoUrl: logoUrl,
-            coverUrl: coverUrl,
-            status: status,
-            categoryId: categoryId,
-            categoryName: categoryName,
-            standId: standId,
-            standCode: standCode,
-            imageUrls: imageUrls,
-            videoUrl: videoUrl
-        )
-    }
 
     struct Member: Decodable, Identifiable {
         let id: String
@@ -185,25 +149,27 @@ struct ProjectDetail: Decodable {
             case lastName = "last_name"
             case role
         }
-
-        init(from decoder: Decoder) throws {
-            let container = try decoder.container(keyedBy: CodingKeys.self)
-            id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
-            firstName = try container.decodeIfPresent(String.self, forKey: .firstName)
-            lastName = try container.decodeIfPresent(String.self, forKey: .lastName)
-            role = try container.decodeIfPresent(String.self, forKey: .role)
-        }
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, description, status, category, stand, members, rubric
+        case id
         case projectId = "project_id"
         case fairId = "fair_id"
+        case name
+        case description
         case logoUrl = "logo_url"
         case coverUrl = "cover_url"
         case projectUrl = "project_url"
         case videoUrl = "video_url"
         case imageUrls = "image_urls"
+        case status
+        case category
+        case categoryId = "category_id"
+        case categoryName = "category_name"
+        case stand
+        case standId = "stand_id"
+        case standCode = "stand_code"
+        case members
     }
 
     init(from decoder: Decoder) throws {
@@ -211,61 +177,41 @@ struct ProjectDetail: Decodable {
         projectId = try container.decodeIfPresent(String.self, forKey: .projectId)
             ?? container.decode(String.self, forKey: .id)
         fairId = try container.decodeIfPresent(String.self, forKey: .fairId)
-        name = try container.decodeIfPresent(String.self, forKey: .name) ?? "Proyecto"
+        name = try container.decode(String.self, forKey: .name)
         description = try container.decodeIfPresent(String.self, forKey: .description)
         logoUrl = try container.decodeIfPresent(String.self, forKey: .logoUrl)
         coverUrl = try container.decodeIfPresent(String.self, forKey: .coverUrl)
         projectUrl = try container.decodeIfPresent(String.self, forKey: .projectUrl)
         videoUrl = try container.decodeIfPresent(String.self, forKey: .videoUrl)
+        imageUrls = try container.decodeIfPresent([String].self, forKey: .imageUrls) ?? []
         status = try container.decodeIfPresent(String.self, forKey: .status)
-        members = (try? container.decode([Member].self, forKey: .members)) ?? []
-        criteria = (try? container.decode(NestedRubric.self, forKey: .rubric))?.criteria ?? []
-        imageUrls = Self.readUrls(container)
+        members = (try container.decodeIfPresent([Member].self, forKey: .members)) ?? []
 
+        let flatCategoryId = try container.decodeIfPresent(String.self, forKey: .categoryId)
+        let flatCategoryName = try container.decodeIfPresent(String.self, forKey: .categoryName)
         if let category = try? container.decode(NestedItem.self, forKey: .category) {
-            categoryId = category.id
-            categoryName = category.name
-        } else if let name = try? container.decode(String.self, forKey: .category) {
-            categoryId = nil
-            categoryName = name
+            categoryId = category.id ?? flatCategoryId
+            categoryName = category.name ?? flatCategoryName
         } else {
-            categoryId = nil
-            categoryName = nil
+            categoryId = flatCategoryId
+            categoryName = flatCategoryName
         }
 
+        let flatStandId = try container.decodeIfPresent(String.self, forKey: .standId)
+        let flatStandCode = try container.decodeIfPresent(String.self, forKey: .standCode)
         if let stand = try? container.decode(NestedItem.self, forKey: .stand) {
-            standId = stand.id
-            standCode = stand.code ?? stand.name
-        } else if let code = try? container.decode(String.self, forKey: .stand) {
-            standId = nil
-            standCode = code
+            standId = stand.id ?? flatStandId
+            standCode = stand.code ?? stand.name ?? flatStandCode
         } else {
-            standId = nil
-            standCode = nil
+            standId = flatStandId
+            standCode = flatStandCode
         }
-    }
-
-    private static func readUrls(_ container: KeyedDecodingContainer<CodingKeys>) -> [String] {
-        if let list = try? container.decode([String].self, forKey: .imageUrls) { return list }
-        if let boxes = try? container.decode([URLBox].self, forKey: .imageUrls) {
-            return boxes.compactMap { $0.url ?? $0.src }
-        }
-        return []
     }
 
     private struct NestedItem: Decodable {
         let id: String?
         let name: String?
         let code: String?
-    }
-
-    private struct NestedRubric: Decodable {
-        let criteria: [Criterion]
-    }
-
-    private struct URLBox: Decodable {
-        let url: String?
-        let src: String?
     }
 }
 
@@ -276,8 +222,10 @@ struct Category: Codable, Identifiable, Hashable {
     let description: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, description
+        case id
         case fairId = "fair_id"
+        case name
+        case description
     }
 }
 
@@ -288,35 +236,9 @@ struct Stand: Codable, Identifiable, Hashable {
     let description: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, code, description
+        case id
         case fairId = "fair_id"
-    }
-}
-
-struct CategoryList: Decodable {
-    let fairId: String?
-    let fairName: String?
-    let count: Int?
-    let categories: [Category]
-
-    enum CodingKeys: String, CodingKey {
-        case fairId = "fair_id"
-        case fairName = "fair_name"
-        case count
-        case categories
-    }
-}
-
-struct StandList: Decodable {
-    let fairId: String?
-    let fairName: String?
-    let count: Int?
-    let stands: [Stand]
-
-    enum CodingKeys: String, CodingKey {
-        case fairId = "fair_id"
-        case fairName = "fair_name"
-        case count
-        case stands
+        case code
+        case description
     }
 }

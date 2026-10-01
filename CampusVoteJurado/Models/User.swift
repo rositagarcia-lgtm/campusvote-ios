@@ -62,10 +62,14 @@ struct AuthResult: Decodable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        requiresEmailOtp = try container.decodeIfPresent(Bool.self, forKey: .requiresEmailOtp)
-            ?? container.decodeIfPresent(Bool.self, forKey: .requiresEmailOtpSnake)
-        tempToken = try container.decodeIfPresent(String.self, forKey: .tempToken)
-            ?? container.decodeIfPresent(String.self, forKey: .tempTokenSnake)
+        let otp = try container.decodeIfPresent(Bool.self, forKey: .requiresEmailOtp)
+        let otpSnake = try container.decodeIfPresent(Bool.self, forKey: .requiresEmailOtpSnake)
+        requiresEmailOtp = otp ?? otpSnake
+
+        let tokenValue = try container.decodeIfPresent(String.self, forKey: .tempToken)
+        let tokenSnake = try container.decodeIfPresent(String.self, forKey: .tempTokenSnake)
+        tempToken = tokenValue ?? tokenSnake
+
         email = try container.decodeIfPresent(String.self, forKey: .email)
         token = try container.decodeIfPresent(String.self, forKey: .token)
         user = try container.decodeIfPresent(User.self, forKey: .user)
@@ -78,37 +82,56 @@ struct OrganizationBrand: Decodable {
     let logo: String?
     let primaryColor: String?
     let secondaryColor: String?
+    let orgType: String?
+
+    var kindLabel: String? {
+        guard let raw = orgType?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
+            return nil
+        }
+        switch raw.uppercased() {
+        case "UNIVERSITY": return "Universidad"
+        case "INSTITUTE": return "Instituto de Educación Superior"
+        case "SCHOOL": return "Colegio"
+        case "COMPANY": return "Empresa"
+        case "ASSOCIATION": return "Asociación"
+        default: return raw
+        }
+    }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, logo, primary, secondary, organization
+        case id
+        case name
+        case logo
         case logoUrl = "logo_url"
         case primaryColor
         case primaryColorSnake = "primary_color"
         case secondaryColor
         case secondaryColorSnake = "secondary_color"
+        case orgType = "org_type"
+        case organizationType = "organization_type"
+        case type
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let hasOwnFields = container.contains(.name)
-            || container.contains(.primaryColor)
-            || container.contains(.primaryColorSnake)
-            || container.contains(.primary)
-            || container.contains(.logo)
-            || container.contains(.logoUrl)
-        if !hasOwnFields, let nested = try container.decodeIfPresent(OrganizationBrand.self, forKey: .organization) {
-            self = nested
-            return
-        }
         id = try container.decodeIfPresent(String.self, forKey: .id)
         name = try container.decodeIfPresent(String.self, forKey: .name) ?? "Institución"
-        logo = try container.decodeIfPresent(String.self, forKey: .logo)
-            ?? container.decodeIfPresent(String.self, forKey: .logoUrl)
-        primaryColor = try container.decodeIfPresent(String.self, forKey: .primaryColor)
-            ?? container.decodeIfPresent(String.self, forKey: .primaryColorSnake)
-            ?? container.decodeIfPresent(String.self, forKey: .primary)
-        secondaryColor = try container.decodeIfPresent(String.self, forKey: .secondaryColor)
-            ?? container.decodeIfPresent(String.self, forKey: .secondaryColorSnake)
-            ?? container.decodeIfPresent(String.self, forKey: .secondary)
+
+        let logoValue = try container.decodeIfPresent(String.self, forKey: .logo)
+        let logoURL = try container.decodeIfPresent(String.self, forKey: .logoUrl)
+        logo = logoValue ?? logoURL
+
+        let primary = try container.decodeIfPresent(String.self, forKey: .primaryColor)
+        let primarySnake = try container.decodeIfPresent(String.self, forKey: .primaryColorSnake)
+        primaryColor = primary ?? primarySnake
+
+        let secondary = try container.decodeIfPresent(String.self, forKey: .secondaryColor)
+        let secondarySnake = try container.decodeIfPresent(String.self, forKey: .secondaryColorSnake)
+        secondaryColor = secondary ?? secondarySnake
+
+        let org = try container.decodeIfPresent(String.self, forKey: .orgType)
+        let organization = try container.decodeIfPresent(String.self, forKey: .organizationType)
+        let plainType = try container.decodeIfPresent(String.self, forKey: .type)
+        orgType = org ?? organization ?? plainType
     }
 }

@@ -4,40 +4,36 @@ struct MainTabView: View {
     @Environment(TabBarVisibility.self) private var tabBar
     @State private var selectedTab: Int = 0
 
-    /// Las cuatro secciones del jurado, en orden.
     private let pestanas: [(icono: String, titulo: String)] = [
-        ("building.columns", "Ferias"),
-        ("chart.bar.xaxis", "Mi avance"),
-        ("list.number", "Ranking"),
-        ("person.circle", "Perfil"),
+        ("house", "Ferias"),
+        ("chart.bar", "Avance"),
+        ("person", "Perfil"),
     ]
+
+    private var notchCenter: CGFloat {
+        let count = CGFloat(pestanas.count)
+        return (CGFloat(selectedTab) + 0.5) / count
+    }
 
     var body: some View {
         TabView(selection: $selectedTab) {
-
             FairListView()
                 .toolbar(.hidden, for: .tabBar)
                 .tag(0)
 
             NavigationStack {
-                MiAvanceTab()
+                MyProgressView()
             }
             .toolbar(.hidden, for: .tabBar)
             .tag(1)
 
             NavigationStack {
-                RankingTab()
-            }
-            .toolbar(.hidden, for: .tabBar)
-            .tag(2)
-
-            NavigationStack {
                 ProfileView()
             }
             .toolbar(.hidden, for: .tabBar)
-            .tag(3)
+            .tag(2)
         }
-        .tint(Color.appPrimary)
+        .tint(Color.brand)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !tabBar.isHidden {
                 barraInferior
@@ -55,141 +51,100 @@ struct MainTabView: View {
                         icon: pestana.icono,
                         label: pestana.titulo,
                         isSelected: selectedTab == indice,
-                        activeColor: Color.appPrimary
+                        activeColor: Color.brand
                     )
-                    .frame(maxWidth: .infinity)
-                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(pestana.titulo)
             }
         }
-        .padding(.top, 8)
-        .padding(.bottom, 2)
-        .background(
-            Color.cardBackground
-                .overlay(alignment: .top) { Divider() }
-                .ignoresSafeArea(edges: .bottom)
+        .padding(.top, 20)
+        .padding(.bottom, 10)
+        .background {
+            NotchedBarShape(
+                cornerRadius: 28,
+                notchRadius: 16,
+                notchCenter: notchCenter
+            )
+            .fill(Color.cardBackground)
+            .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
+        }
+        .overlay {
+            GeometryReader { proxy in
+                Circle()
+                    .fill(Color.cardBackground)
+                    .frame(width: 12, height: 12)
+                    .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
+                    .position(x: proxy.size.width * notchCenter, y: 0)
+            }
+            .allowsHitTesting(false)
+        }
+        .animation(.spring(response: 0.38, dampingFraction: 0.78), value: selectedTab)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 8)
+    }
+}
+
+/// Pastilla con la muesca sobre la pestaña elegida. El puntito va en el centro del hueco.
+private struct NotchedBarShape: Shape {
+    var cornerRadius: CGFloat
+    var notchRadius: CGFloat
+    var notchCenter: CGFloat
+
+    var animatableData: CGFloat {
+        get { notchCenter }
+        set { notchCenter = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let r = min(cornerRadius, rect.height / 2)
+        let n = notchRadius
+        let minCenter = rect.minX + r + n
+        let maxCenter = rect.maxX - r - n
+        let mid = min(max(rect.minX + rect.width * notchCenter, minCenter), maxCenter)
+        let depth = n * 0.9
+
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + r, y: rect.minY))
+        path.addLine(to: CGPoint(x: mid - n, y: rect.minY))
+        path.addCurve(
+            to: CGPoint(x: mid + n, y: rect.minY),
+            control1: CGPoint(x: mid - n * 0.45, y: depth),
+            control2: CGPoint(x: mid + n * 0.45, y: depth)
         )
-    }
-}
-
-/// Mi avance de la feria elegida. Si hay varias, el jurado cambia con el menú.
-private struct MiAvanceTab: View {
-    @Environment(FairsStore.self) private var fairsStore
-    @State private var selectedFairId: String?
-
-    private var fairs: [FairAssignment] {
-        fairsStore.activeFairs + fairsStore.closedFairs
-    }
-
-    var body: some View {
-        Group {
-            if fairsStore.isLoading && fairs.isEmpty {
-                ProgressView("Cargando ferias...")
-            } else if fairs.isEmpty {
-                ContentUnavailableView(
-                    "Sin ferias",
-                    systemImage: "chart.bar.xaxis",
-                    description: Text("Cuando tengas una feria asignada, aquí verás tu avance.")
-                )
-            } else {
-                VStack(alignment: .leading, spacing: 0) {
-                    if fairs.count > 1 {
-                        Picker("Feria", selection: $selectedFairId) {
-                            ForEach(fairs) { assignment in
-                                Text(assignment.fair.name)
-                                    .tag(Optional(assignment.fair.id))
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .padding(.horizontal)
-                        .padding(.top, 8)
-                    }
-
-                    if let fairId = selectedFairId {
-                        MyProgressView(fairId: fairId)
-                            .id(fairId)
-                    }
-                }
-            }
-        }
-        .task {
-            await fairsStore.fetchMyAssignments()
-            if selectedFairId == nil {
-                selectedFairId = fairs.first?.fair.id
-            }
-        }
-    }
-}
-
-/// Ranking de la feria abierta. Si hay varias, el jurado elige cuál ver.
-private struct RankingTab: View {
-    @Environment(FairsStore.self) private var fairsStore
-    @State private var selectedFairId: String?
-
-    private var fairs: [FairAssignment] {
-        let open = fairsStore.activeFairs.filter { $0.fair.isOpen }
-        if !open.isEmpty { return open }
-        return fairsStore.activeFairs + fairsStore.closedFairs
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            VStack(spacing: 0) {
-                Text("Ranking")
-                    .font(.headline)
-                    .foregroundStyle(Color.onBrand)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 8)
-                    .padding(.bottom, 12)
-
-                Rectangle()
-                    .fill(Color.onBrand.opacity(0.35))
-                    .frame(height: 0.5)
-            }
-            .background(Color.brand.ignoresSafeArea(edges: .top))
-
-            Group {
-                if fairsStore.isLoading && fairs.isEmpty {
-                    ProgressView("Cargando ferias...")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if fairs.isEmpty {
-                    ContentUnavailableView(
-                        "Sin ferias",
-                        systemImage: "list.number",
-                        description: Text("Cuando tengas una feria asignada, aquí verás el ranking.")
-                    )
-                } else {
-                    VStack(alignment: .leading, spacing: 0) {
-                        if fairs.count > 1 {
-                            Picker("Feria", selection: $selectedFairId) {
-                                ForEach(fairs) { assignment in
-                                    Text(assignment.fair.name)
-                                        .tag(Optional(assignment.fair.id))
-                                }
-                            }
-                            .pickerStyle(.menu)
-                            .tint(Color.brand)
-                            .padding(.horizontal)
-                            .padding(.top, 8)
-                        }
-
-                        if let fairId = selectedFairId {
-                            RankingView(fairId: fairId, categoryId: nil)
-                                .id(fairId)
-                        }
-                    }
-                }
-            }
-        }
-        .background(Color.appBackground)
-        .toolbar(.hidden, for: .navigationBar)
-        .task {
-            await fairsStore.fetchMyAssignments()
-            if selectedFairId == nil {
-                selectedFairId = fairs.first?.fair.id
-            }
-        }
+        path.addLine(to: CGPoint(x: rect.maxX - r, y: rect.minY))
+        path.addArc(
+            center: CGPoint(x: rect.maxX - r, y: rect.minY + r),
+            radius: r,
+            startAngle: .degrees(-90),
+            endAngle: .degrees(0),
+            clockwise: false
+        )
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - r))
+        path.addArc(
+            center: CGPoint(x: rect.maxX - r, y: rect.maxY - r),
+            radius: r,
+            startAngle: .degrees(0),
+            endAngle: .degrees(90),
+            clockwise: false
+        )
+        path.addLine(to: CGPoint(x: rect.minX + r, y: rect.maxY))
+        path.addArc(
+            center: CGPoint(x: rect.minX + r, y: rect.maxY - r),
+            radius: r,
+            startAngle: .degrees(90),
+            endAngle: .degrees(180),
+            clockwise: false
+        )
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + r))
+        path.addArc(
+            center: CGPoint(x: rect.minX + r, y: rect.minY + r),
+            radius: r,
+            startAngle: .degrees(180),
+            endAngle: .degrees(270),
+            clockwise: false
+        )
+        path.closeSubpath()
+        return path
     }
 }

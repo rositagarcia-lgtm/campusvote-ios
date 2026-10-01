@@ -1,5 +1,7 @@
 import Foundation
 
+// MARK: - Payloads
+
 private struct LoginPayload: Encodable {
     let email: String
     let password: String
@@ -40,6 +42,8 @@ private struct VotePayload: Encodable {
     }
 }
 
+// MARK: - Endpoint
+
 struct Endpoint {
     let path: String
     let method: String
@@ -47,6 +51,8 @@ struct Endpoint {
     var body: (any Encodable)?
     var usesStoredToken: Bool = true
     var explicitToken: String?
+
+    // MARK: Autenticación
 
     static func login(email: String, password: String) -> Endpoint {
         Endpoint(
@@ -76,9 +82,13 @@ struct Endpoint {
         )
     }
 
+    // MARK: Marca
+
     static func organization(id: String) -> Endpoint {
         Endpoint(path: "organizations/\(id)", method: "GET")
     }
+
+    // MARK: Ferias
 
     static var myAssignments: Endpoint {
         Endpoint(path: "fairs/my-assignments", method: "GET")
@@ -91,6 +101,30 @@ struct Endpoint {
     static func myProgress(fairId: String) -> Endpoint {
         Endpoint(path: "fairs/my-progress/\(fairId)", method: "GET")
     }
+
+    // MARK: Reseñas
+
+    static func reviewProjects(fairId: String) -> Endpoint {
+        Endpoint(path: "fairs/\(fairId)/review-projects", method: "GET")
+    }
+
+    static func projectDetail(fairId: String, projectId: String) -> Endpoint {
+        Endpoint(path: "fairs/\(fairId)/projects/\(projectId)", method: "GET")
+    }
+
+    static func projectRating(fairId: String, projectId: String) -> Endpoint {
+        Endpoint(path: "fairs/\(fairId)/projects/\(projectId)/rating", method: "GET")
+    }
+
+    static func saveRating(fairId: String, projectId: String, body: ReviewPutBody) -> Endpoint {
+        Endpoint(
+            path: "fairs/\(fairId)/projects/\(projectId)/rating",
+            method: "PUT",
+            body: body
+        )
+    }
+
+    // MARK: Rutas que el jurado de iOS ya no usa
 
     static func declaration(fairId: String) -> Endpoint {
         Endpoint(path: "fairs/\(fairId)/jury/declaration", method: "GET")
@@ -125,10 +159,6 @@ struct Endpoint {
             method: "GET",
             queryItems: items
         )
-    }
-
-    static func projectDetail(fairId: String, projectId: String) -> Endpoint {
-        Endpoint(path: "fairs/\(fairId)/projects/\(projectId)", method: "GET")
     }
 
     static func projectRubric(fairId: String, projectId: String) -> Endpoint {

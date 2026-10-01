@@ -1,285 +1,257 @@
 import SwiftUI
 
-/// Avance del jurado en una feria.
-/// El conteo sale de GET /fairs/my-progress/{fairId}.
-/// El detalle por categoría sale de GET /fairs/{fairId}/my-rubrics.
+/// Avance del jurado. Sale de review-projects: pendientes sin my_rating y reseñados con estrellas.
 struct MyProgressView: View {
-    let fairId: String
+    var fairId: String? = nil
 
-    @State private var progress: JuryProgress?
-    @State private var groups: [CategoryRubricSummary] = []
-    @State private var isLoading = true
-    @State private var errorMessage: String?
-    @State private var groupsError: String?
+    @Environment(ProjectsStore.self) private var projectsStore
+    @Environment(FairsStore.self) private var fairsStore
+    @State private var selectedFairId: String?
+    @State private var showsRated = false
 
-    private let api = APIClient.shared
+    private var openFairs: [FairAssignment] {
+        fairsStore.activeFairs
+    }
+
+    private var fairName: String {
+        openFairs.first { $0.fair.id == selectedFairId }?.fair.name ?? "Feria"
+    }
+
+    private var listMatchesFair: Bool {
+        projectsStore.fairId == selectedFairId
+    }
+
+    private var visibles: [ReviewProject] {
+        guard listMatchesFair else { return [] }
+        return showsRated ? projectsStore.rated : projectsStore.pending
+    }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                if let errorMessage {
-                    ErrorBanner(message: errorMessage)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+        VStack(spacing: 0) {
+            header
 
-                if isLoading && progress == nil {
-                    ProgressView("Cargando tu avance...")
-                        .frame(maxWidth: .infinity, minHeight: 200)
-                } else if let progress {
-                    resumen(progress)
-                    categorias
-                }
+            if openFairs.count > 1 {
+                fairMenu
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
-            .padding(.bottom, 24)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if let message = projectsStore.errorMessage ?? fairsStore.errorMessage {
+                        ErrorBanner(message: message)
+                    }
+
+                    if selectedFairId == nil && !fairsStore.isLoading {
+                        emptyState(
+                            title: "Sin ferias abiertas",
+                            message: "Cuando tengas una feria abierta, aquí verás tu avance.",
+                            systemImage: "chart.bar"
+                        )
+                    } else if projectsStore.isLoading && !listMatchesFair {
+                        ProgressView("Cargando tu avance...")
+                            .frame(maxWidth: .infinity, minHeight: 180)
+                    } else if listMatchesFair {
+                        summaryCard
+                        selector
+
+                        if visibles.isEmpty {
+                            emptyState(
+                                title: showsRated ? "Sin reseñas" : "Nada pendiente",
+                                message: showsRated
+                                    ? "Cuando guardes estrellas y un comentario, el proyecto aparece aquí."
+                                    : "Ya dejaste reseña en todos los proyectos de esta feria.",
+                                systemImage: showsRated ? "star" : "checkmark.circle"
+                            )
+                        } else {
+                            LazyVStack(spacing: 12) {
+                                ForEach(visibles) { project in
+                                    if let fairId = selectedFairId {
+                                        NavigationLink {
+                                            ProjectDetailView(fairId: fairId, projectId: project.id)
+                                        } label: {
+                                            ProgressProjectCard(project: project)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(18)
+            }
+            .refreshable {
+                guard let selectedFairId else { return }
+                await projectsStore.load(fairId: selectedFairId)
+            }
         }
         .background(Color.appBackground.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .refreshable { await load() }
-        .task { await load() }
-    }
-
-    // MARK: - Resumen
-
-    private func resumen(_ progress: JuryProgress) -> some View {
-        let percent = porcentaje(progress)
-
-        return VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(progress.fairName ?? "Feria")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-
-                Spacer(minLength: 8)
-
-                if let estado = etiquetaEstado(progress.fairStatus) {
-                    Text(estado.titulo)
-                        .font(.caption2.bold())
-                        .foregroundStyle(estado.color)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(estado.color.opacity(0.12)))
-                }
+        .task {
+            if fairsStore.activeFairs.isEmpty {
+                await fairsStore.fetchMyAssignments()
             }
-
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("\(progress.completedProjects)")
-                        .font(.title2.bold())
-                        .foregroundStyle(Color.brand)
-                    Text("de \(progress.totalProjects)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text("\(Int(percent.rounded()))%")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.brand)
-                }
-
-                Text("Rúbricas enviadas")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Color.brand.opacity(0.15))
-                        Capsule()
-                            .fill(Color.brand)
-                            .frame(width: geo.size.width * min(1, percent / 100))
-                    }
-                }
-                .frame(height: 6)
+            guard selectedFairId == nil else { return }
+            let preferred = fairId.flatMap { id in
+                fairsStore.activeFairs.first { $0.fair.id == id }?.fair.id
             }
-
-            HStack(spacing: 0) {
-                cifra("Total", progress.totalProjects)
-                Rectangle()
-                    .fill(Color.appNeutral.opacity(0.25))
-                    .frame(width: 0.5, height: 32)
-                cifra("Enviados", progress.completedProjects)
-                Rectangle()
-                    .fill(Color.appNeutral.opacity(0.25))
-                    .frame(width: 0.5, height: 32)
-                cifra("Pendientes", progress.pendingProjects)
-            }
-
-            Divider()
-
-            declaracion(progress)
+            selectedFairId = preferred ?? fairsStore.activeFairs.first?.fair.id
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
+        .task(id: selectedFairId) {
+            guard let selectedFairId else { return }
+            await projectsStore.load(fairId: selectedFairId)
+        }
     }
 
-    private func cifra(_ titulo: String, _ valor: Int) -> some View {
-        VStack(spacing: 2) {
-            Text("\(valor)")
-                .font(.title3.bold())
-                .monospacedDigit()
-                .foregroundStyle(.primary)
-            Text(titulo)
+    private var header: some View {
+        VStack(spacing: 0) {
+            Text("Avance")
+                .font(.headline)
+                .foregroundStyle(Color.onBrand)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+            Rectangle()
+                .fill(Color.onBrand.opacity(0.35))
+                .frame(height: 0.5)
+        }
+        .background(Color.brand.ignoresSafeArea(edges: .top))
+    }
+
+    private var fairMenu: some View {
+        Menu {
+            ForEach(openFairs) { assignment in
+                Button(assignment.fair.name) {
+                    selectedFairId = assignment.fair.id
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(fairName)
+                    .font(.subheadline.weight(.semibold))
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.semibold))
+            }
+            .foregroundStyle(Color.brand)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
+        }
+    }
+
+    private var summaryCard: some View {
+        let rated = projectsStore.summary.rated
+        let total = projectsStore.summary.total
+        let fraction = total == 0 ? 0 : Double(rated) / Double(total)
+
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("\(rated) de \(total)")
+                .font(.headline)
+            Text(openFairs.count > 1 ? "proyectos con reseña" : fairName)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.iconTile)
+                    Capsule()
+                        .fill(Color.brand)
+                        .frame(width: proxy.size.width * fraction)
+                }
+            }
+            .frame(height: 8)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
+    }
+
+    private var selector: some View {
+        HStack(spacing: 0) {
+            TabSegmentButton(
+                title: "Pendientes",
+                count: listMatchesFair ? projectsStore.pending.count : 0,
+                isSelected: !showsRated,
+                activeColor: Color.brand,
+                activeBadgeColor: Color.appPrimaryLight
+            ) {
+                showsRated = false
+            }
+            TabSegmentButton(
+                title: "Con reseña",
+                count: listMatchesFair ? projectsStore.rated.count : 0,
+                isSelected: showsRated,
+                activeColor: Color.brand,
+                activeBadgeColor: Color.appPrimaryLight
+            ) {
+                showsRated = true
+            }
+        }
+        .padding(4)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.iconTile))
+    }
+
+    private func emptyState(title: String, message: String, systemImage: String) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.title2)
+                .foregroundStyle(Color.brand)
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+            Text(message)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
+        .padding(.vertical, 28)
     }
+}
 
-    private func declaracion(_ progress: JuryProgress) -> some View {
-        let firmada = progress.declarationSigned
-        return HStack(spacing: 12) {
-            Image(systemName: firmada ? "checkmark.seal" : "signature")
-                .font(.body)
-                .foregroundStyle(firmada ? Color.brand : Color.appNeutral)
-                .frame(width: 40, height: 40)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill((firmada ? Color.brand : Color.appNeutral).opacity(0.12))
-                )
+private struct ProgressProjectCard: View {
+    let project: ReviewProject
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(firmada ? "Declaración firmada" : "Falta firmar la declaración")
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            CoverImage(url: project.coverUrl.flatMap { URL(string: $0) })
+                .frame(width: 72, height: 72)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(project.name)
                     .font(.subheadline.weight(.semibold))
-                if firmada, let raw = progress.declaration?.signedAt, !raw.isEmpty {
-                    Text(fechaLegible(raw))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+
+                if let category = project.categoryName, !category.isEmpty {
+                    Text(category)
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                } else if !firmada {
-                    Text("Sin la firma no puedes evaluar.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                }
+
+                if let rating = project.myRating {
+                    HStack(spacing: 2) {
+                        ForEach(1...5, id: \.self) { star in
+                            Image(systemName: star <= rating ? "star.fill" : "star")
+                                .font(.caption)
+                                .foregroundStyle(star <= rating ? Color.brandGold : Color.appNeutral)
+                        }
+                    }
+                    if let comment = project.myComment, !comment.isEmpty {
+                        Text(comment)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                    }
+                } else {
+                    Text("Sin reseña")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.brand)
                 }
             }
 
             Spacer(minLength: 0)
         }
-    }
-
-    // MARK: - Categorías
-
-    private var categorias: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Por categoría")
-                .font(.subheadline.weight(.semibold))
-
-            if let groupsError {
-                ErrorBanner(message: groupsError)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else if groups.isEmpty {
-                Text("Todavía no hay rúbricas en tus categorías.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
-                    .background(Color.cardBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-            } else {
-                ForEach(groups) { group in
-                    categoria(group)
-                }
-            }
-        }
-    }
-
-    private func categoria(_ group: CategoryRubricSummary) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(group.categoryName)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                Spacer(minLength: 8)
-                if let score = group.score {
-                    Text("\(score.formatted(.number.precision(.fractionLength(0...1)))) / 20")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(Color.brand)
-                }
-            }
-
-            if group.criteriaCount > 0 {
-                let fraction = min(1, Double(group.checkedCount) / Double(group.criteriaCount))
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(Color.brand.opacity(0.15))
-                        Capsule()
-                            .fill(Color.brand)
-                            .frame(width: geo.size.width * fraction)
-                    }
-                }
-                .frame(height: 6)
-            }
-
-            Text(detalle(group))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(14)
+        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
-    }
-
-    private func detalle(_ group: CategoryRubricSummary) -> String {
-        let enviadas = group.submittedCount == 1
-            ? "1 enviada"
-            : "\(group.submittedCount) enviadas"
-        guard group.criteriaCount > 0 else { return enviadas }
-        return "\(enviadas) · \(group.checkedCount) de \(group.criteriaCount) marcados"
-    }
-
-    // MARK: - Datos
-
-    private func porcentaje(_ progress: JuryProgress) -> Double {
-        if let value = progress.progressPercentage {
-            return min(100, max(0, value))
-        }
-        guard progress.totalProjects > 0 else { return 0 }
-        return Double(progress.completedProjects) / Double(progress.totalProjects) * 100
-    }
-
-    private func etiquetaEstado(_ raw: String?) -> (titulo: String, color: Color)? {
-        guard let raw, !raw.isEmpty else { return nil }
-        switch raw.uppercased() {
-        case "OPEN":
-            return ("Abierta", Color.brand)
-        case "CLOSED":
-            return ("Cerrada", Color.appNeutral)
-        default:
-            return (raw.capitalized, Color.appNeutral)
-        }
-    }
-
-    @MainActor
-    private func load() async {
-        isLoading = true
-        errorMessage = nil
-        groupsError = nil
-        defer { isLoading = false }
-
-        do {
-            progress = try await api.send(Endpoint.myProgress(fairId: fairId), as: JuryProgress.self)
-        } catch {
-            errorMessage = error.userMessage
-        }
-
-        do {
-            groups = try await api.send(Endpoint.myRubrics(fairId: fairId), as: MyRubricsPayload.self).groups
-        } catch {
-            groupsError = error.userMessage
-        }
-    }
-
-    private func fechaLegible(_ raw: String) -> String {
-        let withMillis = ISO8601DateFormatter()
-        withMillis.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let plain = ISO8601DateFormatter()
-        plain.formatOptions = [.withInternetDateTime]
-        if let date = withMillis.date(from: raw) ?? plain.date(from: raw) {
-            return date.formatted(date: .abbreviated, time: .shortened)
-        }
-        return raw
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
     }
 }
