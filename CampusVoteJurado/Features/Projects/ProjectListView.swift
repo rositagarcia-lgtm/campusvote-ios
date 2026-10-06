@@ -51,17 +51,21 @@ struct ProjectListView: View {
         .onDisappear {
             tabBar.isHidden = false
         }
-        .overlay {
+        .overlay(alignment: .bottom) {
             if showFilters {
                 ZStack(alignment: .bottom) {
                     Color.black.opacity(0.35)
                         .ignoresSafeArea()
+                        .contentShape(Rectangle())
                         .onTapGesture { showFilters = false }
 
                     filterSheet
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                .ignoresSafeArea(edges: .bottom)
             }
         }
+        .animation(.easeOut(duration: 0.25), value: showFilters)
     }
 
     private var header: some View {
