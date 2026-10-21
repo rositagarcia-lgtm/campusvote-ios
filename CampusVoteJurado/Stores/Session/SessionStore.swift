@@ -1,22 +1,6 @@
 import Foundation
 import Observation
 
-enum JuryAccessType: String, CaseIterable, Identifiable {
-    case external = "Externo"
-    case internalStaff = "Interno"
-
-    var id: Self { self }
-
-    var subtitle: String {
-        switch self {
-        case .external:
-            return "Ingresa con el correo y contraseña asignados a tu cuenta de jurado."
-        case .internalStaff:
-            return "Recibe un código en tu correo institucional para ingresar como docente."
-        }
-    }
-}
-
 @MainActor
 @Observable
 final class SessionStore {
@@ -29,13 +13,13 @@ final class SessionStore {
         case signedIn(User)
     }
 
-    private(set) var phase: Phase = .checking
-    private(set) var isWorking = false
+    var phase: Phase = .checking
+    var isWorking = false
     var errorMessage: String?
-    private(set) var pendingEmail = ""
-    private(set) var pendingAccessType: JuryAccessType?
+    var pendingEmail = ""
+    var pendingAccessType: JuryAccessType?
 
-    private let api: APIClient
+    let api: APIClient
     @ObservationIgnored private var sessionObserver: NSObjectProtocol?
 
     init(api: APIClient) {
@@ -208,105 +192,5 @@ final class SessionStore {
         pendingAccessType = nil
         errorMessage = APIError.sessionExpired.message
         phase = .signedOut
-    }
-
-    private func finish(_ result: AuthResult) async throws {
-        guard let token = result.token, let refreshToken = result.refreshToken else {
-            throw APIError.decoding("La verificación no devolvió la sesión completa.")
-        }
-        guard var user = result.user else {
-            throw APIError.decoding("La verificación no devolvió el usuario.")
-        }
-        guard user.canUseJuryApp else {
-            throw APIError.server(
-                status: 403,
-                code: "FORBIDDEN",
-                message: L10n.format(
-                    "Esta aplicación es solo para jurados y docentes asignados. Tu cuenta tiene el rol %@.",
-                    locale: Locale(identifier: UserDefaults.standard.string(forKey: "campusvote.preferences.language") ?? "es"),
-                    user.role
-                )
-            )
-        }
-        guard let organizationId = user.organizationId, !organizationId.isEmpty else {
-            throw APIError.decoding("La sesión no trae la institución del jurado.")
-        }
-
-        if result.mustChangePassword == true {
-            user.mustChangePassword = true
-        }
-
-        do {
-            try api.saveTokens(access: token, refresh: refreshToken)
-            try await validateAccess(for: user)
-        } catch {
-            api.clearTokens()
-            throw error
-        }
-        SessionArchive.save(user)
-        await loadBrand(organizationId: organizationId)
-        pendingEmail = ""
-        pendingAccessType = nil
-        phase = user.mustChangePassword ? .mustChangePassword(user) : .signedIn(user)
-    }
-
-    private func validateAccess(for user: User) async throws {
-        guard user.canUseJuryApp else {
-            throw APIError.server(
-                status: 403,
-                code: "FORBIDDEN",
-                message: "Esta aplicación es solo para jurados y docentes asignados."
-            )
-        }
-        let assignments = try await api.send(.myAssignments, as: [FairAssignment].self)
-        guard !assignments.isEmpty else {
-            throw APIError.server(
-                status: 403,
-                code: "NO_ASSIGNMENTS",
-                message: "No tienes una feria asignada. Contacta al administrador."
-            )
-        }
-    }
-
-    private func loadBrand(organizationId: String) async {
-        do {
-            let brand = try await api.send(.organization(id: organizationId), as: OrganizationBrand.self)
-            InstitutionAppearance.apply(brand)
-        } catch {
-            // Conserva la marca ya aplicada si el fallo es de red. Solo vuelve
-            // al verde por defecto cuando todavía no hay identidad cargada.
-            if InstitutionAppearance.name == nil {
-                InstitutionAppearance.reset()
-            }
-        }
-    }
-
-    private func run(_ work: () async throws -> Void) async {
-        isWorking = true
-        errorMessage = nil
-        defer { isWorking = false }
-        do {
-            try await work()
-        } catch {
-            errorMessage = error.userMessage
-        }
-    }
-}
-
-enum SessionArchive {
-    private static let key = "campusvote.jury.user"
-
-    static func save(_ user: User) {
-        guard let data = try? JSONEncoder().encode(user) else { return }
-        UserDefaults.standard.set(data, forKey: key)
-    }
-
-    static func load() -> User? {
-        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
-        return try? JSONDecoder().decode(User.self, from: data)
-    }
-
-    static func clear() {
-        UserDefaults.standard.removeObject(forKey: key)
     }
 }

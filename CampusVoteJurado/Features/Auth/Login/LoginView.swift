@@ -26,8 +26,16 @@ struct LoginView: View {
         GeometryReader { proxy in
             ScrollView {
                 VStack(spacing: 28) {
-                    header
-                    accessTypeSelector
+                    LoginHeader(accessType: accessType, showContent: showContent)
+                    LoginAccessTypeSelector(accessType: accessType, showContent: showContent) { type in
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            accessType = type
+                            password = ""
+                            showPassword = false
+                        }
+                        session.errorMessage = nil
+                        focus = .email
+                    }
                     credentialsCard
 
                     if let message = session.errorMessage {
@@ -59,74 +67,6 @@ struct LoginView: View {
                 showContent = true
             }
         }
-    }
-
-    // MARK: - Header
-    private var header: some View {
-        VStack(spacing: 16) {
-            Image("logo_campusvote")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 180, height: 180)
-                .opacity(showContent ? 1 : 0)
-                .scaleEffect(showContent ? 1.0 : 0.9)
-                .blur(radius: showContent ? 0 : 8)
-            
-            Text(L10n.tr(accessType.subtitle, locale: locale))
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(Color.campusGreen.opacity(0.8))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 12)
-                .opacity(showContent ? 1 : 0)
-                .offset(y: showContent ? 0 : 10)
-        }
-    }
-
-    // MARK: - Tipo de acceso
-    private var accessTypeSelector: some View {
-        HStack(spacing: 8) {
-            ForEach(JuryAccessType.allCases) { type in
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        accessType = type
-                        password = ""
-                        showPassword = false
-                    }
-                    session.errorMessage = nil
-                    focus = .email
-                } label: {
-                    HStack(spacing: 7) {
-                        Image(systemName: type == .external ? "person.badge.key.fill" : "building.columns.fill")
-                            .font(.system(size: 13, weight: .semibold))
-                        Text(L10n.tr(type.rawValue, locale: locale))
-                            .font(.system(size: 14, weight: .semibold))
-                    }
-                    .foregroundStyle(accessType == type ? Color.onBrand : Color.campusGreen)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                    .background(
-                        Group {
-                            if accessType == type {
-                                LinearGradient(
-                                    colors: [Color.campusGreen, Color.campusTeal],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            } else {
-                                Color.cardBackground
-                            }
-                        }
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(5)
-        .background(Color.campusGreen.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .opacity(showContent ? 1 : 0)
-        .offset(y: showContent ? 0 : 12)
     }
 
     // MARK: - Tarjeta de Credenciales
@@ -278,44 +218,6 @@ struct LoginView: View {
         Task {
             await session.login(email: email, password: password, accessType: accessType)
         }
-    }
-}
-
-// MARK: - Componente de Campo Premium
-private struct PremiumFieldRow<Content: View>: View {
-    @Environment(\.locale) private var locale
-    let icon: String
-    let label: String
-    let isFocused: Bool
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(isFocused ? Color.onBrand : Color.campusGreen.opacity(0.6))
-                .frame(width: 40, height: 40)
-                .background(
-                    Circle().fill(isFocused ? Color.campusGreen : Color.iconTile)
-                )
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(L10n.tr(label, locale: locale))
-                    .font(.system(size: 10, weight: .bold))
-                    .tracking(1.2)
-                    .foregroundStyle(isFocused ? Color.campusGreen : Color.appNeutral)
-                
-                content.foregroundStyle(Color.campusGreen)
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(isFocused ? Color.campusGreen : Color.clear, lineWidth: 1.5)
-        )
-        .animation(.easeInOut(duration: 0.2), value: isFocused)
     }
 }
 

@@ -1,32 +1,5 @@
 import Foundation
 
-extension Notification.Name {
-    /// La sesión del jurado ya no es válida. SessionStore vuelve al login.
-    static let campusVoteSessionExpired = Notification.Name("campusvote.session.expired")
-}
-
-struct PageInfo: Decodable, Hashable {
-    let page: Int
-    let limit: Int
-    let total: Int
-
-    var totalPages: Int {
-        guard limit > 0 else { return 0 }
-        return Int(ceil(Double(total) / Double(limit)))
-    }
-
-    init(page: Int, limit: Int, total: Int) {
-        self.page = page
-        self.limit = limit
-        self.total = total
-    }
-}
-
-struct PageResult<Item> {
-    let items: [Item]
-    let pagination: PageInfo
-}
-
 /// Cliente HTTP que habla con el backend de CampusVote.
 ///
 /// Cada respuesta viaja en un envelope `{ success, message, data }`.
@@ -241,31 +214,5 @@ final class APIClient: Sendable {
         }
         let locale = Locale(identifier: UserDefaults.standard.string(forKey: "campusvote.preferences.language") ?? "es")
         return .server(status: status, code: "HTTP_\(status)", message: L10n.format("El servidor respondió con el estado %d.", locale: locale, status))
-    }
-}
-
-private actor RefreshCoordinator {
-    private var refreshTask: Task<AuthResult, Error>?
-
-    func refresh(
-        operation: @escaping @Sendable (String) async throws -> AuthResult
-    ) async throws -> AuthResult {
-        if let refreshTask {
-            return try await refreshTask.value
-        }
-        guard let refreshToken = KeychainStore.readToken(for: .refresh) else {
-            throw APIError.sessionExpired
-        }
-
-        let task = Task { try await operation(refreshToken) }
-        refreshTask = task
-        do {
-            let result = try await task.value
-            refreshTask = nil
-            return result
-        } catch {
-            refreshTask = nil
-            throw error
-        }
     }
 }

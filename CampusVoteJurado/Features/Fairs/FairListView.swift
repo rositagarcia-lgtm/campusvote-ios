@@ -139,4 +139,5 @@ struct FairListView: View {
             }
         }
     }
+
 }
