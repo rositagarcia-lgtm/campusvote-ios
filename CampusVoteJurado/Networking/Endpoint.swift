@@ -13,6 +13,10 @@ private struct EmailPayload: Encodable {
     let email: String
 }
 
+private struct RefreshPayload: Encodable {
+    let refreshToken: String
+}
+
 private struct PasswordChangePayload: Encodable {
     let currentPassword: String
     let newPassword: String
@@ -30,12 +34,22 @@ struct Endpoint {
     var body: (any Encodable)?
     var usesStoredToken: Bool = true
     var explicitToken: String?
+    var retriesWithRefresh = true
 
     static func login(email: String, password: String) -> Endpoint {
         Endpoint(
             path: "auth/login",
             method: "POST",
             body: LoginPayload(email: email, password: password),
+            usesStoredToken: false
+        )
+    }
+
+    static func requestEmailCode(email: String) -> Endpoint {
+        Endpoint(
+            path: "auth/email/request",
+            method: "POST",
+            body: EmailPayload(email: email),
             usesStoredToken: false
         )
     }
@@ -50,17 +64,35 @@ struct Endpoint {
         )
     }
 
-    static func resendEmailCode(email: String) -> Endpoint {
+    static func resendEmailCode(tempToken: String) -> Endpoint {
         Endpoint(
             path: "auth/email/resend",
             method: "POST",
-            body: EmailPayload(email: email),
+            usesStoredToken: false,
+            explicitToken: tempToken
+        )
+    }
+
+    static func refresh(refreshToken: String) -> Endpoint {
+        Endpoint(
+            path: "auth/refresh",
+            method: "POST",
+            body: RefreshPayload(refreshToken: refreshToken),
             usesStoredToken: false
         )
     }
 
-    static func logout() -> Endpoint {
-        Endpoint(path: "auth/logout", method: "POST")
+    static var me: Endpoint {
+        Endpoint(path: "auth/me", method: "GET")
+    }
+
+    static func logout(refreshToken: String?) -> Endpoint {
+        Endpoint(
+            path: "auth/logout",
+            method: "POST",
+            body: refreshToken.map { RefreshPayload(refreshToken: $0) },
+            retriesWithRefresh: false
+        )
     }
 
     static func organization(id: String) -> Endpoint {
@@ -83,6 +115,10 @@ struct Endpoint {
         Endpoint(path: "fairs/my-assignments/\(fairId)", method: "GET")
     }
 
+    static var myProjects: Endpoint {
+        Endpoint(path: "fairs/my-projects", method: "GET")
+    }
+
     static func reviewProjects(fairId: String) -> Endpoint {
         Endpoint(path: "fairs/\(fairId)/review-projects", method: "GET")
     }
@@ -100,6 +136,31 @@ struct Endpoint {
             path: "fairs/\(fairId)/projects/\(projectId)/rating",
             method: "PUT",
             body: body
+        )
+    }
+
+    static func project(id: String) -> Endpoint {
+        Endpoint(path: "projects/\(id)", method: "GET")
+    }
+
+    static func allProjects(fairId: String, page: Int, limit: Int) -> Endpoint {
+        Endpoint(
+            path: "projects",
+            method: "GET",
+            queryItems: [
+                URLQueryItem(name: "fair_id", value: fairId),
+                URLQueryItem(name: "status", value: "APPROVED"),
+                URLQueryItem(name: "page", value: "\(page)"),
+                URLQueryItem(name: "limit", value: "\(limit)")
+            ]
+        )
+    }
+
+    static func publicProject(fairId: String, projectId: String) -> Endpoint {
+        Endpoint(
+            path: "public/fairs/\(fairId)/projects/\(projectId)",
+            method: "GET",
+            usesStoredToken: false
         )
     }
 }

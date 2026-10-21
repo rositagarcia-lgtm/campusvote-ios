@@ -72,6 +72,8 @@ struct ReviewSummary: Decodable, Hashable {
 /// Tarjeta de un proyecto en la lista de reseñas.
 struct ReviewProject: Identifiable, Decodable, Hashable {
     let id: String
+    let fairId: String?
+    let fairName: String?
     let name: String
     let coverUrl: String?
     let categoryId: String?
@@ -88,6 +90,8 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
     enum CodingKeys: String, CodingKey {
         case id
         case projectId = "project_id"
+        case fairId = "fair_id"
+        case fairName = "fair_name"
         case name
         case coverUrl = "cover_url"
         case category
@@ -103,6 +107,8 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
 
     init(
         id: String,
+        fairId: String? = nil,
+        fairName: String? = nil,
         name: String,
         coverUrl: String? = nil,
         categoryId: String? = nil,
@@ -113,6 +119,8 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
         myComment: String? = nil
     ) {
         self.id = id
+        self.fairId = fairId
+        self.fairName = fairName
         self.name = name
         self.coverUrl = coverUrl
         self.categoryId = categoryId
@@ -127,6 +135,8 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(String.self, forKey: .id)
             ?? container.decode(String.self, forKey: .projectId)
+        fairId = try container.decodeIfPresent(String.self, forKey: .fairId)
+        fairName = try container.decodeIfPresent(String.self, forKey: .fairName)
         name = try container.decodeIfPresent(String.self, forKey: .name) ?? "Proyecto"
         coverUrl = try container.decodeIfPresent(String.self, forKey: .coverUrl)
 

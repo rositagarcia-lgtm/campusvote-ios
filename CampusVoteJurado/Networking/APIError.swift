@@ -10,6 +10,8 @@ enum APIError: Error, Equatable {
     case network
     /// La respuesta no tiene el formato esperado.
     case decoding(String)
+    /// El dispositivo no permitió guardar los tokens en el Keychain.
+    case secureStorage
 
     var message: String {
         switch self {
@@ -22,6 +24,8 @@ enum APIError: Error, Equatable {
             return "No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo."
         case .decoding:
             return "El servidor respondió algo inesperado. Avísale al equipo."
+        case .secureStorage:
+            return "No se pudo guardar la sesión de forma segura. Cierra y vuelve a abrir la aplicación."
         }
     }
 
@@ -31,6 +35,31 @@ enum APIError: Error, Equatable {
             return code
         }
         return nil
+    }
+
+    /// El servidor rechazó la sesión (token inválido, cuenta suspendida, etc.).
+    /// Un fallo de red o un 5xx NO debe cerrar la sesión.
+    var isSessionRejection: Bool {
+        switch self {
+        case .sessionExpired:
+            return true
+        case .server(let status, _, _):
+            return status == 401 || status == 403
+        default:
+            return false
+        }
+    }
+
+    /// Fallo transitorio: conviene conservar los tokens y reintentar.
+    var isTransient: Bool {
+        switch self {
+        case .network, .decoding, .secureStorage:
+            return true
+        case .server(let status, _, _):
+            return status >= 500
+        case .sessionExpired:
+            return false
+        }
     }
 }
 

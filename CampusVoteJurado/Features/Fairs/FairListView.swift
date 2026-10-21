@@ -4,6 +4,7 @@ struct FairListView: View {
     @Environment(FairsStore.self) private var fairsStore
     @Environment(SessionStore.self) private var session
     @State private var path: [String] = []
+    @State private var showContent = false
 
     private var institutionName: String {
         if let name = InstitutionAppearance.name, !name.isEmpty { return name }
@@ -11,7 +12,7 @@ struct FairListView: View {
     }
 
     private var greetingName: String {
-        guard case .signedIn(let user) = session.phase else { return "" }
+        guard case .signedIn(let user) = session.phase else { return "Jurado" }
         let first = user.firstName.trimmingCharacters(in: .whitespacesAndNewlines)
         let last = user.lastName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !last.isEmpty, first.localizedCaseInsensitiveContains(last) {
@@ -23,33 +24,44 @@ struct FairListView: View {
     var body: some View {
         NavigationStack(path: $path) {
             VStack(spacing: 0) {
-                header
+                FairListHeaderView(institutionName: institutionName)
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        if let errorMessage = fairsStore.errorMessage {
-                            ErrorBanner(message: errorMessage)
-                        }
-
-                        VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 24) {
+                        VStack(alignment: .leading, spacing: 12) {
                             HStack(spacing: 6) {
-                                Image(systemName: "checkmark.shield")
-                                    .font(.caption2)
+                                Image(systemName: "checkmark.shield.fill")
+                                    .font(.system(size: 10, weight: .semibold))
                                 Text("JURADO CALIFICADOR")
-                                    .font(.caption2.weight(.semibold))
+                                    .font(.system(size: 10, weight: .bold))
+                                    .tracking(0.6)
                             }
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.brand)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.brand.opacity(0.1))
+                            .clipShape(Capsule())
 
                             Text("Bienvenido, \(greetingName)")
-                                .font(.headline)
-                                .foregroundStyle(.primary)
+                                .font(.title2.weight(.bold))
+                                .foregroundStyle(Color.brand)
+                        }
+                        .opacity(showContent ? 1 : 0)
+                        .offset(y: showContent ? 0 : 10)
+
+                        if let errorMessage = fairsStore.errorMessage {
+                            ErrorBanner(message: errorMessage)
+                                .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
                         }
 
-                        seccionAbiertas
-                        seccionProgramadas
-                        seccionCerradas
+                        VStack(spacing: 32) {
+                            seccionAbiertas
+                            seccionProgramadas
+                            seccionCerradas
+                        }
                     }
-                    .padding(18)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 24)
                 }
                 .refreshable {
                     await fairsStore.fetchMyAssignments()
@@ -62,219 +74,68 @@ struct FairListView: View {
             }
             .task {
                 await fairsStore.fetchMyAssignments()
-            }
-        }
-    }
-
-    private var header: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                logo
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(institutionName)
-                        .font(.headline)
-                        .foregroundStyle(Color.onBrand)
-                        .lineLimit(1)
-                    if let kind = InstitutionAppearance.kindLabel, !kind.isEmpty {
-                        Text(kind)
-                            .font(.subheadline)
-                            .foregroundStyle(Color.onBrand.opacity(0.85))
-                            .lineLimit(1)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                        showContent = true
                     }
                 }
-
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 18)
-            .padding(.top, 8)
-            .padding(.bottom, 16)
-
-            Rectangle()
-                .fill(Color.onBrand.opacity(0.35))
-                .frame(height: 0.5)
-        }
-        .background {
-            Color.brand
-                .ignoresSafeArea(edges: .top)
-                .overlay(alignment: .topTrailing) {
-                    Circle()
-                        .fill(Color.white.opacity(0.12))
-                        .frame(width: 160, height: 160)
-                        .offset(x: 48, y: -36)
-                }
-        }
-    }
-
-    private var logo: some View {
-        Group {
-            if let url = InstitutionAppearance.logoURL {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image {
-                        image.resizable().scaledToFit()
-                    } else {
-                        Color.white.opacity(0.16)
-                    }
-                }
-            } else {
-                Image(systemName: "building.columns")
-                    .font(.headline)
-                    .foregroundStyle(Color.onBrand)
             }
         }
-        .padding(8)
-        .frame(width: 52, height: 52)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.95)))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
     private var seccionAbiertas: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            encabezado(titulo: "ABIERTAS", derecha: "\(fairsStore.activeFairs.count)", resalta: true)
-
-            if fairsStore.isLoading && fairsStore.activeFairs.isEmpty {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
-            } else if fairsStore.activeFairs.isEmpty {
-                vacio(
-                    titulo: "No hay ferias abiertas",
-                    mensaje: "Cuando tu institución abra una feria asignada, aparecerá aquí."
-                )
-            } else {
-                ForEach(fairsStore.activeFairs) { assignment in
-                    Button {
-                        path.append(assignment.fair.id)
-                    } label: {
-                        FilaDeFeria(fair: assignment.fair, opens: true)
-                    }
-                    .buttonStyle(.plain)
+        FairsSectionView(
+            title: "ABIERTAS",
+            count: fairsStore.activeFairs.count,
+            isHighlighted: true,
+            isEmpty: fairsStore.activeFairs.isEmpty,
+            isLoading: fairsStore.isLoading && fairsStore.activeFairs.isEmpty,
+            emptyTitle: "No hay ferias abiertas",
+            emptyMessage: "Cuando tu institución abra una feria asignada, aparecerá aquí.",
+            emptyIcon: "calendar.badge.clock"
+        ) {
+            ForEach(fairsStore.activeFairs) { assignment in
+                Button {
+                    path.append(assignment.fair.id)
+                } label: {
+                    FilaDeFeria(fair: assignment.fair, status: .open)
                 }
+                .buttonStyle(.plain)
             }
         }
     }
 
     private var seccionProgramadas: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            encabezado(titulo: "PROGRAMADAS", derecha: "\(fairsStore.scheduledFairs.count)")
-
-            if fairsStore.scheduledFairs.isEmpty {
-                vacio(
-                    titulo: "No hay ferias programadas",
-                    mensaje: "Las ferias que todavía no abren aparecen aquí."
-                )
-            } else {
-                ForEach(fairsStore.scheduledFairs) { assignment in
-                    FilaDeFeria(fair: assignment.fair, opens: false)
-                }
+        FairsSectionView(
+            title: "PROGRAMADAS",
+            count: fairsStore.scheduledFairs.count,
+            isHighlighted: false,
+            isEmpty: fairsStore.scheduledFairs.isEmpty,
+            isLoading: false,
+            emptyTitle: "No hay ferias programadas",
+            emptyMessage: "Las ferias que todavía no abren aparecen aquí.",
+            emptyIcon: "calendar"
+        ) {
+            ForEach(fairsStore.scheduledFairs) { assignment in
+                FilaDeFeria(fair: assignment.fair, status: .scheduled)
             }
         }
     }
 
     private var seccionCerradas: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            encabezado(titulo: "CERRADAS", derecha: "\(fairsStore.closedFairs.count)")
-
-            if fairsStore.closedFairs.isEmpty {
-                vacio(
-                    titulo: "No hay ferias cerradas",
-                    mensaje: "Cuando una feria termine, queda en esta lista."
-                )
-            } else {
-                ForEach(fairsStore.closedFairs) { assignment in
-                    FilaDeFeria(fair: assignment.fair, opens: false)
-                }
+        FairsSectionView(
+            title: "CERRADAS",
+            count: fairsStore.closedFairs.count,
+            isHighlighted: false,
+            isEmpty: fairsStore.closedFairs.isEmpty,
+            isLoading: false,
+            emptyTitle: "No hay ferias cerradas",
+            emptyMessage: "Cuando una feria termine, queda en esta lista.",
+            emptyIcon: "lock.shield"
+        ) {
+            ForEach(fairsStore.closedFairs) { assignment in
+                FilaDeFeria(fair: assignment.fair, status: .closed)
             }
         }
-    }
-
-    private func vacio(titulo: String, mensaje: String) -> some View {
-        VStack(spacing: 12) {
-            Image(systemName: "building.columns")
-                .font(.title2)
-                .foregroundStyle(Color.brand)
-                .frame(width: 64, height: 64)
-                .background(Circle().fill(Color.brand.opacity(0.12)))
-
-            Text(titulo)
-                .font(.subheadline.weight(.semibold))
-
-            Text(mensaje)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
-        .padding(.horizontal, 16)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
-    }
-
-    private func encabezado(titulo: String, derecha: String, resalta: Bool = false) -> some View {
-        HStack {
-            Text(titulo)
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(resalta ? Color.green : Color.secondary)
-                .padding(.horizontal, resalta ? 8 : 0)
-                .padding(.vertical, resalta ? 4 : 0)
-                .background {
-                    if resalta {
-                        Capsule().fill(Color.green.opacity(0.15))
-                    }
-                }
-            Spacer()
-            Text(derecha)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        }
-    }
-}
-
-private struct FilaDeFeria: View {
-    let fair: Fair
-    let opens: Bool
-
-    private var estado: (texto: String, color: Color) {
-        switch fair.status.uppercased() {
-        case "OPEN":
-            return ("Abierta", Color.brand)
-        case "CLOSED":
-            return ("Cerrada", .secondary)
-        default:
-            return ("Programada", Color.brandGold)
-        }
-    }
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(fair.name)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .multilineTextAlignment(.leading)
-
-                if let site = fair.siteName, !site.isEmpty {
-                    HStack(spacing: 4) {
-                        Image(systemName: "mappin.circle")
-                            .font(.caption2)
-                        Text(site)
-                            .font(.caption)
-                    }
-                    .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer(minLength: 8)
-
-            Text(estado.texto)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(estado.color)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(Capsule().fill(estado.color.opacity(0.12)))
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
     }
 }

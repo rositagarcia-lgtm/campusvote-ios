@@ -1,6 +1,22 @@
 import Foundation
 import Observation
 
+enum JuryAccessType: String, CaseIterable, Identifiable {
+    case external = "Externo"
+    case internalStaff = "Interno"
+
+    var id: Self { self }
+
+    var subtitle: String {
+        switch self {
+        case .external:
+            return "Ingresa con el correo y contraseña asignados a tu cuenta de jurado."
+        case .internalStaff:
+            return "Recibe un código en tu correo institucional para ingresar como docente."
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class SessionStore {
@@ -17,6 +33,7 @@ final class SessionStore {
     private(set) var isWorking = false
     var errorMessage: String?
     private(set) var pendingEmail = ""
+    private(set) var pendingAccessType: JuryAccessType?
 
     private let api: APIClient
     @ObservationIgnored private var sessionObserver: NSObjectProtocol?
@@ -36,7 +53,7 @@ final class SessionStore {
 
     func restore() async {
         errorMessage = nil
-        guard api.hasSavedSession, let user = SessionArchive.load(), user.isJury else {
+        guard api.hasSavedSession else {
             api.clearTokens()
             SessionArchive.clear()
             InstitutionAppearance.reset()
@@ -47,27 +64,68 @@ final class SessionStore {
         isWorking = true
         defer { isWorking = false }
 
-        if let organizationId = user.organizationId {
-            await loadBrand(organizationId: organizationId)
+        do {
+            let user = try await api.send(.me, as: User.self)
+            SessionArchive.save(user)
+            try await validateAccess(for: user)
+            if let organizationId = user.organizationId {
+                await loadBrand(organizationId: organizationId)
+            }
+            phase = user.mustChangePassword ? .mustChangePassword(user) : .signedIn(user)
+        } catch let error as APIError {
+            if error.isSessionRejection {
+                api.clearTokens()
+                SessionArchive.clear()
+                InstitutionAppearance.reset()
+                errorMessage = error.userMessage
+                phase = .signedOut
+            } else {
+                await restoreCachedSession(message: error.userMessage)
+            }
+        } catch {
+            await restoreCachedSession(message: error.userMessage)
         }
-        phase = user.mustChangePassword ? .mustChangePassword(user) : .signedIn(user)
     }
 
-    func login(email: String, password: String) async {
-        let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !cleanEmail.isEmpty else {
-            errorMessage = "Ingresa tu correo institucional."
+    /// Un fallo de red al abrir la app no debe borrar la sesión. Si ya hay un
+    /// usuario guardado, entra con esos datos y deja que las pantallas
+    /// reintenten sus propias peticiones.
+    private func restoreCachedSession(message: String?) async {
+        guard let cached = SessionArchive.load() else {
+            errorMessage = message ?? APIError.network.message
+            phase = .signedOut
             return
         }
-        guard !password.isEmpty else {
+
+        if let organizationId = cached.organizationId {
+            await loadBrand(organizationId: organizationId)
+        }
+        errorMessage = message
+        phase = cached.mustChangePassword ? .mustChangePassword(cached) : .signedIn(cached)
+    }
+
+    func login(email: String, password: String, accessType: JuryAccessType) async {
+        let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !cleanEmail.isEmpty else {
+            errorMessage = "Ingresa tu correo."
+            return
+        }
+        guard accessType != .external || !password.isEmpty else {
             errorMessage = "Ingresa tu contraseña."
             return
         }
 
         pendingEmail = cleanEmail
+        pendingAccessType = accessType
         await run {
+            let endpoint: Endpoint = switch accessType {
+            case .external:
+                .login(email: cleanEmail, password: password)
+            case .internalStaff:
+                .requestEmailCode(email: cleanEmail)
+            }
             let result = try await api.send(
-                .login(email: cleanEmail, password: password),
+                endpoint,
                 as: AuthResult.self
             )
 
@@ -102,19 +160,16 @@ final class SessionStore {
     }
 
     func resendCode() async {
-        guard case .needsCode = phase else { return }
-        guard !pendingEmail.isEmpty else {
-            errorMessage = "No tengo el correo para reenviar el código."
-            return
-        }
+        guard case .needsCode(let tempToken) = phase else { return }
         await run {
-            try await api.send(.resendEmailCode(email: pendingEmail))
+            try await api.send(.resendEmailCode(tempToken: tempToken))
         }
     }
 
     func cancelCode() {
         errorMessage = nil
         pendingEmail = ""
+        pendingAccessType = nil
         phase = .signedOut
     }
 
@@ -129,12 +184,13 @@ final class SessionStore {
     }
 
     func logout() async {
-        try? await api.send(Endpoint.logout())
+        try? await api.send(.logout(refreshToken: api.savedRefreshToken))
         api.clearTokens()
         SessionArchive.clear()
         InstitutionAppearance.reset()
         errorMessage = nil
         pendingEmail = ""
+        pendingAccessType = nil
         phase = .signedOut
     }
 
@@ -149,22 +205,23 @@ final class SessionStore {
         SessionArchive.clear()
         InstitutionAppearance.reset()
         pendingEmail = ""
+        pendingAccessType = nil
         errorMessage = APIError.sessionExpired.message
         phase = .signedOut
     }
 
     private func finish(_ result: AuthResult) async throws {
-        guard let token = result.token else {
-            throw APIError.decoding("La verificación no devolvió el token de sesión.")
+        guard let token = result.token, let refreshToken = result.refreshToken else {
+            throw APIError.decoding("La verificación no devolvió la sesión completa.")
         }
         guard var user = result.user else {
             throw APIError.decoding("La verificación no devolvió el usuario.")
         }
-        guard user.isJury else {
+        guard user.canUseJuryApp else {
             throw APIError.server(
                 status: 403,
                 code: "FORBIDDEN",
-                message: "Esta aplicación es solo para el rol JURY. Tu cuenta tiene el rol \(user.role)."
+                message: "Esta aplicación es solo para jurados y docentes asignados. Tu cuenta tiene el rol \(user.role)."
             )
         }
         guard let organizationId = user.organizationId, !organizationId.isEmpty else {
@@ -175,10 +232,36 @@ final class SessionStore {
             user.mustChangePassword = true
         }
 
-        api.saveTokens(access: token, refresh: nil)
+        do {
+            try api.saveTokens(access: token, refresh: refreshToken)
+            try await validateAccess(for: user)
+        } catch {
+            api.clearTokens()
+            throw error
+        }
         SessionArchive.save(user)
         await loadBrand(organizationId: organizationId)
+        pendingEmail = ""
+        pendingAccessType = nil
         phase = user.mustChangePassword ? .mustChangePassword(user) : .signedIn(user)
+    }
+
+    private func validateAccess(for user: User) async throws {
+        guard user.canUseJuryApp else {
+            throw APIError.server(
+                status: 403,
+                code: "FORBIDDEN",
+                message: "Esta aplicación es solo para jurados y docentes asignados."
+            )
+        }
+        let assignments = try await api.send(.myAssignments, as: [FairAssignment].self)
+        guard !assignments.isEmpty else {
+            throw APIError.server(
+                status: 403,
+                code: "NO_ASSIGNMENTS",
+                message: "No tienes una feria asignada. Contacta al administrador."
+            )
+        }
     }
 
     private func loadBrand(organizationId: String) async {
@@ -186,7 +269,11 @@ final class SessionStore {
             let brand = try await api.send(.organization(id: organizationId), as: OrganizationBrand.self)
             InstitutionAppearance.apply(brand)
         } catch {
-            InstitutionAppearance.reset()
+            // Conserva la marca ya aplicada si el fallo es de red. Solo vuelve
+            // al verde por defecto cuando todavía no hay identidad cargada.
+            if InstitutionAppearance.name == nil {
+                InstitutionAppearance.reset()
+            }
         }
     }
 

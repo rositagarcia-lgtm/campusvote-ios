@@ -2,88 +2,120 @@ import SwiftUI
 
 struct SplashView: View {
     @State private var isAnimating = false
+    @State private var showContent = false
     @State private var statusMessage = "Cargando ferias y proyectos asignados..."
-
-    private let tealDark = Color(red: 0.03, green: 0.32, blue: 0.28)
-    private let lightGreenBg = Color(red: 0.82, green: 0.95, blue: 0.88)
-    private let textGreen = Color(red: 0.05, green: 0.45, blue: 0.30)
 
     var body: some View {
         ZStack {
-            Color(.systemBackground)
-                .ignoresSafeArea()
+            // Fondo dinámico con degradado sutil basado en el color de marca
+            LinearGradient(
+                colors: [Color.appBackground, Color.campusGreen.opacity(0.08)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
 
-            VStack {
+            VStack(spacing: 0) {
                 Spacer()
 
-                // MARK: - Logo & Identificación de Rol
-                VStack(spacing: 20) {
+                // MARK: - Logo & Identificación
+                VStack(spacing: 24) {
                     Image("logo_campusvote")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 220, height: 220)
-                        .scaleEffect(isAnimating ? 1.02 : 0.96)
-                        .animation(
-                            .easeInOut(duration: 1.5).repeatForever(autoreverses: true),
-                            value: isAnimating
-                        )
+                        .frame(width: 200, height: 200)
+                        .opacity(showContent ? 1 : 0)
+                        .scaleEffect(showContent ? 1.0 : 0.85)
+                        .blur(radius: showContent ? 0 : 10)
+                        .animation(.spring(response: 0.8, dampingFraction: 0.6), value: showContent)
 
-                    VStack(spacing: 8) {
-                        // Badge Oficial de Jurado
-                        HStack(spacing: 6) {
+                    VStack(spacing: 12) {
+                        // Badge con color de marca dinámico
+                        HStack(spacing: 8) {
                             Image(systemName: "checkmark.shield.fill")
-                                .font(.caption)
+                                .font(.system(size: 12, weight: .semibold))
                             Text("PANEL DE JURADO EVALUADOR")
                                 .font(.system(size: 11, weight: .bold))
+                                .tracking(0.5)
                         }
-                        .foregroundColor(textGreen)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(lightGreenBg)
+                        .foregroundColor(Color.campusGreen)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color.campusGreen.opacity(0.12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.campusGreen.opacity(0.3), lineWidth: 1)
+                        )
                         .clipShape(Capsule())
+                        .opacity(showContent ? 1 : 0)
+                        .offset(y: showContent ? 0 : 10)
+                        .animation(.easeOut(duration: 0.6).delay(0.2), value: showContent)
 
-                        Text("Sistema Oficial de Calificación y Rúbricas")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                        Text("Reseñas y comentarios de proyectos")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundColor(Color.campusGreen.opacity(0.7))
+                            .opacity(showContent ? 1 : 0)
+                            .animation(.easeOut(duration: 0.6).delay(0.3), value: showContent)
                     }
                 }
 
                 Spacer()
 
-                // MARK: - Indicador de Carga y Estado
-                VStack(spacing: 14) {
-                    ProgressView()
-                        .controlSize(.regular)
-                        .tint(tealDark)
+                // MARK: - Indicador de Carga Premium
+                VStack(spacing: 16) {
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.campusGreen.opacity(0.15))
+                                .frame(height: 4)
+                            
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color.campusGreen, Color.campusTeal],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: isAnimating ? geometry.size.width : 0, height: 4)
+                                .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: false), value: isAnimating)
+                        }
+                    }
+                    .frame(height: 4)
+                    .padding(.horizontal, 40)
 
                     Text(statusMessage)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(.caption.weight(.medium))
+                        .foregroundColor(Color.appNeutral)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
+                        .opacity(showContent ? 1 : 0)
+                        .animation(.easeOut(duration: 0.6).delay(0.4), value: showContent)
                 }
-
-                Spacer()
+                .padding(.bottom, 40)
 
                 // MARK: - Footer Institucional
-                VStack(spacing: 4) {
-                    HStack(spacing: 4) {
+                VStack(spacing: 6) {
+                    HStack(spacing: 6) {
                         Image(systemName: "lock.fill")
                             .font(.system(size: 10))
                         Text("Entorno Seguro de Evaluación")
                             .font(.system(size: 11, weight: .semibold))
+                            .tracking(0.3)
                     }
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color.appNeutral)
 
                     Text("Campusvote Dirección Académica · 2026")
                         .font(.system(size: 10))
-                        .foregroundColor(.secondary.opacity(0.8))
+                        .foregroundColor(Color.appNeutral.opacity(0.7))
                 }
                 .padding(.bottom, 24)
             }
         }
         .onAppear {
-            isAnimating = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                showContent = true
+                isAnimating = true
+            }
         }
     }
 }

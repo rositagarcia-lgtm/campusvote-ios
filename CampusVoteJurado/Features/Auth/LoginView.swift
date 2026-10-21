@@ -2,11 +2,13 @@ import SwiftUI
 
 struct LoginView: View {
     @Environment(SessionStore.self) private var session
+    @State private var accessType: JuryAccessType = .external
     @State private var email = ""
     @State private var password = ""
     @State private var showPassword = false
     @State private var showHelp = false
     @FocusState private var focus: Field?
+    @State private var showContent = false
 
     private enum Field {
         case email
@@ -15,30 +17,30 @@ struct LoginView: View {
 
     private var canSubmit: Bool {
         !email.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !password.isEmpty &&
+        (accessType == .internalStaff || !password.isEmpty) &&
         !session.isWorking
     }
 
     var body: some View {
         GeometryReader { proxy in
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 28) {
                     header
+                    accessTypeSelector
                     credentialsCard
 
                     if let message = session.errorMessage {
                         ErrorBanner(message: message)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                            .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
                     }
 
                     submitButton
                     twoStepNote
-
                     helpLink
-                        .padding(.top, 8)
                 }
-                .padding(.horizontal, 22)
-                .padding(.vertical, 24)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 32)
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: proxy.size.height, alignment: .center)
             }
@@ -50,244 +52,272 @@ struct LoginView: View {
         } message: {
             Text("Escribe al administrador de la feria en tu institución: él crea las cuentas de jurado y puede restablecer tu acceso.")
         }
+        .task {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                showContent = true
+            }
+        }
     }
 
     // MARK: - Header
-
     private var header: some View {
-        VStack(spacing: 14) {
-
+        VStack(spacing: 16) {
             Image("logo_campusvote")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 230, height: 230)
-
-            Text("Ingresa tus credenciales para acceder a tu panel de evaluación.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                .frame(width: 180, height: 180)
+                .opacity(showContent ? 1 : 0)
+                .scaleEffect(showContent ? 1.0 : 0.9)
+                .blur(radius: showContent ? 0 : 8)
+            
+            Text(accessType.subtitle)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Color.campusGreen.opacity(0.8))
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 12)
+                .opacity(showContent ? 1 : 0)
+                .offset(y: showContent ? 0 : 10)
         }
     }
 
-    // MARK: - Credenciales
+    // MARK: - Tipo de acceso
+    private var accessTypeSelector: some View {
+        HStack(spacing: 8) {
+            ForEach(JuryAccessType.allCases) { type in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        accessType = type
+                        password = ""
+                        showPassword = false
+                    }
+                    session.errorMessage = nil
+                    focus = .email
+                } label: {
+                    HStack(spacing: 7) {
+                        Image(systemName: type == .external ? "person.badge.key.fill" : "building.columns.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text(type.rawValue)
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .foregroundStyle(accessType == type ? Color.onBrand : Color.campusGreen)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(
+                        Group {
+                            if accessType == type {
+                                LinearGradient(
+                                    colors: [Color.campusGreen, Color.campusTeal],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            } else {
+                                Color.cardBackground
+                            }
+                        }
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(5)
+        .background(Color.campusGreen.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .opacity(showContent ? 1 : 0)
+        .offset(y: showContent ? 0 : 12)
+    }
 
+    // MARK: - Tarjeta de Credenciales
     private var credentialsCard: some View {
         VStack(spacing: 0) {
-
-            FieldRow(
-                icon: "envelope",
-                label: "CORREO"
+            PremiumFieldRow(
+                icon: "envelope.fill",
+                label: "CORREO ELECTRÓNICO",
+                isFocused: focus == .email
             ) {
-
-                TextField(
-                    text: $email,
-                    prompt: Text(verbatim: "jurado@campusvote.edu.pe")
-                        .foregroundStyle(Color.gray.opacity(0.35))
-                ) {
-                    Text("")
-                }
-                .font(.system(size: 15))
-                .foregroundStyle(Color.gray.opacity(0.8))
-                .tint(Color.brand)
-                .textContentType(.username)
-                .keyboardType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.next)
-                .focused($focus, equals: .email)
-                .onSubmit {
-                    focus = .password
-                }
-            }
-
-            Divider()
-                .padding(.leading, 76)
-
-            FieldRow(
-                icon: "lock",
-                label: "CONTRASEÑA"
-            ) {
-
-                HStack {
-
-                    Group {
-                        if showPassword {
-                            TextField("••••••••", text: $password)
-                        } else {
-                            SecureField("••••••••", text: $password)
-                        }
-                    }
-                    .font(.system(size: 15))
-                    .textContentType(.password)
+                TextField("jurado@campusvote.edu.pe", text: $email)
+                    .font(.system(size: 15, weight: .medium))
+                    .textContentType(.username)
+                    .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .submitLabel(.go)
-                    .focused($focus, equals: .password)
-                    .onSubmit(submit)
-
-                    Button {
-                        showPassword.toggle()
-                    } label: {
-                        Image(
-                            systemName: showPassword
-                            ? "eye"
-                            : "eye.slash"
-                        )
-                        .font(.system(size: 15))
-                        .foregroundStyle(.secondary)
+                    .submitLabel(.next)
+                    .focused($focus, equals: .email)
+                    .onSubmit {
+                        if accessType == .external {
+                            focus = .password
+                        } else {
+                            submit()
+                        }
                     }
-                    .accessibilityLabel(
-                        showPassword
-                        ? "Ocultar contraseña"
-                        : "Mostrar contraseña"
-                    )
+            }
+
+            if accessType == .external {
+                Rectangle()
+                    .fill(Color.campusGreen.opacity(0.1))
+                    .frame(height: 1)
+                    .padding(.leading, 60)
+
+                PremiumFieldRow(
+                    icon: "lock.fill",
+                    label: "CONTRASEÑA",
+                    isFocused: focus == .password
+                ) {
+                    HStack {
+                        Group {
+                            if showPassword {
+                                TextField("••••••••", text: $password)
+                            } else {
+                                SecureField("••••••••", text: $password)
+                            }
+                        }
+                        .font(.system(size: 15, weight: .medium))
+                        .textContentType(.password)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .submitLabel(.go)
+                        .focused($focus, equals: .password)
+                        .onSubmit(submit)
+
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) { showPassword.toggle() }
+                        } label: {
+                            Image(systemName: showPassword ? "eye" : "eye.slash")
+                                .font(.system(size: 16))
+                                .foregroundStyle(focus == .password ? Color.campusGreen : Color.appNeutral)
+                        }
+                    }
                 }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .background(
+        .background(Color.cardBackground)
+        .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .fill(Color.cardBackground)
+                .stroke(Color.campusGreen.opacity(0.15), lineWidth: 1)
         )
-        .shadow(
-            color: .black.opacity(0.05),
-            radius: 12,
-            y: 4
-        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .shadow(color: Color.campusGreen.opacity(0.08), radius: 20, x: 0, y: 8)
+        .opacity(showContent ? 1 : 0)
+        .offset(y: showContent ? 0 : 15)
     }
 
-    // MARK: - Botón ingresar
-
+    // MARK: - Botón de Envío
     private var submitButton: some View {
         Button(action: submit) {
-
             HStack(spacing: 10) {
-
                 if session.isWorking {
-
-                    ProgressView()
-                        .tint(Color.onBrand)
-
+                    ProgressView().tint(Color.onBrand)
                 } else {
-
-                    Text("Ingresar")
-
-                    Image(systemName: "arrow.right")
+                    Text(accessType == .external ? "Ingresar al Panel" : "Enviar código")
+                        .fontWeight(.semibold)
+                    Image(systemName: "arrow.right").font(.system(size: 14, weight: .bold))
                 }
             }
-            .font(.title3.weight(.semibold))
             .foregroundStyle(Color.onBrand)
             .frame(maxWidth: .infinity)
-            .frame(height: 48)
+            .frame(height: 52)
             .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.brand)
+                Group {
+                    if canSubmit {
+                        LinearGradient(colors: [Color.campusGreen, Color.campusTeal], startPoint: .leading, endPoint: .trailing)
+                    } else {
+                        Color.campusGreen.opacity(0.3)
+                    }
+                }
             )
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .shadow(color: Color.campusGreen.opacity(canSubmit ? 0.3 : 0.0), radius: 12, y: 6)
         }
-        .disabled(!canSubmit)
-        .opacity(
-            canSubmit || session.isWorking
-            ? 1
-            : 0.6
-        )
+        .disabled(!canSubmit || session.isWorking)
+        .scaleEffect(canSubmit && !session.isWorking ? 1.0 : 0.98)
+        .opacity(showContent ? 1 : 0)
+        .offset(y: showContent ? 0 : 15)
+        .animation(.easeInOut(duration: 0.2), value: canSubmit)
     }
 
-    // MARK: - Verificación en dos pasos
-
+    // MARK: - Nota de Verificación
     private var twoStepNote: some View {
         HStack(alignment: .top, spacing: 12) {
-
-            Image(systemName: "lock.shield")
-                .font(.system(size: 15))
+            Image(systemName: "shield.checkered")
+                .font(.system(size: 16))
                 .foregroundStyle(Color.brandGold)
+                .frame(width: 24, height: 24)
+                .background(Color.brandGold.opacity(0.15))
+                .clipShape(Circle())
 
-            Text(
-                "Te enviaremos un código de 6 dígitos a tu correo. " + 
-                "Caduca en 10 minutos."
-            )
-            .font(.system(size: 12))
-            .foregroundStyle(.secondary)
+            Text("Te enviaremos un código de 6 dígitos a tu correo. Caduca en 10 minutos.")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color.appNeutral)
+                .lineSpacing(2)
         }
-        .frame(
-            maxWidth: .infinity,
-            alignment: .leading
-        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 4)
+        .opacity(showContent ? 1 : 0)
     }
 
-    // MARK: - Ayuda
-
+    // MARK: - Enlace de Ayuda
     private var helpLink: some View {
-        Button {
-            showHelp = true
-        } label: {
-
-            Label(
-                "¿Problemas para acceder? Contactar a soporte electoral",
-                systemImage: "questionmark.circle"
-            )
-            .font(.system(size: 12))
-            .multilineTextAlignment(.center)
-            .foregroundStyle(Color.brandTeal)
+        Button { showHelp = true } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "questionmark.circle.fill").font(.system(size: 13))
+                Text("¿Problemas para acceder? Contactar a soporte").font(.system(size: 12, weight: .semibold))
+            }
+            .foregroundStyle(Color.campusTeal)
         }
+        .opacity(showContent ? 1 : 0)
     }
 
-    // MARK: - Login
-
+    // MARK: - Lógica de Submit
     private func submit() {
-        guard canSubmit else {
-            return
-        }
-
+        guard canSubmit else { return }
         focus = nil
-
         Task {
-            await session.login(
-                email: email,
-                password: password
-            )
+            await session.login(email: email, password: password, accessType: accessType)
         }
     }
 }
 
-// MARK: - Fila de campos
-
-private struct FieldRow<Content: View>: View {
-
+// MARK: - Componente de Campo Premium
+private struct PremiumFieldRow<Content: View>: View {
     let icon: String
     let label: String
-
-    @ViewBuilder
-    let content: Content
+    let isFocused: Bool
+    @ViewBuilder let content: Content
 
     var body: some View {
-
         HStack(spacing: 16) {
-
             Image(systemName: icon)
-                .font(.system(size: 18))
-                .foregroundStyle(Color.brand)
-                .frame(width: 38, height: 38)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(isFocused ? Color.onBrand : Color.campusGreen.opacity(0.6))
+                .frame(width: 40, height: 40)
                 .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.iconTile)
+                    Circle().fill(isFocused ? Color.campusGreen : Color.iconTile)
                 )
 
-            VStack(
-                alignment: .leading,
-                spacing: 4
-            ) {
-
+            VStack(alignment: .leading, spacing: 6) {
                 Text(label)
-                    .font(
-                        .caption.weight(.semibold)
-                    )
-                    .tracking(0.8)
-                    .foregroundStyle(.secondary)
-
-                content
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundStyle(isFocused ? Color.campusGreen : Color.appNeutral)
+                
+                content.foregroundStyle(Color.campusGreen)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(isFocused ? Color.campusGreen : Color.clear, lineWidth: 1.5)
+        )
+        .animation(.easeInOut(duration: 0.2), value: isFocused)
     }
+}
+
+// MARK: - Preview
+#Preview {
+    LoginView()
+        .environment(SessionStore(api: .shared))
 }

@@ -5,12 +5,35 @@ extension Notification.Name {
     static let campusVoteSessionExpired = Notification.Name("campusvote.session.expired")
 }
 
+struct PageInfo: Decodable, Hashable {
+    let page: Int
+    let limit: Int
+    let total: Int
+
+    var totalPages: Int {
+        guard limit > 0 else { return 0 }
+        return Int(ceil(Double(total) / Double(limit)))
+    }
+
+    init(page: Int, limit: Int, total: Int) {
+        self.page = page
+        self.limit = limit
+        self.total = total
+    }
+}
+
+struct PageResult<Item> {
+    let items: [Item]
+    let pagination: PageInfo
+}
+
 /// Cliente HTTP que habla con el backend de CampusVote.
 ///
 /// Cada respuesta viaja en un envelope `{ success, message, data }`.
 /// `send(_:as:)` desempaqueta `data`. Un 401 con el token de sesión cierra la sesión.
 final class APIClient: Sendable {
     static let shared = APIClient()
+    private let refreshCoordinator = RefreshCoordinator()
 
     // MARK: - Envelope
 
@@ -22,6 +45,13 @@ final class APIClient: Sendable {
 
     private struct VoidPayload: Decodable {}
 
+    private struct PagedEnvelope<Payload: Decodable>: Decodable {
+        let success: Bool
+        let message: String?
+        let data: [Payload]?
+        let pagination: PageInfo?
+    }
+
     private init() {}
 
     // MARK: - Sesión persistida
@@ -30,12 +60,22 @@ final class APIClient: Sendable {
         KeychainStore.readToken(for: .access) != nil
     }
 
-    func saveTokens(access: String, refresh: String?) {
-        KeychainStore.save(access, for: .access)
-        if let refresh {
-            KeychainStore.save(refresh, for: .refresh)
-        } else {
+    var savedRefreshToken: String? {
+        KeychainStore.readToken(for: .refresh)
+    }
+
+    func saveTokens(access: String, refresh: String?) throws {
+        guard KeychainStore.save(access, for: .access) else {
+            clearTokens()
+            throw APIError.secureStorage
+        }
+        guard let refresh else {
             KeychainStore.deleteToken(for: .refresh)
+            return
+        }
+        guard KeychainStore.save(refresh, for: .refresh) else {
+            clearTokens()
+            throw APIError.secureStorage
         }
     }
 
@@ -55,6 +95,15 @@ final class APIClient: Sendable {
         return payload
     }
 
+    func sendPage<T: Decodable>(_ event: Endpoint, as type: T.Type) async throws -> PageResult<T> {
+        let data = try await perform(event)
+        let envelope = try decodeEnvelope(PagedEnvelope<T>.self, from: data)
+        let items = envelope.data ?? []
+        let pagination = envelope.pagination
+            ?? PageInfo(page: 1, limit: max(items.count, 1), total: items.count)
+        return PageResult(items: items, pagination: pagination)
+    }
+
     func send(_ event: Endpoint) async throws {
         let data = try await perform(event)
         _ = try? decodeEnvelope(Envelope<VoidPayload>.self, from: data)
@@ -62,7 +111,7 @@ final class APIClient: Sendable {
 
     // MARK: - Ejecución
 
-    private func perform(_ event: Endpoint) async throws -> Data {
+    private func perform(_ event: Endpoint, canRefresh: Bool = true) async throws -> Data {
         let request: URLRequest
         do {
             request = try makeRequest(for: event)
@@ -85,9 +134,30 @@ final class APIClient: Sendable {
             throw APIError.network
         }
 
+        if httpResponse.statusCode == 401,
+           event.usesStoredToken,
+           event.retriesWithRefresh,
+           canRefresh,
+           savedRefreshToken != nil {
+            do {
+                _ = try await refreshCoordinator.refresh { [self] refreshToken in
+                    try await refreshSession(refreshToken: refreshToken)
+                }
+                return try await perform(event, canRefresh: false)
+            } catch let error as APIError {
+                // Solo cerramos la sesión si el servidor rechazó los tokens.
+                // Un corte de red durante el refresh no debe expulsar al jurado.
+                if error.isSessionRejection {
+                    expireSession()
+                }
+                throw error
+            } catch {
+                throw APIError.network
+            }
+        }
+
         if httpResponse.statusCode == 401, event.usesStoredToken {
-            clearTokens()
-            NotificationCenter.default.post(name: .campusVoteSessionExpired, object: nil)
+            expireSession()
             throw APIError.sessionExpired
         }
 
@@ -96,6 +166,37 @@ final class APIClient: Sendable {
         }
 
         return data
+    }
+
+    private func refreshSession(refreshToken: String) async throws -> AuthResult {
+        let request = try makeRequest(for: .refresh(refreshToken: refreshToken))
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch {
+            throw APIError.network
+        }
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.network
+        }
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw Self.mapError(status: httpResponse.statusCode, data: data)
+        }
+
+        let envelope = try decodeEnvelope(Envelope<AuthResult>.self, from: data)
+        guard let result = envelope.data,
+              let accessToken = result.token,
+              let newRefreshToken = result.refreshToken else {
+            throw APIError.decoding("La renovación no devolvió los tokens esperados.")
+        }
+        try saveTokens(access: accessToken, refresh: newRefreshToken)
+        return result
+    }
+
+    private func expireSession() {
+        clearTokens()
+        NotificationCenter.default.post(name: .campusVoteSessionExpired, object: nil)
     }
 
     private func makeRequest(for event: Endpoint) throws -> URLRequest {
@@ -139,5 +240,31 @@ final class APIClient: Sendable {
             return .server(status: status, code: body.error.code, message: body.error.message)
         }
         return .server(status: status, code: "HTTP_\(status)", message: "El servidor respondió con el estado \(status).")
+    }
+}
+
+private actor RefreshCoordinator {
+    private var refreshTask: Task<AuthResult, Error>?
+
+    func refresh(
+        operation: @escaping @Sendable (String) async throws -> AuthResult
+    ) async throws -> AuthResult {
+        if let refreshTask {
+            return try await refreshTask.value
+        }
+        guard let refreshToken = KeychainStore.readToken(for: .refresh) else {
+            throw APIError.sessionExpired
+        }
+
+        let task = Task { try await operation(refreshToken) }
+        refreshTask = task
+        do {
+            let result = try await task.value
+            refreshTask = nil
+            return result
+        } catch {
+            refreshTask = nil
+            throw error
+        }
     }
 }

@@ -19,6 +19,13 @@ struct ProjectDetailView: View {
     @State private var aspects: Set<String> = []
     @State private var photoIndex: Int?
     @State private var bannerPage = 0
+    @State private var saveAlert: SaveAlert?
+
+    private struct SaveAlert: Identifiable {
+        let id = UUID()
+        let title: String
+        let message: String
+    }
 
     private let api = APIClient.shared
     private let aspectos = [
@@ -37,7 +44,12 @@ struct ProjectDetailView: View {
     }
 
     private var canSave: Bool {
-        !fairIsClosed && !isSaving && (1...5).contains(stars) && (10...300).contains(commentCount)
+        !fairIsClosed && !isSaving && (1...5).contains(stars) && (10...1000).contains(commentCount)
+    }
+
+    private var commentHint: String? {
+        guard commentCount > 0, commentCount < 10 else { return nil }
+        return "Faltan \(10 - commentCount) caracteres para poder guardar."
     }
 
     private var highlightsKey: String {
@@ -105,6 +117,13 @@ struct ProjectDetailView: View {
         .background(Color.appBackground.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden(true)
+        .alert(item: $saveAlert) { alert in
+            Alert(
+                title: Text(alert.title),
+                message: Text(alert.message),
+                dismissButton: .default(Text("Aceptar"))
+            )
+        }
         .task {
             loadHighlights()
             await load()
@@ -335,6 +354,11 @@ struct ProjectDetailView: View {
             VStack(alignment: .leading, spacing: 8) {
                 etiqueta("COMENTARIOS ADICIONALES")
                 commentBox
+                if let commentHint {
+                    Text(commentHint)
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
             }
 
             Button {
@@ -408,7 +432,7 @@ struct ProjectDetailView: View {
         }
         let sentence = "\(item)."
         let next = current.isEmpty ? sentence : "\(current) \(sentence)"
-        guard next.count <= 300 else { return }
+        guard next.count <= 1000 else { return }
         comment = next
     }
 
@@ -440,15 +464,15 @@ struct ProjectDetailView: View {
                 .stroke(Color.primary.opacity(0.08), lineWidth: 1)
         )
         .overlay(alignment: .bottomTrailing) {
-            Text("\(min(commentCount, 300))/300")
+            Text("\(min(commentCount, 1000))/1000")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .padding(.trailing, 10)
                 .padding(.bottom, 8)
         }
         .onChange(of: comment) { _, newValue in
-            if newValue.count > 300 {
-                comment = String(newValue.prefix(300))
+            if newValue.count > 1000 {
+                comment = String(newValue.prefix(1000))
             }
         }
     }

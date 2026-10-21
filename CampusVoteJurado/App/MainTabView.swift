@@ -8,6 +8,7 @@ struct MainTabView: View {
     private let pestanas: [(icono: String, titulo: String)] = [
         ("house", "Ferias"),
         ("chart.bar", "Avance"),
+        ("checklist", "Asignados"),
         ("person", "Perfil"),
     ]
 
@@ -35,11 +36,18 @@ struct MainTabView: View {
             .tag(1)
 
             NavigationStack {
-                ProfileView()
+                MyProjectsView()
             }
             .padding(.bottom, espacioMenu)
             .toolbar(.hidden, for: .tabBar)
             .tag(2)
+
+            NavigationStack {
+                ProfileView()
+            }
+            .padding(.bottom, espacioMenu)
+            .toolbar(.hidden, for: .tabBar)
+            .tag(3)
         }
         .tint(Color.brand)
         .overlay(alignment: .bottom) {

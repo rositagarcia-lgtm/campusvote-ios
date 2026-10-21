@@ -33,8 +33,9 @@ enum KeychainStore {
 
     // MARK: - Escritura
 
-    static func save(_ token: String, for account: Account) {
-        guard let data = token.data(using: .utf8) else { return }
+    @discardableResult
+    static func save(_ token: String, for account: Account) -> Bool {
+        guard let data = token.data(using: .utf8) else { return false }
 
         secItemDelete(for: account)
 
@@ -44,7 +45,7 @@ enum KeychainStore {
             kSecAttrAccount as String: account.rawValue,
             kSecValueData as String: data
         ]
-        SecItemAdd(query as CFDictionary, nil)
+        return SecItemAdd(query as CFDictionary, nil) == errSecSuccess
     }
 
     // MARK: - Borrado
@@ -69,7 +70,7 @@ enum KeychainStore {
     }
 
     static func saveToken(_ token: String) {
-        save(token, for: .access)
+        _ = save(token, for: .access)
     }
 
     static func deleteToken() {

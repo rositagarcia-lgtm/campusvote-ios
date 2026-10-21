@@ -14,8 +14,8 @@ struct User: Codable, Hashable {
         return parts.isEmpty ? email : parts.joined(separator: " ")
     }
 
-    var isJury: Bool {
-        role.uppercased() == "JURY"
+    var canUseJuryApp: Bool {
+        ["JURY", "TEACHER"].contains(role.uppercased())
     }
 
     enum CodingKeys: String, CodingKey {
@@ -25,16 +25,32 @@ struct User: Codable, Hashable {
         case organizationId = "organization_id"
         case mustChangePassword
         case mustChangePasswordSnake = "must_change_password"
+        // El backend no es consistente: /auth/me devuelve Prisma en camelCase
+        // y el login usa snake_case. Aceptamos ambas formas.
+        case firstNameCamel = "firstName"
+        case lastNameCamel = "lastName"
+        case organizationIdCamel = "organizationId"
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
         email = try container.decodeIfPresent(String.self, forKey: .email) ?? ""
-        firstName = try container.decodeIfPresent(String.self, forKey: .firstName) ?? ""
-        lastName = try container.decodeIfPresent(String.self, forKey: .lastName) ?? ""
+
+        let first = try? container.decodeIfPresent(String.self, forKey: .firstName)
+        let firstCamel = try? container.decodeIfPresent(String.self, forKey: .firstNameCamel)
+        firstName = first ?? firstCamel ?? ""
+
+        let last = try? container.decodeIfPresent(String.self, forKey: .lastName)
+        let lastCamel = try? container.decodeIfPresent(String.self, forKey: .lastNameCamel)
+        lastName = last ?? lastCamel ?? ""
+
         role = try container.decodeIfPresent(String.self, forKey: .role) ?? ""
-        organizationId = try container.decodeIfPresent(String.self, forKey: .organizationId)
+
+        let organization = try? container.decodeIfPresent(String.self, forKey: .organizationId)
+        let organizationCamel = try? container.decodeIfPresent(String.self, forKey: .organizationIdCamel)
+        organizationId = organization ?? organizationCamel
+
         let flag = try container.decodeIfPresent(Bool.self, forKey: .mustChangePassword)
         let snake = try container.decodeIfPresent(Bool.self, forKey: .mustChangePasswordSnake)
         mustChangePassword = flag ?? snake ?? false
@@ -57,6 +73,7 @@ struct AuthResult: Decodable {
     let tempToken: String?
     let email: String?
     let token: String?
+    let refreshToken: String?
     let user: User?
     let mustChangePassword: Bool?
 
@@ -65,7 +82,8 @@ struct AuthResult: Decodable {
         case requiresEmailOtpSnake = "requires_email_otp"
         case tempToken
         case tempTokenSnake = "temp_token"
-        case email, token, user
+        case email, token, user, refreshToken
+        case refreshTokenSnake = "refresh_token"
         case mustChangePassword
         case mustChangePasswordSnake = "must_change_password"
     }
@@ -82,6 +100,9 @@ struct AuthResult: Decodable {
 
         email = try container.decodeIfPresent(String.self, forKey: .email)
         token = try container.decodeIfPresent(String.self, forKey: .token)
+        let refreshValue = try container.decodeIfPresent(String.self, forKey: .refreshToken)
+        let refreshSnake = try container.decodeIfPresent(String.self, forKey: .refreshTokenSnake)
+        refreshToken = refreshValue ?? refreshSnake
         user = try container.decodeIfPresent(User.self, forKey: .user)
 
         let mustFlag = try container.decodeIfPresent(Bool.self, forKey: .mustChangePassword)

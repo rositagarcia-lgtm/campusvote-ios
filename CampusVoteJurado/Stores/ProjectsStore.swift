@@ -12,6 +12,12 @@ final class ProjectsStore {
     var errorMessage: String?
     private(set) var fairId: String?
 
+    private(set) var assignedProjects: [ReviewProject] = []
+    private(set) var assignedSummary = ReviewSummary(rated: 0, total: 0)
+    private(set) var isLoadingAssigned = false
+    var assignedErrorMessage: String?
+    private(set) var assignedLoaded = false
+
     private let api: APIClient
 
     init(api: APIClient) {
@@ -49,6 +55,31 @@ final class ProjectsStore {
         } catch {
             errorMessage = error.userMessage
         }
+    }
+
+    /// Proyectos asignados al jurado en todas sus ferias abiertas.
+    /// GET /fairs/my-projects ya filtra por sus categorías asignadas.
+    func loadAssigned() async {
+        isLoadingAssigned = true
+        assignedErrorMessage = nil
+        defer { isLoadingAssigned = false }
+
+        do {
+            let list = try await api.send(.myProjects, as: ReviewList.self)
+            assignedProjects = list.projects
+            assignedSummary = list.summary
+            assignedLoaded = true
+        } catch {
+            assignedErrorMessage = error.userMessage
+        }
+    }
+
+    func isAssigned(projectId: String) -> Bool {
+        assignedProjects.contains { $0.id == projectId }
+    }
+
+    func assignedProject(id: String) -> ReviewProject? {
+        assignedProjects.first { $0.id == id }
     }
 
     /// Todas es `categoryId == nil`. El texto y el chip no vuelven a llamar al servidor.
@@ -128,18 +159,39 @@ final class ProjectsStore {
         fallbackRating: Int,
         fallbackComment: String
     ) {
-        guard let index = projects.firstIndex(where: { $0.id == projectId }) else { return }
-        let current = projects[index]
-        projects[index] = ReviewProject(
-            id: current.id,
-            name: current.name,
-            coverUrl: current.coverUrl,
-            categoryId: current.categoryId,
-            categoryName: current.categoryName,
-            myRating: saved.rating ?? fallbackRating,
-            myComment: saved.comment ?? fallbackComment
+        if let index = projects.firstIndex(where: { $0.id == projectId }) {
+            projects[index] = rated(
+                projects[index],
+                rating: saved.rating ?? fallbackRating,
+                comment: saved.comment ?? fallbackComment
+            )
+            summary = ReviewSummary(projects: projects)
+        }
+
+        if let index = assignedProjects.firstIndex(where: { $0.id == projectId }) {
+            assignedProjects[index] = rated(
+                assignedProjects[index],
+                rating: saved.rating ?? fallbackRating,
+                comment: saved.comment ?? fallbackComment
+            )
+            assignedSummary = ReviewSummary(projects: assignedProjects)
+        }
+    }
+
+    private func rated(_ project: ReviewProject, rating: Int, comment: String) -> ReviewProject {
+        ReviewProject(
+            id: project.id,
+            fairId: project.fairId,
+            fairName: project.fairName,
+            name: project.name,
+            coverUrl: project.coverUrl,
+            categoryId: project.categoryId,
+            categoryName: project.categoryName,
+            standCode: project.standCode,
+            teamName: project.teamName,
+            myRating: rating,
+            myComment: comment
         )
-        summary = ReviewSummary(projects: projects)
     }
 
     private func uniqueCategories(in projects: [ReviewProject]) -> [Category] {
