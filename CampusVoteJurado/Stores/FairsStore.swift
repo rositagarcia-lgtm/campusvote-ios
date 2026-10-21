@@ -11,6 +11,7 @@ final class FairsStore {
     var errorMessage: String?
 
     private let api: APIClient
+    private var loadID = UUID()
 
     init(api: APIClient) {
         self.api = api
@@ -36,20 +37,38 @@ final class FairsStore {
     }
 
     func fetchMyAssignments() async {
+        let requestID = UUID()
+        loadID = requestID
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
+        defer {
+            if loadID == requestID { isLoading = false }
+        }
 
         do {
             let assignments = try await api.send(.myAssignments, as: [FairAssignment].self)
+            try Task.checkCancellation()
+            guard loadID == requestID else { return }
             activeFairs = assignments.filter { $0.fair.status.uppercased() == "OPEN" }
             closedFairs = assignments.filter { $0.fair.status.uppercased() == "CLOSED" }
             scheduledFairs = assignments.filter {
                 let status = $0.fair.status.uppercased()
                 return status != "OPEN" && status != "CLOSED"
             }
+        } catch is CancellationError {
+            return
         } catch {
+            guard loadID == requestID else { return }
             errorMessage = error.userMessage
         }
+    }
+
+    func reset() {
+        activeFairs = []
+        scheduledFairs = []
+        closedFairs = []
+        isLoading = false
+        errorMessage = nil
+        loadID = UUID()
     }
 }

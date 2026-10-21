@@ -37,15 +37,20 @@ enum KeychainStore {
     static func save(_ token: String, for account: Account) -> Bool {
         guard let data = token.data(using: .utf8) else { return false }
 
-        secItemDelete(for: account)
-
-        let query: [String: Any] = [
+        let lookup: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account.rawValue,
-            kSecValueData as String: data
+            kSecAttrAccount as String: account.rawValue
         ]
-        return SecItemAdd(query as CFDictionary, nil) == errSecSuccess
+        let update: [String: Any] = [kSecValueData as String: data]
+        let updateStatus = SecItemUpdate(lookup as CFDictionary, update as CFDictionary)
+        if updateStatus == errSecSuccess { return true }
+        guard updateStatus == errSecItemNotFound else { return false }
+
+        var item = lookup
+        item[kSecValueData as String] = data
+        item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        return SecItemAdd(item as CFDictionary, nil) == errSecSuccess
     }
 
     // MARK: - Borrado

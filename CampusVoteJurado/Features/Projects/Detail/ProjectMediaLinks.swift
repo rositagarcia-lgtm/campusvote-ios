@@ -56,7 +56,7 @@ struct ProjectLinkRow: View {
 
                 Text(ProjectLinkRow.visibleText(for: url))
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.brand)
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
 
                 Spacer(minLength: 8)

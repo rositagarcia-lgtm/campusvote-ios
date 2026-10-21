@@ -60,7 +60,8 @@ enum InstitutionAppearance {
         return secondary
     }
 
-    static func relativeLuminance(of hex: String) -> Double? {        guard let rgb = rgbComponents(of: hex) else { return nil }
+    static func relativeLuminance(of hex: String) -> Double? {
+        guard let rgb = rgbComponents(of: hex) else { return nil }
 
         func linear(_ channel: Double) -> Double {
             channel <= 0.03928 ? channel / 12.92 : pow((channel + 0.055) / 1.055, 2.4)
@@ -122,6 +123,9 @@ extension Color {
 
     static let brandGold = Color(light: 0xD4AF37, dark: 0xE0C060)
     static let appNeutral = Color(light: 0x8E8E93, dark: 0x98989F)
+    static let appSuccess = Color(light: 0x167747, dark: 0x69DB9B)
+    static let appWarning = Color(light: 0x9A4B0B, dark: 0xFFB466)
+    static let appDanger = Color(light: 0xB42318, dark: 0xFF8A80)
 
     /// Texto/iconos sobre `brand`. Con marca institucional clara usa tinta
     /// oscura; con marca oscura usa blanco. Sin marca institucional conserva
@@ -140,6 +144,7 @@ extension Color {
     static let appBackground = Color(light: 0xF7F8FC, dark: 0x0E1514)
     static let cardBackground = Color(light: 0xFFFFFF, dark: 0x16211F)
     static let iconTile = Color(light: 0xEEF0F4, dark: 0x22302C)
+    static let cardBorder = Color(light: 0xE5E7EB, dark: 0x2B3936)
     static var appPrimary: Color { brand }
     static var appSecondary: Color { brandTeal }
     static var appTertiary: Color { brandGold }

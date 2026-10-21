@@ -31,10 +31,15 @@ struct ProfileHeaderView: View {
                         .overlay(Circle().stroke(Color.cardBackground, lineWidth: 3))
 
                     Circle()
-                        .fill(Color(red: 0.22, green: 0.78, blue: 0.38))
-                        .frame(width: 15, height: 15)
+                        .fill(Color.cardBackground)
+                        .frame(width: 26, height: 26)
+                        .overlay {
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(Color.brand)
+                        }
                         .overlay(Circle().stroke(Color.appBackground, lineWidth: 2))
-                        .offset(x: 1, y: 1)
+                        .offset(x: 2, y: 2)
                 }
             }
             .buttonStyle(.plain)

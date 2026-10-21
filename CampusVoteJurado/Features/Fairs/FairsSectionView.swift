@@ -18,7 +18,7 @@ struct FairsSectionView<Content: View>: View {
                 Text(L10n.tr(title, locale: locale))
                     .font(.system(size: 12, weight: .bold))
                     .tracking(0.8)
-                    .foregroundStyle(isHighlighted ? Color.brand : Color.appNeutral)
+                    .foregroundStyle(isHighlighted ? Color.primary : Color.secondary)
 
                 Spacer()
 
@@ -62,7 +62,7 @@ struct FairsEmptyStateView: View {
 
             Text(L10n.tr(title, locale: locale))
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.brand)
+                .foregroundStyle(.primary)
 
             Text(L10n.tr(message, locale: locale))
                 .font(.caption)
@@ -73,7 +73,6 @@ struct FairsEmptyStateView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 32)
         .padding(.horizontal, 16)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.appNeutral.opacity(0.1), lineWidth: 1))
+        .premiumSurface()
     }
 }

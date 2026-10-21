@@ -53,11 +53,11 @@ enum APIError: Error, Equatable {
     /// Fallo transitorio: conviene conservar los tokens y reintentar.
     var isTransient: Bool {
         switch self {
-        case .network, .decoding, .secureStorage:
+        case .network:
             return true
         case .server(let status, _, _):
-            return status >= 500
-        case .sessionExpired:
+            return status == 429 || status >= 500
+        case .sessionExpired, .decoding, .secureStorage:
             return false
         }
     }
@@ -77,7 +77,8 @@ extension Error {
     /// Mensaje para la interfaz, o nil si la tarea solo se canceló
     /// (por ejemplo, al salir de la pantalla antes de que llegue la respuesta).
     var userMessage: String? {
-        if self is CancellationError {
+        if self is CancellationError
+            || (self as? URLError)?.code == .cancelled {
             return nil
         }
         if let apiError = self as? APIError {

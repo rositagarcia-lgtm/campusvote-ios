@@ -208,7 +208,7 @@ struct ProjectDetailView: View {
                 as: ProjectRating.self
             )
             stars = min(max(loaded.rating ?? 0, 0), 5)
-            comment = String((loaded.comment ?? "").prefix(300))
+            comment = String((loaded.comment ?? "").prefix(1000))
         } catch let error as APIError {
             if case .decoding = error {
                 stars = 0
@@ -229,12 +229,19 @@ struct ProjectDetailView: View {
         errorMessage = nil
         defer { isSaving = false }
 
-        if await store.saveRating(
+        if let saved = await store.saveRating(
             fairId: fairId,
             projectId: projectId,
             rating: stars,
             comment: comment
-        ) == nil {
+        ) {
+            stars = min(max(saved.rating ?? stars, 0), 5)
+            comment = String((saved.comment ?? comment).prefix(1000))
+            saveAlert = SaveAlert(
+                title: "Reseña guardada",
+                message: "Tu reseña y comentario se guardaron correctamente."
+            )
+        } else {
             errorMessage = store.errorMessage
         }
     }

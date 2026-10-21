@@ -36,14 +36,14 @@ struct ProjectListFilterSheet: View {
                     Image(systemName: "xmark")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(.primary)
-                        .frame(width: 32, height: 32)
+                        .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Cerrar")
             }
 
             HStack {
-                Text("ESTADO DE EVALUACIÓN")
+                Text("ESTADO DE RESEÑA")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 8)
@@ -76,11 +76,13 @@ struct ProjectListFilterSheet: View {
                     HStack(spacing: 8) {
                         Text("Aplicar filtros")
                             .font(.subheadline.weight(.semibold))
-                        Text("1")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(Color.brand)
-                            .frame(width: 20, height: 20)
-                            .background(Circle().fill(Color.onBrand))
+                        if draftStatus != .all {
+                            Text("1")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(Color.brand)
+                                .frame(width: 20, height: 20)
+                                .background(Circle().fill(Color.onBrand))
+                        }
                     }
                     .foregroundStyle(Color.onBrand)
                     .frame(maxWidth: .infinity)
@@ -148,6 +150,7 @@ struct ProjectListFilterSheet: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private func count(_ item: StatusFilter) -> Int {

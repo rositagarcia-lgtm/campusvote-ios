@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TabBarItem: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let icon: String
     let label: String
     let isSelected: Bool
@@ -27,9 +28,9 @@ struct TabBarItem: View {
                 .foregroundStyle(isSelected ? activeColor : Color.appNeutral)
             
             Text(label)
-                .font(.system(size: 11, weight: isSelected ? .semibold : .medium))
+                .font(.caption2.weight(isSelected ? .semibold : .medium))
                 .tracking(0.2)
-                .foregroundStyle(isSelected ? activeColor : Color.appNeutral)
+                .foregroundStyle(isSelected ? Color.primary : Color.appNeutral)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
@@ -39,7 +40,11 @@ struct TabBarItem: View {
                 .fill(isSelected ? activeColor.opacity(0.12) : Color.clear)
         )
         .contentShape(Rectangle())
-        .animation(.spring(response: 0.3, dampingFraction: 0.7, blendDuration: 0.1), value: isSelected)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .animation(
+            reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.7, blendDuration: 0.1),
+            value: isSelected
+        )
     }
 }
 
@@ -55,7 +60,7 @@ struct TabBarItem: View {
                 HStack(spacing: 0) {
                     TabBarItem(
                         icon: "chart.bar.fill",
-                        label: "Evaluación",
+                        label: "Reseñas",
                         isSelected: selectedTab == 0
                         // activeColor usa el valor por defecto (.brand)
                     )

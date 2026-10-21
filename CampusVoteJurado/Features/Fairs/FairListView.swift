@@ -22,6 +22,12 @@ struct FairListView: View {
         return user.fullName
     }
 
+    private var hasNoFairs: Bool {
+        fairsStore.activeFairs.isEmpty
+            && fairsStore.scheduledFairs.isEmpty
+            && fairsStore.closedFairs.isEmpty
+    }
+
     var body: some View {
         NavigationStack(path: $path) {
             VStack(spacing: 0) {
@@ -37,7 +43,7 @@ struct FairListView: View {
                                     .font(.system(size: 10, weight: .bold))
                                     .tracking(0.6)
                             }
-                            .foregroundStyle(Color.brand)
+                            .foregroundStyle(.primary)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 5)
                             .background(Color.brand.opacity(0.1))
@@ -45,20 +51,40 @@ struct FairListView: View {
 
                             Text(L10n.format("Bienvenido, %@", locale: locale, greetingName))
                                 .font(.title2.weight(.bold))
-                                .foregroundStyle(Color.brand)
+                                .foregroundStyle(.primary)
                         }
                         .opacity(showContent ? 1 : 0)
                         .offset(y: showContent ? 0 : 10)
 
-                        if let errorMessage = fairsStore.errorMessage {
+                        if let errorMessage = fairsStore.errorMessage, !hasNoFairs {
                             ErrorBanner(message: errorMessage)
                                 .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
                         }
 
-                        VStack(spacing: 32) {
-                            seccionAbiertas
-                            seccionProgramadas
-                            seccionCerradas
+                        if fairsStore.isLoading && hasNoFairs {
+                            ProgressView("Cargando ferias y proyectos asignados...")
+                                .frame(maxWidth: .infinity, minHeight: 220)
+                        } else if let errorMessage = fairsStore.errorMessage, hasNoFairs {
+                            ScreenStateView(
+                                icon: "wifi.exclamationmark",
+                                title: "No pudimos cargar tus ferias",
+                                message: errorMessage,
+                                actionTitle: "Reintentar"
+                            ) {
+                                Task { await fairsStore.fetchMyAssignments() }
+                            }
+                        } else if hasNoFairs {
+                            ScreenStateView(
+                                icon: "calendar.badge.clock",
+                                title: "No hay ferias asignadas",
+                                message: "Cuando tu institución te asigne una feria, aparecerá aquí."
+                            )
+                        } else {
+                            VStack(spacing: 32) {
+                                seccionAbiertas
+                                seccionProgramadas
+                                seccionCerradas
+                            }
                         }
                     }
                     .padding(.horizontal, 20)

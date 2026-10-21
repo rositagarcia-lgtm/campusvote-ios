@@ -19,14 +19,7 @@ struct PendingProjectCard: View {
                                 .lineLimit(1)
                         }
                         Spacer(minLength: 8)
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(Color(red: 0.85, green: 0.45, blue: 0.12))
-                                .frame(width: 6, height: 6)
-                            Text("Pendiente")
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(Color(red: 0.85, green: 0.45, blue: 0.12))
-                        }
+                        StatusBadge(title: "Pendiente", style: .pending)
                     }
 
                     Text(project.name)
@@ -54,6 +47,6 @@ struct PendingProjectCard: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
+        .premiumSurface()
     }
 }

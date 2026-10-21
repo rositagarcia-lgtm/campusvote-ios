@@ -5,9 +5,6 @@ struct AssignedProjectRow: View {
     let project: ReviewProject
     let onTap: () -> Void
 
-    private let naranja = Color(red: 0.85, green: 0.45, blue: 0.12)
-    private let verde = Color(red: 0.13, green: 0.62, blue: 0.36)
-
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 12) {
@@ -18,7 +15,7 @@ struct AssignedProjectRow: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(project.name)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.brand)
+                        .foregroundStyle(.primary)
                         .multilineTextAlignment(.leading)
                         .lineLimit(2)
                     if let category = project.categoryName, !category.isEmpty {
@@ -30,12 +27,10 @@ struct AssignedProjectRow: View {
 
                 Spacer(minLength: 8)
 
-                Text(L10n.tr(project.sinResena ? "Pendiente" : "Evaluado", locale: locale))
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(project.sinResena ? naranja : verde)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Capsule().fill((project.sinResena ? naranja : verde).opacity(0.14)))
+                StatusBadge(
+                    title: project.sinResena ? "Pendiente" : "Evaluado",
+                    style: project.sinResena ? .pending : .reviewed
+                )
 
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
@@ -43,7 +38,7 @@ struct AssignedProjectRow: View {
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 14).fill(Color.cardBackground))
+            .premiumSurface(cornerRadius: 16)
         }
         .buttonStyle(.plain)
     }

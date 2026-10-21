@@ -45,10 +45,13 @@ struct ProjectReviewCard: View {
                         Image(systemName: star <= stars ? "star.fill" : "star")
                             .font(.system(size: 22))
                             .foregroundStyle(star <= stars ? Color.brandGold : Color.appNeutral)
-                            .frame(width: 32, height: 32)
+                            .frame(width: 44, height: 44)
                     }
                     .buttonStyle(.plain)
                     .disabled(fairIsClosed)
+                    .accessibilityLabel(L10n.format("%d estrellas", locale: locale, star))
+                    .accessibilityValue(star == stars ? L10n.tr("Seleccionado", locale: locale) : "")
+                    .accessibilityAddTraits(star == stars ? .isSelected : [])
                 }
 
                 Spacer(minLength: 8)
@@ -136,6 +139,7 @@ struct ProjectReviewCard: View {
             .lineLimit(1)
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
+            .frame(minHeight: 44)
             .background(
                 Capsule().fill(selected ? verdeAspecto.opacity(0.12) : Color.primary.opacity(0.05))
             )

@@ -14,7 +14,7 @@ struct FilaDeFeria: View {
         case .open:
             return ("Abierta", Color.onBrand, Color.brand, Color.clear)
         case .scheduled:
-            return ("Programada", Color.brandGold, Color.brandGold.opacity(0.12), Color.brandGold.opacity(0.3))
+            return ("Programada", Color.appWarning, Color.appWarning.opacity(0.12), Color.appWarning.opacity(0.3))
         case .closed:
             return ("Cerrada", Color.appNeutral, Color.appNeutral.opacity(0.12), Color.appNeutral.opacity(0.3))
         }
@@ -25,7 +25,7 @@ struct FilaDeFeria: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(fair.name)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(status == .closed ? Color.appNeutral : Color.brand)
+                    .foregroundStyle(status == .closed ? Color.secondary : Color.primary)
                     .lineLimit(2)
 
                 if let site = fair.siteName, !site.isEmpty {
@@ -58,12 +58,6 @@ struct FilaDeFeria: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(status == .open ? Color.brand.opacity(0.2) : Color.clear, lineWidth: 1)
-        )
-        .shadow(color: status == .open ? Color.brand.opacity(0.08) : .clear, radius: 8, y: 4)
-        .opacity(status == .closed ? 0.8 : 1.0)
+        .premiumSurface(raised: status == .open)
     }
 }

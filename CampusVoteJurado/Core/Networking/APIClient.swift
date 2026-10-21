@@ -7,6 +7,7 @@ import Foundation
 final class APIClient: Sendable {
     static let shared = APIClient()
     private let refreshCoordinator = RefreshCoordinator()
+    private let session = APITransport.session
 
     // MARK: - Envelope
 
@@ -19,10 +20,15 @@ final class APIClient: Sendable {
     private struct VoidPayload: Decodable {}
 
     private struct PagedEnvelope<Payload: Decodable>: Decodable {
+        struct Meta: Decodable {
+            let pagination: PageInfo?
+        }
+
         let success: Bool
         let message: String?
         let data: [Payload]?
         let pagination: PageInfo?
+        let meta: Meta?
     }
 
     private init() {}
@@ -62,6 +68,9 @@ final class APIClient: Sendable {
     func send<T: Decodable>(_ event: Endpoint, as type: T.Type) async throws -> T {
         let data = try await perform(event)
         let envelope = try decodeEnvelope(Envelope<T>.self, from: data)
+        guard envelope.success else {
+            throw APIError.decoding(envelope.message ?? "La operación no fue completada por el servidor.")
+        }
         guard let payload = envelope.data else {
             throw APIError.decoding("La respuesta no contiene el campo data esperado.")
         }
@@ -71,15 +80,22 @@ final class APIClient: Sendable {
     func sendPage<T: Decodable>(_ event: Endpoint, as type: T.Type) async throws -> PageResult<T> {
         let data = try await perform(event)
         let envelope = try decodeEnvelope(PagedEnvelope<T>.self, from: data)
+        guard envelope.success else {
+            throw APIError.decoding(envelope.message ?? "La operación no fue completada por el servidor.")
+        }
         let items = envelope.data ?? []
-        let pagination = envelope.pagination
+        let pagination = envelope.pagination ?? envelope.meta?.pagination
             ?? PageInfo(page: 1, limit: max(items.count, 1), total: items.count)
         return PageResult(items: items, pagination: pagination)
     }
 
     func send(_ event: Endpoint) async throws {
         let data = try await perform(event)
-        _ = try? decodeEnvelope(Envelope<VoidPayload>.self, from: data)
+        guard !data.isEmpty else { return }
+        let envelope = try decodeEnvelope(Envelope<VoidPayload>.self, from: data)
+        guard envelope.success else {
+            throw APIError.decoding(envelope.message ?? "La operación no fue completada por el servidor.")
+        }
     }
 
     // MARK: - Ejecución
@@ -95,7 +111,7 @@ final class APIClient: Sendable {
         let data: Data
         let httpResponse: HTTPURLResponse
         do {
-            let (responseData, response) = try await URLSession.shared.data(for: request)
+            let (responseData, response) = try await session.data(for: request)
             guard let urlResponse = response as? HTTPURLResponse else {
                 throw APIError.decoding("El servidor no devolvió una respuesta HTTP válida.")
             }
@@ -104,7 +120,7 @@ final class APIClient: Sendable {
         } catch let error as APIError {
             throw error
         } catch {
-            throw APIError.network
+            try APITransport.throwNormalized(error)
         }
 
         if httpResponse.statusCode == 401,
@@ -124,6 +140,8 @@ final class APIClient: Sendable {
                     expireSession()
                 }
                 throw error
+            } catch is CancellationError {
+                throw CancellationError()
             } catch {
                 throw APIError.network
             }
@@ -146,9 +164,9 @@ final class APIClient: Sendable {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await URLSession.shared.data(for: request)
+            (data, response) = try await session.data(for: request)
         } catch {
-            throw APIError.network
+            try APITransport.throwNormalized(error)
         }
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.network
@@ -185,7 +203,9 @@ final class APIClient: Sendable {
 
         var request = URLRequest(url: url)
         request.httpMethod = event.method
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(selectedLanguage, forHTTPHeaderField: "Accept-Language")
 
         if let explicitToken = event.explicitToken {
             request.setValue("Bearer \(explicitToken)", forHTTPHeaderField: "Authorization")
@@ -198,6 +218,10 @@ final class APIClient: Sendable {
         }
 
         return request
+    }
+
+    private var selectedLanguage: String {
+        UserDefaults.standard.string(forKey: "campusvote.preferences.language") == "en" ? "en" : "es"
     }
 
     private func decodeEnvelope<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {

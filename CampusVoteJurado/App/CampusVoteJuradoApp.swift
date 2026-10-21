@@ -39,6 +39,13 @@ struct CampusVoteJuradoApp: App {
                 .environment(\.locale, Locale(identifier: language == "en" ? "en" : "es"))
                 .modifier(PreferredTextSize())
                 .preferredColorScheme(preferredScheme)
+                .onChange(of: session.phase) { _, phase in
+                    guard phase == .signedOut else { return }
+                    fairsStore.reset()
+                    projectsStore.reset()
+                    catalogStore.reset()
+                    tabBar.isHidden = false
+                }
         }
     }
 }
@@ -50,8 +57,8 @@ private struct PreferredTextSize: ViewModifier {
     func body(content: Content) -> some View {
         let preferred: DynamicTypeSize
         switch textSize {
-        case "small": preferred = .medium
-        case "large": preferred = .xxxLarge
+        case "small": preferred = max(systemSize, .medium)
+        case "large": preferred = max(systemSize, .xxxLarge)
         default: preferred = systemSize
         }
         return content.dynamicTypeSize(preferred)

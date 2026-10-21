@@ -224,18 +224,6 @@ struct MyProgressView: View {
     }
 
     private func emptyState(title: String, message: String, systemImage: String) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: systemImage)
-                .font(.title2)
-                .foregroundStyle(Color.brand)
-            Text(L10n.tr(title, locale: locale))
-                .font(.subheadline.weight(.semibold))
-            Text(L10n.tr(message, locale: locale))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
+        ScreenStateView(icon: systemImage, title: title, message: message)
     }
 }

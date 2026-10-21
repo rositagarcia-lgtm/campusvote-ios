@@ -19,6 +19,8 @@ final class ProjectsStore {
     private(set) var assignedLoaded = false
 
     private let api: APIClient
+    private var loadID = UUID()
+    private var assignedLoadID = UUID()
 
     init(api: APIClient) {
         self.api = api
@@ -33,6 +35,8 @@ final class ProjectsStore {
     }
 
     func load(fairId: String) async {
+        let requestID = UUID()
+        loadID = requestID
         if fairId != self.fairId {
             projects = []
             summary = ReviewSummary(rated: 0, total: 0)
@@ -41,18 +45,25 @@ final class ProjectsStore {
 
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
+        defer {
+            if loadID == requestID { isLoading = false }
+        }
 
         do {
             let list = try await api.send(
                 .reviewProjects(fairId: fairId),
                 as: ReviewList.self
             )
+            try Task.checkCancellation()
+            guard loadID == requestID else { return }
             self.fairId = fairId
             projects = list.projects
             summary = list.summary
             categories = uniqueCategories(in: list.projects)
+        } catch is CancellationError {
+            return
         } catch {
+            guard loadID == requestID else { return }
             errorMessage = error.userMessage
         }
     }
@@ -60,22 +71,47 @@ final class ProjectsStore {
     /// Proyectos asignados al jurado en todas sus ferias abiertas.
     /// GET /fairs/my-projects ya filtra por sus categorías asignadas.
     func loadAssigned() async {
+        let requestID = UUID()
+        assignedLoadID = requestID
         isLoadingAssigned = true
         assignedErrorMessage = nil
-        defer { isLoadingAssigned = false }
+        defer {
+            if assignedLoadID == requestID { isLoadingAssigned = false }
+        }
 
         do {
             let list = try await api.send(.myProjects, as: ReviewList.self)
+            try Task.checkCancellation()
+            guard assignedLoadID == requestID else { return }
             assignedProjects = list.projects
             assignedSummary = list.summary
             assignedLoaded = true
+        } catch is CancellationError {
+            return
         } catch {
+            guard assignedLoadID == requestID else { return }
             assignedErrorMessage = error.userMessage
         }
     }
 
     func isAssigned(projectId: String) -> Bool {
         assignedProjects.contains { $0.id == projectId }
+    }
+
+    func reset() {
+        projects = []
+        summary = ReviewSummary(rated: 0, total: 0)
+        categories = []
+        fairId = nil
+        errorMessage = nil
+        isLoading = false
+        assignedProjects = []
+        assignedSummary = ReviewSummary(rated: 0, total: 0)
+        assignedErrorMessage = nil
+        isLoadingAssigned = false
+        assignedLoaded = false
+        loadID = UUID()
+        assignedLoadID = UUID()
     }
 
     func assignedProject(id: String) -> ReviewProject? {

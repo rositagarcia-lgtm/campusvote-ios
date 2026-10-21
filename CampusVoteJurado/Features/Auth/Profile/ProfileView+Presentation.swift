@@ -103,8 +103,8 @@ extension ProfileView {
 
     var rubricLine: String {
         if let focusCategory {
-            return L10n.format("Califica y comenta los proyectos de la categoría %@.", locale: locale, focusCategory)
+            return L10n.format("Reseña y comenta los proyectos de la categoría %@.", locale: locale, focusCategory)
         }
-        return L10n.tr("Califica y comenta los proyectos de tu feria.", locale: locale)
+        return L10n.tr("Reseña y comenta los proyectos de tu feria.", locale: locale)
     }
 }

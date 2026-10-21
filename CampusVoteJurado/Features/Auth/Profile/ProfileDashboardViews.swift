@@ -12,7 +12,7 @@ struct ProfileFairCard: View {
                 Text("FERIA ASIGNADA")
                     .font(.caption2.weight(.bold))
                     .tracking(1.3)
-                    .foregroundStyle(Color.white.opacity(0.8))
+                    .foregroundStyle(Color.onBrand.opacity(0.78))
                 Spacer(minLength: 8)
                 if fairName != nil {
                     Text("Evaluando")
@@ -26,18 +26,18 @@ struct ProfileFairCard: View {
 
             Text(fairName ?? L10n.tr("Sin feria activa", locale: locale))
                 .font(.headline.weight(.bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Color.onBrand)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let fairDate {
                 Label(fairDate, systemImage: "calendar")
                     .font(.caption)
-                    .foregroundStyle(Color.white.opacity(0.9))
+                    .foregroundStyle(Color.onBrand.opacity(0.88))
             }
 
             Text(fairName == nil ? L10n.tr("Cuando haya una feria abierta vas a ver tus proyectos aquí.", locale: locale) : pendingLine)
                 .font(.subheadline)
-                .foregroundStyle(Color.white.opacity(0.92))
+                .foregroundStyle(Color.onBrand.opacity(0.9))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(20)
@@ -48,13 +48,13 @@ struct ProfileFairCard: View {
                 .overlay(alignment: .bottomTrailing) {
                     Image(systemName: "checklist")
                         .font(.system(size: 95, weight: .ultraLight))
-                        .foregroundStyle(Color.white.opacity(0.12))
+                        .foregroundStyle(Color.onBrand.opacity(0.1))
                         .offset(x: 8, y: 14)
                         .accessibilityHidden(true)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
-        .shadow(color: Color.brand.opacity(0.14), radius: 12, y: 5)
+        .shadow(color: .black.opacity(0.08), radius: 12, y: 5)
     }
 }
 
@@ -89,8 +89,7 @@ struct ProfileShortcutView: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, minHeight: 82, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 18).fill(Color.cardBackground))
-            .shadow(color: .black.opacity(0.05), radius: 10, y: 4)
+            .premiumSurface(cornerRadius: 18, raised: true)
             .contentShape(RoundedRectangle(cornerRadius: 18))
         }
         .buttonStyle(.plain)
@@ -114,7 +113,7 @@ struct ProfileProgressCard: View {
                     .foregroundStyle(Color.brand)
                     .frame(width: 46, height: 46)
                     .background(Circle().fill(Color.brand.opacity(0.12)))
-                Text("Completa tu evaluación")
+                Text("Completa tus reseñas")
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity, alignment: .leading)
                 VStack(alignment: .trailing, spacing: 2) {

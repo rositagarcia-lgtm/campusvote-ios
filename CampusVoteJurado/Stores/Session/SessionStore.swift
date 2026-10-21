@@ -63,11 +63,17 @@ final class SessionStore {
                 InstitutionAppearance.reset()
                 errorMessage = error.userMessage
                 phase = .signedOut
-            } else {
+            } else if error.isTransient {
                 await restoreCachedSession(message: error.userMessage)
+            } else {
+                errorMessage = error.userMessage
+                phase = .signedOut
             }
+        } catch is CancellationError {
+            return
         } catch {
-            await restoreCachedSession(message: error.userMessage)
+            errorMessage = error.userMessage
+            phase = .signedOut
         }
     }
 

@@ -98,7 +98,7 @@ struct SplashView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "lock.fill")
                             .font(.system(size: 10))
-                        Text("Entorno Seguro de Evaluación")
+                        Text("Panel Seguro de Reseñas")
                             .font(.system(size: 11, weight: .semibold))
                             .tracking(0.3)
                     }

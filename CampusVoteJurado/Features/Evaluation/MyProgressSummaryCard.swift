@@ -22,20 +22,20 @@ struct MyProgressSummaryCard: View {
                         .foregroundStyle(Color.brand)
                         .lineLimit(2)
 
-                    Text("Evaluación de Proyectos")
+                    Text("Reseñas de proyectos")
                         .font(.subheadline.weight(.semibold))
 
                     statusPill(
                         text: ratedCount == 1
                             ? L10n.tr("1 completado", locale: locale)
                             : L10n.format("%d completados", locale: locale, ratedCount),
-                        color: Color(red: 0.13, green: 0.62, blue: 0.36)
+                        color: Color.appSuccess
                     )
                     statusPill(
                         text: pendingCount == 1
-                            ? L10n.tr("1 pendiente de calificación", locale: locale)
-                            : L10n.format("%d pendientes de calificación", locale: locale, pendingCount),
-                        color: Color(red: 0.85, green: 0.45, blue: 0.12)
+                            ? L10n.tr("1 reseña pendiente", locale: locale)
+                            : L10n.format("%d reseñas pendientes", locale: locale, pendingCount),
+                        color: Color.appWarning
                     )
                 }
             }
@@ -48,7 +48,7 @@ struct MyProgressSummaryCard: View {
                     VStack(alignment: .leading, spacing: 0) {
                         Text(averageText)
                             .font(.subheadline.weight(.semibold))
-                        Text("calificación promedio\notorgada")
+                        Text("promedio de estrellas\notorgadas")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -59,11 +59,11 @@ struct MyProgressSummaryCard: View {
                 VStack(alignment: .trailing, spacing: 0) {
                     Text(institutionName)
                         .font(.caption2.weight(.semibold))
-                        .foregroundStyle(Color.brand)
+                        .foregroundStyle(.primary)
                         .lineLimit(1)
                     Text("Jurados")
                         .font(.caption2)
-                        .foregroundStyle(Color.brand)
+                        .foregroundStyle(.secondary)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
@@ -72,7 +72,7 @@ struct MyProgressSummaryCard: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
+        .premiumSurface()
     }
 
     private var progressRing: some View {

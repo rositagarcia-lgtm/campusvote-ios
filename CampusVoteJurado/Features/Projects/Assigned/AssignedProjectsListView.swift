@@ -42,18 +42,33 @@ struct AssignedProjectsListView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                if let message = store.assignedErrorMessage {
-                    ErrorBanner(message: message)
-                }
+                if store.isLoadingAssigned && store.assignedProjects.isEmpty {
+                    ProgressView("Cargando tus proyectos...")
+                        .frame(maxWidth: .infinity, minHeight: 220)
+                } else if let message = store.assignedErrorMessage,
+                          store.assignedProjects.isEmpty {
+                    ScreenStateView(
+                        icon: "wifi.exclamationmark",
+                        title: "No pudimos cargar tus proyectos",
+                        message: message,
+                        actionTitle: "Reintentar"
+                    ) {
+                        Task { await store.loadAssigned() }
+                    }
+                } else {
+                    if let message = store.assignedErrorMessage {
+                        ErrorBanner(message: message)
+                    }
 
-                AssignedSummaryCard(
-                    rated: store.assignedSummary.rated,
-                    total: store.assignedSummary.total,
-                    pending: store.assignedSummary.pending
-                )
-                searchField
-                filterChips
-                content
+                    AssignedSummaryCard(
+                        rated: store.assignedSummary.rated,
+                        total: store.assignedSummary.total,
+                        pending: store.assignedSummary.pending
+                    )
+                    searchField
+                    filterChips
+                    content
+                }
             }
             .padding(18)
         }
@@ -73,13 +88,15 @@ struct AssignedProjectsListView: View {
                 Button { search = "" } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(Color.appNeutral)
+                        .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Limpiar búsqueda")
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.cardBackground))
+        .premiumSurface(cornerRadius: 12)
     }
 
     private var filterChips: some View {
@@ -91,9 +108,11 @@ struct AssignedProjectsListView: View {
                         .foregroundStyle(filter == item ? Color.onBrand : Color.primary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
+                        .frame(minHeight: 44)
                         .background(Capsule().fill(filter == item ? Color.brand : Color.cardBackground))
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(filter == item ? .isSelected : [])
             }
             Spacer(minLength: 0)
         }
@@ -101,10 +120,7 @@ struct AssignedProjectsListView: View {
 
     @ViewBuilder
     private var content: some View {
-        if store.isLoadingAssigned && store.assignedProjects.isEmpty {
-            ProgressView("Cargando tus proyectos...")
-                .frame(maxWidth: .infinity, minHeight: 160)
-        } else if filtered.isEmpty {
+        if filtered.isEmpty {
             emptyState
         } else {
             LazyVStack(alignment: .leading, spacing: 16) {
@@ -126,19 +142,13 @@ struct AssignedProjectsListView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "checklist")
-                .font(.title2)
-                .foregroundStyle(Color.brand)
-            Text("Sin proyectos en esta vista")
-                .font(.subheadline.weight(.semibold))
-            Text("Cuando te asignen proyectos en una feria abierta, aparecerán aquí.")
-                .font(.caption)
-                .foregroundStyle(Color.appNeutral)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
+        ScreenStateView(
+            icon: search.isEmpty ? "checklist" : "magnifyingglass",
+            title: search.isEmpty ? "Sin proyectos en esta vista" : "Sin resultados",
+            message: search.isEmpty
+                ? "Cuando te asignen proyectos en una feria abierta, aparecerán aquí."
+                : "Prueba con otro nombre, categoría o feria."
+        )
     }
 }
 

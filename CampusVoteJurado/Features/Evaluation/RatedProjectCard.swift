@@ -11,13 +11,7 @@ struct RatedProjectCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10))
 
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark")
-                            .font(.caption2.weight(.bold))
-                        Text("Evaluado")
-                            .font(.caption2.weight(.semibold))
-                    }
-                    .foregroundStyle(Color(red: 0.13, green: 0.62, blue: 0.36))
+                    StatusBadge(title: "Evaluado", style: .reviewed)
 
                     Text(project.name)
                         .font(.subheadline.weight(.semibold))
@@ -45,9 +39,12 @@ struct RatedProjectCard: View {
                         .font(.caption.weight(.semibold))
                 }
                 Spacer(minLength: 8)
-                Text("Editar reseña >")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.brand)
+                HStack(spacing: 4) {
+                    Text("Editar reseña")
+                    Image(systemName: "chevron.right")
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.primary)
             }
 
             if let comment = project.myComment, !comment.isEmpty {
@@ -60,6 +57,6 @@ struct RatedProjectCard: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground))
+        .premiumSurface()
     }
 }

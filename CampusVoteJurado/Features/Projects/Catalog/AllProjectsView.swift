@@ -66,9 +66,11 @@ struct AllProjectsView: View {
                             .foregroundStyle(selected ? Color.onBrand : Color.primary)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
+                            .frame(minHeight: 44)
                             .background(Capsule().fill(selected ? Color.brand : Color.cardBackground))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityAddTraits(selected ? .isSelected : [])
                 }
             }
         }
@@ -87,13 +89,15 @@ struct AllProjectsView: View {
                 Button { search = "" } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(Color.appNeutral)
+                        .frame(width: 44, height: 44)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Limpiar búsqueda")
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.cardBackground))
+        .premiumSurface(cornerRadius: 12)
     }
 
     @ViewBuilder
@@ -102,20 +106,21 @@ struct AllProjectsView: View {
             ProgressView("Cargando proyectos...")
                 .frame(maxWidth: .infinity, minHeight: 160)
         } else if let message = catalog.errorMessage, catalog.projects.isEmpty {
-            VStack(spacing: 10) {
-                ErrorBanner(message: message)
-                Button("Reintentar") {
-                    Task { await reload() }
-                }
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.brand)
+            ScreenStateView(
+                icon: "wifi.exclamationmark",
+                title: "No pudimos cargar los proyectos",
+                message: message,
+                actionTitle: "Reintentar"
+            ) {
+                Task { await reload() }
             }
-            .frame(maxWidth: .infinity)
         } else if filtered.isEmpty {
             emptyState(
-                icon: "tray",
-                title: "Sin proyectos aprobados",
-                message: "Esta feria todavía no tiene proyectos aceptados."
+                icon: search.isEmpty ? "tray" : "magnifyingglass",
+                title: search.isEmpty ? "Sin proyectos aprobados" : "Sin resultados",
+                message: search.isEmpty
+                    ? "Esta feria todavía no tiene proyectos aceptados."
+                    : "Prueba con otro nombre, categoría o stand."
             )
         } else {
             LazyVStack(spacing: 10) {
@@ -129,19 +134,7 @@ struct AllProjectsView: View {
     }
 
     private func emptyState(icon: String, title: String, message: String) -> some View {
-        VStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(Color.brand)
-            Text(L10n.tr(title, locale: locale))
-                .font(.subheadline.weight(.semibold))
-            Text(L10n.tr(message, locale: locale))
-                .font(.caption)
-                .foregroundStyle(Color.appNeutral)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
+        ScreenStateView(icon: icon, title: title, message: message)
     }
 
     private func reload() async {
@@ -185,12 +178,7 @@ private struct AllProjectRow: View {
                 Spacer(minLength: 0)
 
                 if isAssigned {
-                    Text("Asignado")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(Color.brand)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(Color.brand.opacity(0.12)))
+                    StatusBadge(title: "Asignado", style: .neutral)
                 }
 
                 Image(systemName: "chevron.right")
@@ -198,7 +186,7 @@ private struct AllProjectRow: View {
                     .foregroundStyle(Color.appNeutral)
             }
             .padding(12)
-            .background(RoundedRectangle(cornerRadius: 14).fill(Color.cardBackground))
+            .premiumSurface(cornerRadius: 16)
         }
         .buttonStyle(.plain)
     }
