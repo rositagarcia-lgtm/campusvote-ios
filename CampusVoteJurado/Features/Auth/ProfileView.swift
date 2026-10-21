@@ -314,7 +314,7 @@ struct ProfileView: View {
                 Text("FERIA ASIGNADA")
                     .font(.caption2.weight(.bold))
                     .tracking(1.3)
-                    .foregroundStyle(Color.onBrand.opacity(0.8))
+                    .foregroundStyle(Color.white.opacity(0.8))
                 Spacer(minLength: 8)
                 if activeFair != nil {
                     Text("Evaluando")
@@ -328,29 +328,29 @@ struct ProfileView: View {
 
             Text(activeFair?.name ?? "Sin feria activa")
                 .font(.headline.weight(.bold))
-                .foregroundStyle(Color.onBrand)
+                .foregroundStyle(.white)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let date = activeFairDate {
                 Label(date, systemImage: "calendar")
                     .font(.caption)
-                    .foregroundStyle(Color.onBrand.opacity(0.9))
+                    .foregroundStyle(Color.white.opacity(0.9))
             }
 
             Text(activeFair == nil ? "Cuando haya una feria abierta vas a ver tus proyectos aquí." : pendingLine)
                 .font(.subheadline)
-                .foregroundStyle(Color.onBrand.opacity(0.92))
+                .foregroundStyle(Color.white.opacity(0.92))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(20)
         .frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
         .background {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(LinearGradient(colors: [Color.brand, Color.brandTeal], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .fill(Color.brand)
                 .overlay(alignment: .bottomTrailing) {
                     Image(systemName: "checklist")
                         .font(.system(size: 95, weight: .ultraLight))
-                        .foregroundStyle(Color.onBrand.opacity(0.12))
+                        .foregroundStyle(Color.white.opacity(0.12))
                         .offset(x: 8, y: 14)
                         .accessibilityHidden(true)
                 }
@@ -360,48 +360,41 @@ struct ProfileView: View {
     }
 
     private var shortcuts: some View {
-        HStack(spacing: 12) {
-            Button {
-                showEdit = true
-            } label: {
-                shortcut(icon: "person.crop.circle", title: "Mis Datos", subtitle: "Ver y edita información")
-            }
-            .buttonStyle(.plain)
-            .disabled(profile == nil)
-
-            Button {
-                showInstitution = true
-            } label: {
-                shortcut(icon: "building.columns", title: "Institución", subtitle: "Información académica")
-            }
-            .buttonStyle(.plain)
+        Button {
+            showEdit = true
+        } label: {
+            shortcut(icon: "person.crop.circle", title: "Mis Datos", subtitle: "Ver y editar información")
         }
+        .buttonStyle(.plain)
+        .disabled(profile == nil)
+        .frame(maxWidth: .infinity)
     }
 
     private func shortcut(icon: String, title: String, subtitle: String) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundStyle(Color.brand)
-                    .frame(width: 46, height: 46)
-                    .background(Circle().fill(Color.brand.opacity(0.1)))
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(Color.brand)
+                .frame(width: 46, height: 46)
+                .background(Circle().fill(Color.brand.opacity(0.1)))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text(subtitle)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
-            Text(subtitle)
-                .font(.caption2)
+
+            Spacer(minLength: 4)
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
-                .lineLimit(2)
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
-        .padding(14)
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 82, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 18).fill(Color.cardBackground))
         .shadow(color: .black.opacity(0.05), radius: 10, y: 4)
         .contentShape(RoundedRectangle(cornerRadius: 18))
