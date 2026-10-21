@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct FairsSectionView<Content: View>: View {
+    @Environment(\.locale) private var locale
     let title: String
     let count: Int
     var isHighlighted = false
@@ -14,7 +15,7 @@ struct FairsSectionView<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(title)
+                Text(L10n.tr(title, locale: locale))
                     .font(.system(size: 12, weight: .bold))
                     .tracking(0.8)
                     .foregroundStyle(isHighlighted ? Color.brand : Color.appNeutral)
@@ -46,6 +47,7 @@ struct FairsSectionView<Content: View>: View {
 }
 
 struct FairsEmptyStateView: View {
+    @Environment(\.locale) private var locale
     let title: String
     let message: String
     let icon: String
@@ -58,11 +60,11 @@ struct FairsEmptyStateView: View {
                 .frame(width: 72, height: 72)
                 .background(Circle().fill(Color.appNeutral.opacity(0.08)))
 
-            Text(title)
+            Text(L10n.tr(title, locale: locale))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.brand)
 
-            Text(message)
+            Text(L10n.tr(message, locale: locale))
                 .font(.caption)
                 .foregroundStyle(Color.appNeutral)
                 .multilineTextAlignment(.center)

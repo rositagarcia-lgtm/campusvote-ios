@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TotpView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(\.locale) private var locale
     @State private var code = ""
     @State private var sentAt = Date()
     @State private var didResend = false
@@ -101,7 +102,7 @@ struct TotpView: View {
                 .opacity(showContent ? 1 : 0)
                 .offset(y: showContent ? 0 : 10)
 
-            Text("Escribe el código de 6 dígitos que enviamos a\n\(session.pendingEmail).")
+            Text(L10n.format("Escribe el código de 6 dígitos que enviamos a %@.", locale: locale, session.pendingEmail))
                 .font(.subheadline)
                 .foregroundStyle(Color.appNeutral)
                 .multilineTextAlignment(.center)
@@ -125,7 +126,9 @@ struct TotpView: View {
                     .font(.system(size: 14))
                     .foregroundStyle(isExpiring ? .red : Color.campusTeal)
                 
-                Text(remaining == 0 ? "Código caducado" : String(format: "%d:%02d restantes", minutes, seconds))
+                Text(remaining == 0
+                     ? L10n.tr("Código caducado", locale: locale)
+                     : L10n.format("%d:%02d restantes", locale: locale, minutes, seconds))
                     .font(.system(size: 13, weight: .semibold, design: .monospaced))
                     .foregroundStyle(isExpiring ? .red : Color.campusTeal)
             }

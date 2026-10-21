@@ -9,6 +9,7 @@ struct CampusVoteJuradoApp: App {
     @State private var catalogStore: ProjectsCatalogStore
     @State private var tabBar = TabBarVisibility()
     @AppStorage("campusvote.preferences.appearance") private var appearance = "system"
+    @AppStorage("campusvote.preferences.language") private var language = "es"
 
     private var preferredScheme: ColorScheme? {
         switch appearance {
@@ -35,6 +36,7 @@ struct CampusVoteJuradoApp: App {
                 .environment(projectsStore)
                 .environment(catalogStore)
                 .environment(tabBar)
+                .environment(\.locale, Locale(identifier: language == "en" ? "en" : "es"))
                 .modifier(PreferredTextSize())
                 .preferredColorScheme(preferredScheme)
         }

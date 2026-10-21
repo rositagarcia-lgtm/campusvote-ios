@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PreferencesView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
     @Environment(FairsStore.self) private var fairsStore
     @Environment(TabBarVisibility.self) private var tabBar
 
@@ -10,7 +11,7 @@ struct PreferencesView: View {
     @AppStorage("campusvote.preferences.language") private var language = "es"
 
     private var institutionName: String {
-        InstitutionAppearance.name ?? fairsStore.organizationName ?? "Institución"
+        InstitutionAppearance.name ?? fairsStore.organizationName ?? L10n.tr("Institución", locale: locale)
     }
 
     var body: some View {
@@ -118,7 +119,7 @@ struct PreferencesView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Modo oscuro")
                     .font(.subheadline.weight(.semibold))
-                Text(appearance == "system" ? "Sigue la apariencia del dispositivo" : appearance == "dark" ? "Usa un tema oscuro en toda la aplicación" : "Usa un tema claro en toda la aplicación")
+                Text(L10n.tr(appearance == "system" ? "Sigue la apariencia del dispositivo" : appearance == "dark" ? "Usa un tema oscuro en toda la aplicación" : "Usa un tema claro en toda la aplicación", locale: locale))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -170,16 +171,13 @@ struct PreferencesView: View {
                 languageChoice("English", value: "en")
             }
 
-            Text("La traducción de la interfaz estará disponible más adelante.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
         }
         .padding(16)
         .background(cardBackground)
     }
 
     private func sectionTitle(_ title: String) -> some View {
-        Text(title)
+        Text(L10n.tr(title, locale: locale))
             .font(.caption.weight(.bold))
             .tracking(1.2)
             .foregroundStyle(Color.brand)
@@ -192,7 +190,7 @@ struct PreferencesView: View {
             VStack(spacing: 6) {
                 Text("Aa")
                     .font(font.weight(.semibold))
-                Text(title)
+                Text(L10n.tr(title, locale: locale))
                     .font(.caption.weight(.semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -203,13 +201,13 @@ struct PreferencesView: View {
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(selected ? Color.brand : Color.primary.opacity(0.14), lineWidth: selected ? 2 : 1))
         }
         .buttonStyle(.plain)
-        .accessibilityValue(selected ? "Seleccionado" : "No seleccionado")
+        .accessibilityValue(L10n.tr(selected ? "Seleccionado" : "No seleccionado", locale: locale))
     }
 
     private func languageChoice(_ title: String, value: String) -> some View {
         let selected = language == value
         return Button { language = value } label: {
-            Text(title)
+            Text(L10n.tr(title, locale: locale))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(selected ? Color.onBrand : Color.primary)
                 .frame(maxWidth: .infinity, minHeight: 44)
@@ -217,7 +215,7 @@ struct PreferencesView: View {
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(selected ? Color.brand : Color.primary.opacity(0.14), lineWidth: 1))
         }
         .buttonStyle(.plain)
-        .accessibilityValue(selected ? "Seleccionado" : "No seleccionado")
+        .accessibilityValue(L10n.tr(selected ? "Seleccionado" : "No seleccionado", locale: locale))
     }
 
     private var cardBackground: some View {

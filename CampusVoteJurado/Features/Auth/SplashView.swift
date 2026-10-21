@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct SplashView: View {
+    @Environment(\.locale) private var locale
     @State private var isAnimating = false
     @State private var showContent = false
-    @State private var statusMessage = "Cargando ferias y proyectos asignados..."
 
     var body: some View {
         ZStack {
@@ -84,7 +84,7 @@ struct SplashView: View {
                     .frame(height: 4)
                     .padding(.horizontal, 40)
 
-                    Text(statusMessage)
+                    Text(L10n.tr("Cargando ferias y proyectos asignados...", locale: locale))
                         .font(.caption.weight(.medium))
                         .foregroundColor(Color.appNeutral)
                         .multilineTextAlignment(.center)

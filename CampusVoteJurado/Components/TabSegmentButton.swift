@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TabSegmentButton: View {
+    @Environment(\.locale) private var locale
     let title: String
     let count: Int
     let isSelected: Bool
@@ -29,7 +30,7 @@ struct TabSegmentButton: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 // MARK: - Título con transición de peso
-                Text(title)
+                Text(L10n.tr(title, locale: locale))
                     .font(.system(size: 14, weight: isSelected ? .semibold : .medium))
                     .tracking(0.3)
                     .foregroundStyle(isSelected ? activeColor : Color.appNeutral)

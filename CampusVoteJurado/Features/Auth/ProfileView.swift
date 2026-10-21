@@ -3,6 +3,7 @@ import PhotosUI
 import UIKit
 
 struct ProfileView: View {
+    @Environment(\.locale) private var locale
     @Environment(SessionStore.self) private var session
     @Environment(FairsStore.self) private var fairsStore
     @Environment(ProjectsStore.self) private var projectsStore
@@ -84,17 +85,19 @@ struct ProfileView: View {
     private var pendingLine: String {
         let count = projectsStore.summary.pending
         if projectsStore.isLoading && projectsStore.projects.isEmpty {
-            return "Cargando proyectos..."
+            return L10n.tr("Cargando proyectos...", locale: locale)
         }
-        let proyecto = count == 1 ? "proyecto" : "proyectos"
-        let pendiente = count == 1 ? "pendiente" : "pendientes"
         if count == 0 {
-            return "No tienes proyectos pendientes."
+            return L10n.tr("No tienes proyectos pendientes.", locale: locale)
         }
         if let focusCategory {
-            return "Tienes \(count) \(proyecto) \(pendiente) en \(focusCategory)."
+            return count == 1
+                ? L10n.format("Tienes 1 proyecto pendiente en %@.", locale: locale, focusCategory)
+                : L10n.format("Tienes %d proyectos pendientes en %@.", locale: locale, count, focusCategory)
         }
-        return "Tienes \(count) \(proyecto) \(pendiente)."
+        return count == 1
+            ? L10n.tr("Tienes 1 proyecto pendiente.", locale: locale)
+            : L10n.format("Tienes %d proyectos pendientes.", locale: locale, count)
     }
 
     private var progressValue: CGFloat {
@@ -110,7 +113,8 @@ struct ProfileView: View {
         input.timeZone = TimeZone(secondsFromGMT: 0)
         guard let date = input.date(from: String(raw.prefix(10))) else { return nil }
         let output = DateFormatter()
-        output.dateFormat = "dd/MM/yyyy"
+        output.dateStyle = .short
+        output.locale = locale
         output.timeZone = TimeZone(secondsFromGMT: 0)
         return output.string(from: date)
     }
@@ -326,7 +330,7 @@ struct ProfileView: View {
                 }
             }
 
-            Text(activeFair?.name ?? "Sin feria activa")
+            Text(activeFair?.name ?? L10n.tr("Sin feria activa", locale: locale))
                 .font(.headline.weight(.bold))
                 .foregroundStyle(.white)
                 .fixedSize(horizontal: false, vertical: true)
@@ -337,7 +341,7 @@ struct ProfileView: View {
                     .foregroundStyle(Color.white.opacity(0.9))
             }
 
-            Text(activeFair == nil ? "Cuando haya una feria abierta vas a ver tus proyectos aquí." : pendingLine)
+            Text(activeFair == nil ? L10n.tr("Cuando haya una feria abierta vas a ver tus proyectos aquí.", locale: locale) : pendingLine)
                 .font(.subheadline)
                 .foregroundStyle(Color.white.opacity(0.92))
                 .fixedSize(horizontal: false, vertical: true)
@@ -379,10 +383,10 @@ struct ProfileView: View {
                 .background(Circle().fill(Color.brand.opacity(0.1)))
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
+                Text(L10n.tr(title, locale: locale))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
-                Text(subtitle)
+                Text(L10n.tr(subtitle, locale: locale))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -412,7 +416,7 @@ struct ProfileView: View {
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity, alignment: .leading)
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(projectsStore.summary.rated) de \(projectsStore.summary.total)")
+                    Text(L10n.format("%d de %d", locale: locale, projectsStore.summary.rated, projectsStore.summary.total))
                         .font(.subheadline.weight(.semibold))
                     Text("proyectos calificados")
                         .font(.caption2)
@@ -445,9 +449,9 @@ struct ProfileView: View {
 
     private var rubricLine: String {
         if let focusCategory {
-            return "Califica y comenta los proyectos de la categoría \(focusCategory)."
+            return L10n.format("Califica y comenta los proyectos de la categoría %@.", locale: locale, focusCategory)
         }
-        return "Califica y comenta los proyectos de tu feria."
+        return L10n.tr("Califica y comenta los proyectos de tu feria.", locale: locale)
     }
 
     private var settingsCard: some View {
@@ -484,10 +488,10 @@ struct ProfileView: View {
                 .frame(width: 42, height: 42)
                 .background(RoundedRectangle(cornerRadius: 12).fill(Color.brand.opacity(0.1)))
             VStack(alignment: .leading, spacing: 3) {
-                Text(title)
+                Text(L10n.tr(title, locale: locale))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
-                Text(subtitle)
+                Text(L10n.tr(subtitle, locale: locale))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -570,6 +574,7 @@ struct ProfileView: View {
 }
 
 private struct InstitutionSheet: View {
+    @Environment(\.locale) private var locale
     let code: String
     let name: String
     let site: String
@@ -611,7 +616,7 @@ private struct InstitutionSheet: View {
 
                     infoCard(icon: "graduationcap", title: "Nombre de la IE", value: name) {
                         if let badge {
-                            Text(badge)
+                            Text(L10n.tr(badge, locale: locale))
                                 .font(.caption2.weight(.semibold))
                                 .foregroundStyle(.secondary)
                                 .padding(.horizontal, 8)
@@ -674,7 +679,7 @@ private struct InstitutionSheet: View {
                 .background(RoundedRectangle(cornerRadius: 8).fill(Color.brand.opacity(0.12)))
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(L10n.tr(title, locale: locale))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .textCase(.uppercase)
@@ -693,12 +698,13 @@ private struct InstitutionSheet: View {
     }
 }
 private struct SheetTopBar: View {
+    @Environment(\.locale) private var locale
     let title: String
     let onClose: () -> Void
 
     var body: some View {
         ZStack {
-            Text(title)
+            Text(L10n.tr(title, locale: locale))
                 .font(.subheadline.weight(.semibold))
 
             HStack {
@@ -733,6 +739,7 @@ private extension View {
 }
 
 private struct PhotoSourceSheet: View {
+    @Environment(\.locale) private var locale
     let avatar: UIImage?
     let avatarURL: URL?
     let initials: String
@@ -813,7 +820,7 @@ private struct PhotoSourceSheet: View {
                     .font(.system(size: 17))
                     .frame(width: 38, height: 38)
                     .background(RoundedRectangle(cornerRadius: 10).fill(color.opacity(0.08)))
-                Text(title)
+                Text(L10n.tr(title, locale: locale))
                     .font(.subheadline.weight(.medium))
                 Spacer(minLength: 0)
             }
@@ -829,6 +836,7 @@ private struct PhotoSourceSheet: View {
 
 private struct EditProfileSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
     @State private var firstName: String
     @State private var lastName: String
     @State private var isSaving = false
@@ -907,8 +915,8 @@ private struct EditProfileSheet: View {
 
     private func field(_ title: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.subheadline)
-            TextField(title, text: text)
+            Text(L10n.tr(title, locale: locale)).font(.subheadline)
+            TextField(L10n.tr(title, locale: locale), text: text)
                 .textInputAutocapitalization(.words)
                 .padding(12)
                 .background(RoundedRectangle(cornerRadius: 12).fill(Color.cardBackground))
@@ -918,10 +926,10 @@ private struct EditProfileSheet: View {
     private func lockedField(_ title: String, _ value: String, badge: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(title).font(.subheadline)
+                Text(L10n.tr(title, locale: locale)).font(.subheadline)
                 Spacer()
                 if let badge {
-                    Label(badge, systemImage: "lock")
+                    Label(L10n.tr(badge, locale: locale), systemImage: "lock")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -965,6 +973,7 @@ private struct EditProfileSheet: View {
 
 private struct ChangePasswordSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
     @State private var current = ""
     @State private var newPassword = ""
     @State private var confirm = ""
@@ -1061,13 +1070,13 @@ private struct ChangePasswordSheet: View {
 
     private func secretField(_ title: String, text: Binding<String>, visible: Binding<Bool>, prompt: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.subheadline)
+            Text(L10n.tr(title, locale: locale)).font(.subheadline)
             HStack {
                 Group {
                     if visible.wrappedValue {
-                        TextField(prompt, text: text)
+                        TextField(L10n.tr(prompt, locale: locale), text: text)
                     } else {
-                        SecureField(prompt, text: text)
+                        SecureField(L10n.tr(prompt, locale: locale), text: text)
                     }
                 }
                 .font(.subheadline)
@@ -1087,7 +1096,7 @@ private struct ChangePasswordSheet: View {
     }
 
     private func requirement(_ title: String, met: Bool) -> some View {
-        Label(title, systemImage: met ? "checkmark.circle.fill" : "circle")
+        Label(L10n.tr(title, locale: locale), systemImage: met ? "checkmark.circle.fill" : "circle")
             .font(.caption)
             .foregroundStyle(met ? Color.brand : .secondary)
     }

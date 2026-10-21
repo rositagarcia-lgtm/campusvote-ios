@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ErrorBanner: View {
+    @Environment(\.locale) private var locale
     let message: String
 
     // MARK: - Paleta de Error Premium
@@ -17,7 +18,7 @@ struct ErrorBanner: View {
                 .padding(.top, 1)
 
             // MARK: - Mensaje de Error
-            Text(message)
+            Text(L10n.tr(message, locale: locale))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(errorColor)
                 .lineSpacing(2)

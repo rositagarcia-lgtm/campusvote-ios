@@ -2,6 +2,7 @@ import SwiftUI
 
 
 struct CodeInputView: View {
+    @Environment(\.locale) private var locale
     @Binding var code: String
     var length: Int = 6
     var onComplete: () -> Void = {}
@@ -59,7 +60,7 @@ struct CodeInputView: View {
         .task { focused = true } // Enfoca automáticamente al aparecer
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Código de verificación de 6 dígitos")
-        .accessibilityValue(code.isEmpty ? "vacío" : code.map(String.init).joined(separator: ", "))
+        .accessibilityValue(code.isEmpty ? L10n.tr("vacío", locale: locale) : code.map(String.init).joined(separator: ", "))
     }
 
     // MARK: - Renderizado de Cada Casilla

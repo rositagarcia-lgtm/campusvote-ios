@@ -3,6 +3,7 @@ import SwiftUI
 /// Ficha de solo lectura de un proyecto aprobado. Se usa para el listado
 /// "Todos los proyectos" y para los QR que no están asignados al jurado.
 struct PublicProjectView: View {
+    @Environment(\.locale) private var locale
     let fairId: String?
     let projectId: String
     var fallback: Project? = nil
@@ -16,7 +17,7 @@ struct PublicProjectView: View {
     @State private var errorMessage: String?
 
     private var name: String {
-        project?.name ?? basic?.name ?? "Proyecto"
+        project?.name ?? basic?.name ?? L10n.tr("Proyecto", locale: locale)
     }
 
     private var description: String? {
@@ -139,7 +140,7 @@ struct PublicProjectView: View {
                     .foregroundStyle(Color.primary)
 
                 HStack(spacing: 6) {
-                    badge("Aprobado", color: .green)
+                    badge(L10n.tr("Aprobado", locale: locale), color: .green)
                     if let categoryName {
                         badge(categoryName, color: .brand)
                     }
@@ -177,7 +178,7 @@ struct PublicProjectView: View {
 
     private func labeled(_ title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title)
+            Text(L10n.tr(title, locale: locale))
                 .font(.system(size: 11, weight: .bold))
                 .tracking(0.6)
                 .foregroundStyle(Color.secondary)

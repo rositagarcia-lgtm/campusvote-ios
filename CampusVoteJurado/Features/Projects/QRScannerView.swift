@@ -3,6 +3,7 @@ import SwiftUI
 
 /// Escáner de QR para abrir la ficha de un proyecto o su reseña.
 struct QRScannerView: View {
+    @Environment(\.locale) private var locale
     let onCode: (String) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -56,7 +57,7 @@ struct QRScannerView: View {
                 Spacer()
 
                 if let errorMessage {
-                    Text(errorMessage)
+                    Text(L10n.tr(errorMessage, locale: locale))
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)

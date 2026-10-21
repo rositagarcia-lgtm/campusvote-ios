@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AssignedProjectRow: View {
+    @Environment(\.locale) private var locale
     let project: ReviewProject
     let onTap: () -> Void
 
@@ -29,7 +30,7 @@ struct AssignedProjectRow: View {
 
                 Spacer(minLength: 8)
 
-                Text(project.sinResena ? "Pendiente" : "Evaluado")
+                Text(L10n.tr(project.sinResena ? "Pendiente" : "Evaluado", locale: locale))
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(project.sinResena ? naranja : verde)
                     .padding(.horizontal, 8)

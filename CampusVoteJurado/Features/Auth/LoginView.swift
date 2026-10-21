@@ -3,6 +3,7 @@ import SwiftUI
 struct LoginView: View {
     @Environment(SessionStore.self) private var session
     @State private var accessType: JuryAccessType = .external
+    @Environment(\.locale) private var locale
     @State private var email = ""
     @State private var password = ""
     @State private var showPassword = false
@@ -71,7 +72,7 @@ struct LoginView: View {
                 .scaleEffect(showContent ? 1.0 : 0.9)
                 .blur(radius: showContent ? 0 : 8)
             
-            Text(accessType.subtitle)
+            Text(L10n.tr(accessType.subtitle, locale: locale))
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(Color.campusGreen.opacity(0.8))
                 .multilineTextAlignment(.center)
@@ -97,7 +98,7 @@ struct LoginView: View {
                     HStack(spacing: 7) {
                         Image(systemName: type == .external ? "person.badge.key.fill" : "building.columns.fill")
                             .font(.system(size: 13, weight: .semibold))
-                        Text(type.rawValue)
+                        Text(L10n.tr(type.rawValue, locale: locale))
                             .font(.system(size: 14, weight: .semibold))
                     }
                     .foregroundStyle(accessType == type ? Color.onBrand : Color.campusGreen)
@@ -187,6 +188,7 @@ struct LoginView: View {
                                 .font(.system(size: 16))
                                 .foregroundStyle(focus == .password ? Color.campusGreen : Color.appNeutral)
                         }
+                        .accessibilityLabel(L10n.tr(showPassword ? "Ocultar contraseña" : "Mostrar contraseña", locale: locale))
                     }
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -210,7 +212,7 @@ struct LoginView: View {
                 if session.isWorking {
                     ProgressView().tint(Color.onBrand)
                 } else {
-                    Text(accessType == .external ? "Ingresar al Panel" : "Enviar código")
+                    Text(L10n.tr(accessType == .external ? "Ingresar al Panel" : "Enviar código", locale: locale))
                         .fontWeight(.semibold)
                     Image(systemName: "arrow.right").font(.system(size: 14, weight: .bold))
                 }
@@ -281,6 +283,7 @@ struct LoginView: View {
 
 // MARK: - Componente de Campo Premium
 private struct PremiumFieldRow<Content: View>: View {
+    @Environment(\.locale) private var locale
     let icon: String
     let label: String
     let isFocused: Bool
@@ -297,7 +300,7 @@ private struct PremiumFieldRow<Content: View>: View {
                 )
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(label)
+                Text(L10n.tr(label, locale: locale))
                     .font(.system(size: 10, weight: .bold))
                     .tracking(1.2)
                     .foregroundStyle(isFocused ? Color.campusGreen : Color.appNeutral)

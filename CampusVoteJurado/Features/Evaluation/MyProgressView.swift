@@ -4,6 +4,7 @@ import SwiftUI
 struct MyProgressView: View {
     var fairId: String? = nil
 
+    @Environment(\.locale) private var locale
     @Environment(ProjectsStore.self) private var projectsStore
     @Environment(FairsStore.self) private var fairsStore
     @State private var selectedFairId: String?
@@ -14,12 +15,12 @@ struct MyProgressView: View {
     }
 
     private var fairName: String {
-        openFairs.first { $0.fair.id == selectedFairId }?.fair.name ?? "Feria"
+        openFairs.first { $0.fair.id == selectedFairId }?.fair.name ?? L10n.tr("Feria", locale: locale)
     }
 
     private var institutionName: String {
         if let name = InstitutionAppearance.name, !name.isEmpty { return name }
-        return fairsStore.organizationName ?? "Institución"
+        return fairsStore.organizationName ?? L10n.tr("Institución", locale: locale)
     }
 
     private var listMatchesFair: Bool {
@@ -88,7 +89,7 @@ struct MyProgressView: View {
 
                         if visibles.isEmpty {
                             emptyState(
-                                title: showsRated ? "Sin reseñas" : "Nada pendiente",
+                                 title: showsRated ? "Sin reseñas" : "Nada pendiente",
                                 message: showsRated
                                     ? "Cuando guardes estrellas y un comentario, el proyecto aparece aquí."
                                     : "Ya dejaste reseña en todos los proyectos de esta feria.",
@@ -189,13 +190,13 @@ struct MyProgressView: View {
                         .font(.subheadline.weight(.semibold))
 
                     statusPill(
-                        text: ratedCount == 1 ? "1 completado" : "\(ratedCount) completados",
+                        text: ratedCount == 1 ? L10n.tr("1 completado", locale: locale) : L10n.format("%d completados", locale: locale, ratedCount),
                         color: Color(red: 0.13, green: 0.62, blue: 0.36)
                     )
                     statusPill(
                         text: pendingCount == 1
-                            ? "1 pendiente de calificación"
-                            : "\(pendingCount) pendientes de calificación",
+                            ? L10n.tr("1 pendiente de calificación", locale: locale)
+                            : L10n.format("%d pendientes de calificación", locale: locale, pendingCount),
                         color: Color(red: 0.85, green: 0.45, blue: 0.12)
                     )
                 }
@@ -291,7 +292,7 @@ struct MyProgressView: View {
     private func filterButton(title: String, count: Int, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 8) {
-                Text(title)
+                Text(L10n.tr(title, locale: locale))
                     .font(.subheadline.weight(.semibold))
                 Text("\(count)")
                     .font(.caption2.weight(.semibold))
@@ -320,9 +321,9 @@ struct MyProgressView: View {
             Image(systemName: systemImage)
                 .font(.title2)
                 .foregroundStyle(Color.brand)
-            Text(title)
+            Text(L10n.tr(title, locale: locale))
                 .font(.subheadline.weight(.semibold))
-            Text(message)
+            Text(L10n.tr(message, locale: locale))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

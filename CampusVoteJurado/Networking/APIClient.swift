@@ -239,7 +239,8 @@ final class APIClient: Sendable {
         if let body = try? JSONCoding.makeDecoder().decode(ServerErrorBody.self, from: data) {
             return .server(status: status, code: body.error.code, message: body.error.message)
         }
-        return .server(status: status, code: "HTTP_\(status)", message: "El servidor respondió con el estado \(status).")
+        let locale = Locale(identifier: UserDefaults.standard.string(forKey: "campusvote.preferences.language") ?? "es")
+        return .server(status: status, code: "HTTP_\(status)", message: L10n.format("El servidor respondió con el estado %d.", locale: locale, status))
     }
 }
 

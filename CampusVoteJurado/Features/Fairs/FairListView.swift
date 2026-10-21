@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct FairListView: View {
+    @Environment(\.locale) private var locale
     @Environment(FairsStore.self) private var fairsStore
     @Environment(SessionStore.self) private var session
     @State private var path: [String] = []
@@ -8,11 +9,11 @@ struct FairListView: View {
 
     private var institutionName: String {
         if let name = InstitutionAppearance.name, !name.isEmpty { return name }
-        return fairsStore.organizationName ?? "Institución"
+        return fairsStore.organizationName ?? L10n.tr("Institución", locale: locale)
     }
 
     private var greetingName: String {
-        guard case .signedIn(let user) = session.phase else { return "Jurado" }
+        guard case .signedIn(let user) = session.phase else { return L10n.tr("Jurado", locale: locale) }
         let first = user.firstName.trimmingCharacters(in: .whitespacesAndNewlines)
         let last = user.lastName.trimmingCharacters(in: .whitespacesAndNewlines)
         if !last.isEmpty, first.localizedCaseInsensitiveContains(last) {
@@ -42,7 +43,7 @@ struct FairListView: View {
                             .background(Color.brand.opacity(0.1))
                             .clipShape(Capsule())
 
-                            Text("Bienvenido, \(greetingName)")
+                            Text(L10n.format("Bienvenido, %@", locale: locale, greetingName))
                                 .font(.title2.weight(.bold))
                                 .foregroundStyle(Color.brand)
                         }

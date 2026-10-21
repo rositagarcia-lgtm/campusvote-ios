@@ -3,6 +3,7 @@ import SwiftUI
 /// Lista de proyectos asignados al jurado para reseñar.
 /// GET /fairs/my-projects ya devuelve solo aprobados de sus categorías.
 struct AssignedProjectsListView: View {
+    @Environment(\.locale) private var locale
     let onSelect: (ReviewProject) -> Void
 
     @Environment(ProjectsStore.self) private var store
@@ -31,7 +32,7 @@ struct AssignedProjectsListView: View {
         var order: [String] = []
         var map: [String: [ReviewProject]] = [:]
         for project in filtered {
-            let key = project.fairName ?? "Feria"
+            let key = project.fairName ?? L10n.tr("Feria", locale: locale)
             if map[key] == nil { order.append(key) }
             map[key, default: []].append(project)
         }
@@ -85,7 +86,7 @@ struct AssignedProjectsListView: View {
         HStack(spacing: 8) {
             ForEach(AssignedFilter.allCases) { item in
                 Button { filter = item } label: {
-                    Text(item.title)
+                    Text(L10n.tr(item.title, locale: locale))
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(filter == item ? Color.onBrand : Color.primary)
                         .padding(.horizontal, 12)

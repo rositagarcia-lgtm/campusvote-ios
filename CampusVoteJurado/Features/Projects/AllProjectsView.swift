@@ -3,6 +3,7 @@ import SwiftUI
 /// Todos los proyectos aprobados de una feria abierta.
 /// GET /projects?fair_id=... filtra por organización y estado APPROVED.
 struct AllProjectsView: View {
+    @Environment(\.locale) private var locale
     let onSelect: (Project) -> Void
 
     @Environment(ProjectsStore.self) private var store
@@ -132,9 +133,9 @@ struct AllProjectsView: View {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundStyle(Color.brand)
-            Text(title)
+            Text(L10n.tr(title, locale: locale))
                 .font(.subheadline.weight(.semibold))
-            Text(message)
+            Text(L10n.tr(message, locale: locale))
                 .font(.caption)
                 .foregroundStyle(Color.appNeutral)
                 .multilineTextAlignment(.center)
@@ -150,6 +151,7 @@ struct AllProjectsView: View {
 }
 
 private struct AllProjectRow: View {
+    @Environment(\.locale) private var locale
     let project: Project
     let isAssigned: Bool
     let action: () -> Void
@@ -172,7 +174,7 @@ private struct AllProjectRow: View {
                                 .lineLimit(1)
                         }
                         if let stand = project.standCode {
-                            Text("Stand \(stand)")
+                            Text(L10n.format("Stand %@", locale: locale, stand))
                                 .lineLimit(1)
                         }
                     }

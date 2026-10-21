@@ -9,6 +9,7 @@ struct ProjectDetailView: View {
     @Environment(TabBarVisibility.self) private var tabBar
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(\.locale) private var locale
 
     @State private var detail: ProjectDetail?
     @State private var isLoading = true
@@ -49,7 +50,7 @@ struct ProjectDetailView: View {
 
     private var commentHint: String? {
         guard commentCount > 0, commentCount < 10 else { return nil }
-        return "Faltan \(10 - commentCount) caracteres para poder guardar."
+        return L10n.format("Faltan %d caracteres para poder guardar.", locale: locale, 10 - commentCount)
     }
 
     private var highlightsKey: String {
@@ -119,8 +120,8 @@ struct ProjectDetailView: View {
         .navigationBarBackButtonHidden(true)
         .alert(item: $saveAlert) { alert in
             Alert(
-                title: Text(alert.title),
-                message: Text(alert.message),
+                title: Text(L10n.tr(alert.title, locale: locale)),
+                message: Text(L10n.tr(alert.message, locale: locale)),
                 dismissButton: .default(Text("Aceptar"))
             )
         }
@@ -407,9 +408,9 @@ struct ProjectDetailView: View {
                 if selected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.caption.weight(.semibold))
-                    Text(item)
+                    Text(L10n.tr(item, locale: locale))
                 } else {
-                    Text("+ \(item)")
+                    Text(L10n.format("+ %@", locale: locale, L10n.tr(item, locale: locale)))
                 }
             }
             .font(.caption.weight(.semibold))
@@ -426,11 +427,12 @@ struct ProjectDetailView: View {
     }
 
     private func insertAspect(_ item: String) {
+        let localizedItem = L10n.tr(item, locale: locale)
         let current = comment.trimmingCharacters(in: .whitespacesAndNewlines)
-        if current.range(of: item, options: .caseInsensitive) != nil {
+        if current.range(of: localizedItem, options: .caseInsensitive) != nil {
             return
         }
-        let sentence = "\(item)."
+        let sentence = "\(localizedItem)."
         let next = current.isEmpty ? sentence : "\(current) \(sentence)"
         guard next.count <= 1000 else { return }
         comment = next
@@ -487,7 +489,7 @@ struct ProjectDetailView: View {
     }
 
     private func etiqueta(_ title: String) -> some View {
-        Text(title)
+        Text(L10n.tr(title, locale: locale))
             .font(.caption2.weight(.semibold))
             .foregroundStyle(.secondary)
     }

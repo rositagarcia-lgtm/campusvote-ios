@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ChangePasswordView: View {
     @Environment(SessionStore.self) private var session
+    @Environment(\.locale) private var locale
     @State private var currentPassword = ""
     @State private var newPassword = ""
     @State private var confirmPassword = ""
@@ -67,7 +68,7 @@ struct ChangePasswordView: View {
                             Image(systemName: rule.ok ? "checkmark.circle.fill" : "circle")
                                 .font(.caption)
                                 .foregroundStyle(rule.ok ? Color.campusGreen : Color.secondary)
-                            Text(rule.text)
+                            Text(L10n.tr(rule.text, locale: locale))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -113,10 +114,10 @@ struct ChangePasswordView: View {
 
     private func field(_ title: String, text: Binding<String>, field: Field) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title)
+            Text(L10n.tr(title, locale: locale))
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
-            SecureField(title, text: text)
+            SecureField(L10n.tr(title, locale: locale), text: text)
                 .font(.subheadline)
                 .textContentType(field == .current ? .password : .newPassword)
                 .focused($focus, equals: field)

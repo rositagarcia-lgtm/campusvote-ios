@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct FilaDeFeria: View {
+    @Environment(\.locale) private var locale
     let fair: Fair
     let status: FairStatus
 
@@ -41,7 +42,7 @@ struct FilaDeFeria: View {
 
             Spacer(minLength: 8)
 
-            Text(statusConfig.text)
+            Text(L10n.tr(statusConfig.text, locale: locale))
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(statusConfig.textColor)
                 .padding(.horizontal, 10)

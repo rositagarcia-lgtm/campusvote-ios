@@ -221,7 +221,11 @@ final class SessionStore {
             throw APIError.server(
                 status: 403,
                 code: "FORBIDDEN",
-                message: "Esta aplicación es solo para jurados y docentes asignados. Tu cuenta tiene el rol \(user.role)."
+                message: L10n.format(
+                    "Esta aplicación es solo para jurados y docentes asignados. Tu cuenta tiene el rol %@.",
+                    locale: Locale(identifier: UserDefaults.standard.string(forKey: "campusvote.preferences.language") ?? "es"),
+                    user.role
+                )
             )
         }
         guard let organizationId = user.organizationId, !organizationId.isEmpty else {

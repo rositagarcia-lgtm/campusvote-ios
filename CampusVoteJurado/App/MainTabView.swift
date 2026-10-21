@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @Environment(TabBarVisibility.self) private var tabBar
+    @Environment(\.locale) private var locale
     @State private var selectedTab: Int = 0
     @State private var altoMenu: CGFloat = 58
 
@@ -70,13 +71,13 @@ struct MainTabView: View {
                 } label: {
                     TabBarItem(
                         icon: pestana.icono,
-                        label: pestana.titulo,
+                        label: L10n.tr(pestana.titulo, locale: locale),
                         isSelected: selectedTab == indice,
                         activeColor: Color.brand
                     )
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(pestana.titulo)
+                .accessibilityLabel(L10n.tr(pestana.titulo, locale: locale))
             }
         }
         .padding(.top, 12)

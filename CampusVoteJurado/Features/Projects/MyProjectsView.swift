@@ -3,6 +3,7 @@ import SwiftUI
 /// Panel de proyectos del jurado. "Asignados" es para reseñar;
 /// "Todos" muestra los aprobados de la feria en solo lectura.
 struct MyProjectsView: View {
+    @Environment(\.locale) private var locale
     @Environment(ProjectsStore.self) private var store
     @Environment(TabBarVisibility.self) private var tabBar
 
@@ -54,7 +55,7 @@ struct MyProjectsView: View {
         ) {
             Button("Aceptar", role: .cancel) { scanError = nil }
         } message: {
-            Text(scanError ?? "")
+            Text(L10n.tr(scanError ?? "", locale: locale))
         }
         .task {
             if !store.assignedLoaded {
@@ -116,7 +117,7 @@ struct MyProjectsView: View {
                 Button {
                     mode = item
                 } label: {
-                    Text(item.title)
+                    Text(L10n.tr(item.title, locale: locale))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(mode == item ? Color.onBrand : Color.primary)
                         .frame(maxWidth: .infinity)

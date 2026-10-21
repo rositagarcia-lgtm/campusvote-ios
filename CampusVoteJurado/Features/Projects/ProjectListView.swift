@@ -3,6 +3,7 @@ import SwiftUI
 struct ProjectListView: View {
     let fairId: String
 
+    @Environment(\.locale) private var locale
     @Environment(ProjectsStore.self) private var store
     @Environment(FairsStore.self) private var fairsStore
     @Environment(TabBarVisibility.self) private var tabBar
@@ -19,7 +20,7 @@ struct ProjectListView: View {
     private var fairName: String {
         (fairsStore.activeFairs + fairsStore.closedFairs)
             .first { $0.fair.id == fairId }?
-            .fair.name ?? "Proyectos"
+            .fair.name ?? L10n.tr("Proyectos", locale: locale)
     }
 
     var body: some View {
@@ -119,7 +120,7 @@ struct ProjectListView: View {
                 Text(fairName)
                     .font(.subheadline.weight(.semibold))
 
-                Text("\(viewModel.ratedCount) de \(viewModel.totalCount)")
+                Text(L10n.format("%d de %d", locale: locale, viewModel.ratedCount, viewModel.totalCount))
                     .font(.headline)
                 Text("proyectos con reseña")
                     .font(.caption)
@@ -305,7 +306,7 @@ struct ProjectListView: View {
                 Image(systemName: item.icon)
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(tint)
-                Text(item.title)
+                Text(L10n.tr(item.title, locale: locale))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.center)
@@ -361,12 +362,12 @@ struct ProjectListView: View {
     }
 
     private func itemsLabel(_ total: Int) -> String {
-        total == 1 ? "1 item" : "\(total) items"
+        total == 1 ? L10n.tr("1 item", locale: locale) : L10n.format("%d items", locale: locale, total)
     }
 
     private func chip(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title)
+            Text(L10n.tr(title, locale: locale))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(selected ? Color.onBrand : Color.primary)
                 .padding(.horizontal, 12)
@@ -416,6 +417,7 @@ private enum StatusFilter: String, CaseIterable, Identifiable {
 }
 
 private struct ProjectCoverCard: View {
+    @Environment(\.locale) private var locale
     let project: ReviewProject
     let naranja: Color
     let verde: Color
@@ -436,7 +438,7 @@ private struct ProjectCoverCard: View {
 
                     Spacer(minLength: 8)
 
-                    Text(project.sinResena ? "Sin reseña" : "Evaluado")
+                    Text(L10n.tr(project.sinResena ? "Sin reseña" : "Evaluado", locale: locale))
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(project.sinResena ? naranja : verde)
                         .padding(.horizontal, 8)
@@ -471,11 +473,11 @@ private struct ProjectCoverCard: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Text(project.sinResena ? "Evaluación requerida" : "Reseña enviada")
+                Text(L10n.tr(project.sinResena ? "Evaluación requerida" : "Reseña enviada", locale: locale))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Text(project.sinResena ? "Evaluar >" : "Ver >")
+                Text(L10n.tr(project.sinResena ? "Evaluar >" : "Ver >", locale: locale))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.brand)
             }

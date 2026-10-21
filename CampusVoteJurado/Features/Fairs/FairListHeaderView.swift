@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct FairListHeaderView: View {
+    @Environment(\.locale) private var locale
     let institutionName: String
 
     var body: some View {
@@ -13,7 +14,7 @@ struct FairListHeaderView: View {
                         .foregroundStyle(Color.onBrand)
                         .lineLimit(1)
                     if let kind = InstitutionAppearance.kindLabel, !kind.isEmpty {
-                        Text(kind)
+                        Text(L10n.tr(kind, locale: locale))
                             .font(.subheadline)
                             .foregroundStyle(Color.onBrand.opacity(0.8))
                             .lineLimit(1)

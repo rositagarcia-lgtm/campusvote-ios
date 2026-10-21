@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AssignedSummaryCard: View {
+    @Environment(\.locale) private var locale
     let rated: Int
     let total: Int
     let pending: Int
@@ -20,9 +21,9 @@ struct AssignedSummaryCard: View {
                     .font(.system(size: 11, weight: .bold))
                     .tracking(0.6)
                     .foregroundStyle(Color.appNeutral)
-                Text(rated == 1 ? "1 proyecto evaluado" : "\(rated) proyectos evaluados")
+                Text(rated == 1 ? L10n.tr("1 proyecto evaluado", locale: locale) : L10n.format("%d proyectos evaluados", locale: locale, rated))
                     .font(.subheadline.weight(.semibold))
-                Text(pending == 1 ? "1 pendiente" : "\(pending) pendientes")
+                Text(pending == 1 ? L10n.tr("1 pendiente", locale: locale) : L10n.format("%d pendientes", locale: locale, pending))
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(naranja)
                     .padding(.horizontal, 8)

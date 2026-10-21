@@ -40,6 +40,8 @@
 		CDBE4CED30588648007D3D01 /* TabBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE4CEC30588647007D3D01 /* TabBarItem.swift */; };
 		CDBE4CEF3058869D007D3D01 /* ProjectsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE4CEE3058869C007D3D01 /* ProjectsViewModel.swift */; };
 		CDBE4CF33058905C007D3D01 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE4CF23058905B007D3D01 /* ProfileView.swift */; };
+		E641A0A17B9C42F8AF136510 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = E641A0A17B9C42F8AF136511 /* L10n.swift */; };
+		E641A0A17B9C42F8AF136512 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E641A0A17B9C42F8AF136513 /* Localizable.xcstrings */; };
 		E641A0A17B9C42F8AF136501 /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E641A0A17B9C42F8AF136502 /* PreferencesView.swift */; };
 		CDBE4CF53058908A007D3D01 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE4CF430589089007D3D01 /* MainTabView.swift */; };
 		FA5AFAD0FD65B8135C3F55C2 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED3D6B826D3E184A73E8AF3 /* User.swift */; };
@@ -84,6 +86,8 @@
 		CDBE4CEC30588647007D3D01 /* TabBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarItem.swift; sourceTree = "<group>"; };
 		CDBE4CEE3058869C007D3D01 /* ProjectsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsViewModel.swift; sourceTree = "<group>"; };
 		CDBE4CF23058905B007D3D01 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		E641A0A17B9C42F8AF136511 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
+		E641A0A17B9C42F8AF136513 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		E641A0A17B9C42F8AF136502 /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
 		CDBE4CF430589089007D3D01 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		D1E2F30415263748596A7B8C /* CodeInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeInputView.swift; sourceTree = "<group>"; };
@@ -147,6 +151,7 @@
 				A2B930E643F541E24C297C3A /* ErrorBanner.swift */,
 				CDBE4CDA30585BC0007D3D01 /* Colors.swift */,
 				62842C0B27ECE481E0936292 /* CoverImage.swift */,
+				E641A0A17B9C42F8AF136511 /* L10n.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -221,6 +226,7 @@
 			children = (
 				99E862101987D7FDE53BA810 /* App */,
 				015B22E14F6B81C2986B19D9 /* Assets.xcassets */,
+				E641A0A17B9C42F8AF136513 /* Localizable.xcstrings */,
 				3AA054DAF3CEC91590B48F4D /* Components */,
 				756CA3FCB77F4E69D80A0F43 /* Features */,
 				FFB7BEFA2DB38ED3E597E574 /* Models */,
@@ -312,6 +318,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				es,
+				en,
 				Base,
 			);
 			mainGroup = 8D3FC6DB5D0827F168A73277;
@@ -330,6 +337,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7ED7ABFC06CFECD8C03B9206 /* Assets.xcassets in Resources */,
+				E641A0A17B9C42F8AF136512 /* Localizable.xcstrings in Resources */,
 				C0DE1234AB5678CD9EF012AB /* LaunchScreen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -356,6 +364,7 @@
 				FA5E00000000000000000006 /* FairsSectionView.swift in Sources */,
 				4DA8B1CFE4DB510936CA77D3 /* ProjectDetailView.swift in Sources */,
 				CDBE4CF33058905C007D3D01 /* ProfileView.swift in Sources */,
+				E641A0A17B9C42F8AF136510 /* L10n.swift in Sources */,
 				E641A0A17B9C42F8AF136501 /* PreferencesView.swift in Sources */,
 				88CEF17B306EAF8500B8E81E /* Review.swift in Sources */,
 				56261D67E2DC7FEC883F87A5 /* ProjectListView.swift in Sources */,
