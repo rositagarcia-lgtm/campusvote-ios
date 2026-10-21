@@ -20,6 +20,7 @@ struct ProfileView: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var showEdit = false
     @State private var showPassword = false
+    @State private var showPreferences = false
     @State private var avatarHidden = ProfileAvatarStore.isHidden
 
     private var activeFair: Fair? {
@@ -102,9 +103,21 @@ struct ProfileView: View {
         return CGFloat(projectsStore.summary.rated) / CGFloat(total)
     }
 
+    private var activeFairDate: String? {
+        guard let raw = activeFair?.startsAt, raw.count >= 10 else { return nil }
+        let input = DateFormatter()
+        input.dateFormat = "yyyy-MM-dd"
+        input.timeZone = TimeZone(secondsFromGMT: 0)
+        guard let date = input.date(from: String(raw.prefix(10))) else { return nil }
+        let output = DateFormatter()
+        output.dateFormat = "dd/MM/yyyy"
+        output.timeZone = TimeZone(secondsFromGMT: 0)
+        return output.string(from: date)
+    }
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
+            VStack(alignment: .leading, spacing: 18) {
                 header
 
                 if let errorMessage {
@@ -118,46 +131,24 @@ struct ProfileView: View {
 
                 progressCard
 
-                Text("Perfil")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 4)
-
-                Button {
-                    showPassword = true
-                } label: {
-                    HStack(spacing: 14) {
-                        Image(systemName: "lock")
-                            .font(.system(size: 18))
-                            .foregroundStyle(.primary)
-                            .frame(width: 24)
-                        Text("Seguridad y Credenciales")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
-                        Spacer(minLength: 8)
-                        Image(systemName: "chevron.right")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .buttonStyle(.plain)
+                settingsCard
 
                 Button(action: logout) {
                     HStack(spacing: 8) {
                         if isLoggingOut {
-                            ProgressView()
+                            ProgressView().tint(.white)
                         } else {
                             Image(systemName: "rectangle.portrait.and.arrow.right")
                         }
                         Text("Cerrar sesión")
                             .font(.subheadline.weight(.semibold))
                     }
-                    .foregroundStyle(.red)
+                    .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Color.red.opacity(0.08))
+                            .fill(Color.red)
                     )
                 }
                 .buttonStyle(.plain)
@@ -165,16 +156,20 @@ struct ProfileView: View {
                 .padding(.top, 8)
             }
             .padding(.horizontal, 20)
-            .padding(.top, 12)
+            .padding(.top, 20)
             .padding(.bottom, 28)
         }
         .background(Color.appBackground.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(isPresented: $showPreferences) {
+            PreferencesView()
+        }
         .task { await reload() }
         .onChange(of: showPhotoMenu) { _, _ in syncTabBar() }
         .onChange(of: showInstitution) { _, _ in syncTabBar() }
+        .onChange(of: showPreferences) { _, _ in syncTabBar() }
         .onDisappear {
-            tabBar.isHidden = false
+            if !showPreferences { tabBar.isHidden = false }
         }
         .overlay {
             if showPhotoMenu {
@@ -184,6 +179,9 @@ struct ProfileView: View {
                         .onTapGesture { showPhotoMenu = false }
 
                     PhotoSourceSheet(
+                        avatar: localAvatar,
+                        avatarURL: avatarHidden ? nil : profile?.avatarURL,
+                        initials: initials,
                         onClose: { showPhotoMenu = false },
                         onCamera: {
                             showPhotoMenu = false
@@ -248,23 +246,32 @@ struct ProfileView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 12) {
-            Text(greetingName.isEmpty ? "¡Hola!" : "¡Hola, \(greetingName)!")
-                .font(.headline)
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        HStack(alignment: .center, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("¡Hola!")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                if !greetingName.isEmpty {
+                    Text(greetingName)
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Button {
                 showPhotoMenu = true
             } label: {
                 ZStack(alignment: .bottomTrailing) {
                     avatarFace
-                        .frame(width: 48, height: 48)
+                        .frame(width: 72, height: 72)
                         .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.cardBackground, lineWidth: 3))
 
                     Circle()
                         .fill(Color(red: 0.22, green: 0.78, blue: 0.38))
-                        .frame(width: 12, height: 12)
+                        .frame(width: 15, height: 15)
                         .overlay(Circle().stroke(Color.appBackground, lineWidth: 2))
                         .offset(x: 1, y: 1)
                 }
@@ -302,54 +309,62 @@ struct ProfileView: View {
     }
 
     private var bannerCard: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.brand)
-
-            Image(systemName: "plus")
-                .font(.system(size: 84, weight: .ultraLight))
-                .foregroundStyle(Color.onBrand.opacity(0.18))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
-                .offset(x: 16)
-                .allowsHitTesting(false)
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .center, spacing: 8) {
-                    Text(activeFair.map { "¡\($0.name)!" } ?? "Sin feria activa")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.onBrand)
-                        .lineLimit(2)
-
-                    if activeFair != nil {
-                        Text("Evaluando")
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.black)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Capsule().fill(Color(red: 1, green: 0.78, blue: 0.15)))
-                    }
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center) {
+                Text("FERIA ASIGNADA")
+                    .font(.caption2.weight(.bold))
+                    .tracking(1.3)
+                    .foregroundStyle(Color.onBrand.opacity(0.8))
+                Spacer(minLength: 8)
+                if activeFair != nil {
+                    Text("Evaluando")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Capsule().fill(Color.brandGold))
                 }
-
-                Text(activeFair == nil ? "Cuando haya una feria abierta vas a ver tus proyectos aquí." : pendingLine)
-                    .font(.caption)
-                    .foregroundStyle(Color.onBrand.opacity(0.95))
-                    .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 18)
-            .padding(.trailing, 28)
+
+            Text(activeFair?.name ?? "Sin feria activa")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(Color.onBrand)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let date = activeFairDate {
+                Label(date, systemImage: "calendar")
+                    .font(.caption)
+                    .foregroundStyle(Color.onBrand.opacity(0.9))
+            }
+
+            Text(activeFair == nil ? "Cuando haya una feria abierta vas a ver tus proyectos aquí." : pendingLine)
+                .font(.subheadline)
+                .foregroundStyle(Color.onBrand.opacity(0.92))
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, minHeight: 108, alignment: .leading)
-        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .padding(20)
+        .frame(maxWidth: .infinity, minHeight: 150, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(LinearGradient(colors: [Color.brand, Color.brandTeal], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .overlay(alignment: .bottomTrailing) {
+                    Image(systemName: "checklist")
+                        .font(.system(size: 95, weight: .ultraLight))
+                        .foregroundStyle(Color.onBrand.opacity(0.12))
+                        .offset(x: 8, y: 14)
+                        .accessibilityHidden(true)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        }
+        .shadow(color: Color.brand.opacity(0.14), radius: 12, y: 5)
     }
 
     private var shortcuts: some View {
-        HStack(spacing: 48) {
+        HStack(spacing: 12) {
             Button {
                 showEdit = true
             } label: {
-                shortcut(icon: "person", title: "Mis Datos")
+                shortcut(icon: "person.crop.circle", title: "Mis Datos", subtitle: "Ver y edita información")
             }
             .buttonStyle(.plain)
             .disabled(profile == nil)
@@ -357,72 +372,145 @@ struct ProfileView: View {
             Button {
                 showInstitution = true
             } label: {
-                shortcut(icon: "building.columns", title: "Institución")
+                shortcut(icon: "building.columns", title: "Institución", subtitle: "Información académica")
             }
             .buttonStyle(.plain)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
     }
 
-    private func shortcut(icon: String, title: String) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 22, weight: .regular))
-                .foregroundStyle(.primary)
-                .frame(width: 72, height: 64)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(Color.cardBackground)
-                        .shadow(color: .black.opacity(0.05), radius: 8, y: 2)
-                )
+    private func shortcut(icon: String, title: String, subtitle: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(Color.brand)
+                    .frame(width: 46, height: 46)
+                    .background(Circle().fill(Color.brand.opacity(0.1)))
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
             Text(title)
-                .font(.caption2)
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.primary)
+            Text(subtitle)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 18).fill(Color.cardBackground))
+        .shadow(color: .black.opacity(0.05), radius: 10, y: 4)
+        .contentShape(RoundedRectangle(cornerRadius: 18))
     }
 
     private var progressCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Completa tu evaluación")
-                .font(.subheadline.weight(.semibold))
-            Text("\(projectsStore.summary.rated) de \(projectsStore.summary.total) proyectos calificados")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                Image(systemName: "chart.bar.fill")
+                    .font(.headline)
+                    .foregroundStyle(Color.brand)
+                    .frame(width: 46, height: 46)
+                    .background(Circle().fill(Color.brand.opacity(0.12)))
+                Text("Completa tu evaluación")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(projectsStore.summary.rated) de \(projectsStore.summary.total)")
+                        .font(.subheadline.weight(.semibold))
+                    Text("proyectos calificados")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.primary.opacity(0.12))
                     Capsule()
-                        .fill(Color.primary.opacity(0.85))
+                        .fill(Color.brand)
                         .frame(width: geo.size.width * progressValue)
                 }
             }
-            .frame(height: 6)
-            .padding(.vertical, 4)
+            .frame(height: 9)
 
             Text(rubricLine)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(16)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.primary.opacity(0.04))
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.brand.opacity(0.07))
         )
     }
 
     private var rubricLine: String {
         if let focusCategory {
-            return "Describe y califica las rúbricas de la categoría \(focusCategory)."
+            return "Califica y comenta los proyectos de la categoría \(focusCategory)."
         }
-        return "Describe y califica las rúbricas de tu feria."
+        return "Califica y comenta los proyectos de tu feria."
+    }
+
+    private var settingsCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Ajustes:")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.secondary)
+                .padding(.leading, 4)
+
+            VStack(spacing: 0) {
+                Button { showPassword = true } label: {
+                    settingsRow(icon: "lock.shield", title: "Seguridad y Credenciales", subtitle: "Contraseña, 2FA y acceso")
+                }
+                .buttonStyle(.plain)
+
+                Divider().padding(.leading, 74)
+
+                Button { showPreferences = true } label: {
+                    settingsRow(icon: "gearshape", title: "Preferencias", subtitle: "Tema, idioma y tamaño de texto")
+                }
+                .buttonStyle(.plain)
+            }
+            .background(RoundedRectangle(cornerRadius: 18).fill(Color.cardBackground))
+            .shadow(color: .black.opacity(0.05), radius: 10, y: 4)
+        }
+        .padding(.top, 4)
+    }
+
+    private func settingsRow(icon: String, title: String, subtitle: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 20))
+                .foregroundStyle(Color.brand)
+                .frame(width: 42, height: 42)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color.brand.opacity(0.1)))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 4)
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 
     private func syncTabBar() {
-        tabBar.isHidden = showPhotoMenu || showInstitution
+        tabBar.isHidden = showPhotoMenu || showInstitution || showPreferences
     }
 
     @MainActor
@@ -652,6 +740,9 @@ private extension View {
 }
 
 private struct PhotoSourceSheet: View {
+    let avatar: UIImage?
+    let avatarURL: URL?
+    let initials: String
     let onClose: () -> Void
     let onCamera: () -> Void
     let onGallery: () -> Void
@@ -660,14 +751,21 @@ private struct PhotoSourceSheet: View {
     private let deleteColor = Color(red: 0.86, green: 0.18, blue: 0.38)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 8) {
             SheetTopBar(title: "Edición de foto", onClose: onClose)
+
+            preview
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
 
             photoRow(icon: "camera", title: "Tomar una foto", color: .primary, action: onCamera)
             photoRow(icon: "photo", title: "Elegir de la galería", color: .primary, action: onGallery)
+
+            Divider().padding(.horizontal, 22)
+
             photoRow(icon: "trash", title: "Eliminar foto", color: deleteColor, action: onDelete)
         }
-        .padding(.bottom, 8)
+        .padding(.bottom, 16)
         .frame(maxWidth: .infinity, alignment: .top)
         .background(
             Color.cardBackground
@@ -683,19 +781,52 @@ private struct PhotoSourceSheet: View {
         )
     }
 
+    private var preview: some View {
+        Group {
+            if let avatar {
+                Image(uiImage: avatar)
+                    .resizable()
+                    .scaledToFill()
+            } else if let avatarURL {
+                AsyncImage(url: avatarURL) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    initialsPreview
+                }
+            } else {
+                initialsPreview
+            }
+        }
+        .frame(width: 120, height: 120)
+        .clipShape(Circle())
+        .overlay(Circle().stroke(Color.brand.opacity(0.2), lineWidth: 3))
+        .accessibilityLabel("Vista previa de foto de perfil")
+    }
+
+    private var initialsPreview: some View {
+        Circle()
+            .fill(Color.brand)
+            .overlay {
+                Text(initials)
+                    .font(.title.weight(.semibold))
+                    .foregroundStyle(Color.onBrand)
+            }
+    }
+
     private func photoRow(icon: String, title: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 14) {
                 Image(systemName: icon)
                     .font(.system(size: 17))
-                    .frame(width: 24)
+                    .frame(width: 38, height: 38)
+                    .background(RoundedRectangle(cornerRadius: 10).fill(color.opacity(0.08)))
                 Text(title)
-                    .font(.subheadline)
+                    .font(.subheadline.weight(.medium))
                 Spacer(minLength: 0)
             }
             .foregroundStyle(color)
             .padding(.horizontal, 22)
-            .padding(.vertical, 13)
+            .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }

@@ -40,6 +40,7 @@
 		CDBE4CED30588648007D3D01 /* TabBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE4CEC30588647007D3D01 /* TabBarItem.swift */; };
 		CDBE4CEF3058869D007D3D01 /* ProjectsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE4CEE3058869C007D3D01 /* ProjectsViewModel.swift */; };
 		CDBE4CF33058905C007D3D01 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE4CF23058905B007D3D01 /* ProfileView.swift */; };
+		E641A0A17B9C42F8AF136501 /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E641A0A17B9C42F8AF136502 /* PreferencesView.swift */; };
 		CDBE4CF53058908A007D3D01 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE4CF430589089007D3D01 /* MainTabView.swift */; };
 		FA5AFAD0FD65B8135C3F55C2 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED3D6B826D3E184A73E8AF3 /* User.swift */; };
 /* End PBXBuildFile section */
@@ -71,6 +72,7 @@
 		CDBE4CEC30588647007D3D01 /* TabBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarItem.swift; sourceTree = "<group>"; };
 		CDBE4CEE3058869C007D3D01 /* ProjectsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsViewModel.swift; sourceTree = "<group>"; };
 		CDBE4CF23058905B007D3D01 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		E641A0A17B9C42F8AF136502 /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
 		CDBE4CF430589089007D3D01 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		D1E2F30415263748596A7B8C /* CodeInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeInputView.swift; sourceTree = "<group>"; };
 		D28EEA630375F02544375BF2 /* Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Project.swift; sourceTree = "<group>"; };
@@ -140,6 +142,7 @@
 			children = (
 				88CEF186306EB28100B8E81E /* ChangePasswordView.swift */,
 				CDBE4CF23058905B007D3D01 /* ProfileView.swift */,
+				E641A0A17B9C42F8AF136502 /* PreferencesView.swift */,
 				CDBE4CD63058548A007D3D01 /* SplashView.swift */,
 				489904B5263977C8C180D83D /* LoginView.swift */,
 				DB55688BE0135D8C809E3D7D /* TotpView.swift */,
@@ -314,6 +317,7 @@
 				9A92E50AA8A18695B0C34094 /* FairListView.swift in Sources */,
 				4DA8B1CFE4DB510936CA77D3 /* ProjectDetailView.swift in Sources */,
 				CDBE4CF33058905C007D3D01 /* ProfileView.swift in Sources */,
+				E641A0A17B9C42F8AF136501 /* PreferencesView.swift in Sources */,
 				88CEF17B306EAF8500B8E81E /* Review.swift in Sources */,
 				56261D67E2DC7FEC883F87A5 /* ProjectListView.swift in Sources */,
 				CDBE4CF53058908A007D3D01 /* MainTabView.swift in Sources */,
@@ -448,6 +452,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "CampusVote Jurado";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Se necesita la cámara para tomar tu foto de perfil.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -476,6 +481,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "CampusVote Jurado";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Se necesita la cámara para tomar tu foto de perfil.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
