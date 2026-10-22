@@ -3,7 +3,7 @@ import Foundation
 /// Cliente HTTP que habla con el backend de CampusVote.
 ///
 /// Cada respuesta viaja en un envelope `{ success, message, data }`.
-/// `send(_:as:)` desempaqueta `data`. Un 401 con el token de sesión cierra la sesión.
+/// `send(_:as:)` desempaqueta `data`. Un 401 intenta renovar la sesión una vez.
 final class APIClient: Sendable {
     static let shared = APIClient()
     private let refreshCoordinator = RefreshCoordinator()
@@ -83,7 +83,9 @@ final class APIClient: Sendable {
         guard envelope.success else {
             throw APIError.decoding(envelope.message ?? "La operación no fue completada por el servidor.")
         }
-        let items = envelope.data ?? []
+        guard let items = envelope.data else {
+            throw APIError.decoding("La respuesta paginada no contiene data.")
+        }
         let pagination = envelope.pagination ?? envelope.meta?.pagination
             ?? PageInfo(page: 1, limit: max(items.count, 1), total: items.count)
         return PageResult(items: items, pagination: pagination)
@@ -123,6 +125,12 @@ final class APIClient: Sendable {
             try APITransport.throwNormalized(error)
         }
 
+        if httpResponse.statusCode == 401, event.usesStoredToken, canRefresh,
+           let current = KeychainStore.getToken(),
+           request.value(forHTTPHeaderField: "Authorization") != "Bearer \(current)" {
+            return try await perform(event, canRefresh: false)
+        }
+
         if httpResponse.statusCode == 401,
            event.usesStoredToken,
            event.retriesWithRefresh,
@@ -137,7 +145,7 @@ final class APIClient: Sendable {
                 // Solo cerramos la sesión si el servidor rechazó los tokens.
                 // Un corte de red durante el refresh no debe expulsar al jurado.
                 if error.isSessionRejection {
-                    expireSession()
+                    expireSession(matching: request.value(forHTTPHeaderField: "Authorization"))
                 }
                 throw error
             } catch is CancellationError {
@@ -148,7 +156,7 @@ final class APIClient: Sendable {
         }
 
         if httpResponse.statusCode == 401, event.usesStoredToken {
-            expireSession()
+            expireSession(matching: request.value(forHTTPHeaderField: "Authorization"))
             throw APIError.sessionExpired
         }
 
@@ -181,11 +189,13 @@ final class APIClient: Sendable {
               let newRefreshToken = result.refreshToken else {
             throw APIError.decoding("La renovación no devolvió los tokens esperados.")
         }
+        guard savedRefreshToken == refreshToken else { throw APIError.sessionExpired }
         try saveTokens(access: accessToken, refresh: newRefreshToken)
         return result
     }
 
-    private func expireSession() {
+    private func expireSession(matching authorization: String?) {
+        guard let token = KeychainStore.getToken(), authorization == "Bearer \(token)" else { return }
         clearTokens()
         NotificationCenter.default.post(name: .campusVoteSessionExpired, object: nil)
     }
@@ -232,11 +242,4 @@ final class APIClient: Sendable {
         }
     }
 
-    private static func mapError(status: Int, data: Data) -> APIError {
-        if let body = try? JSONCoding.makeDecoder().decode(ServerErrorBody.self, from: data) {
-            return .server(status: status, code: body.error.code, message: body.error.message)
-        }
-        let locale = Locale(identifier: UserDefaults.standard.string(forKey: "campusvote.preferences.language") ?? "es")
-        return .server(status: status, code: "HTTP_\(status)", message: L10n.format("El servidor respondió con el estado %d.", locale: locale, status))
-    }
 }

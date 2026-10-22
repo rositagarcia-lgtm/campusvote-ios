@@ -5,22 +5,39 @@ import Observation
 @Observable
 @MainActor
 final class ProjectsStore {
-    private(set) var projects: [ReviewProject] = []
-    private(set) var summary = ReviewSummary(rated: 0, total: 0)
-    private(set) var categories: [Category] = []
-    private(set) var isLoading = false
+    var projects: [ReviewProject] = []
+    var summary = ReviewSummary(rated: 0, total: 0)
+    var categories: [Category] = []
+    var isLoading = false
     var errorMessage: String?
-    private(set) var fairId: String?
+    var fairId: String?
 
-    private(set) var assignedProjects: [ReviewProject] = []
-    private(set) var assignedSummary = ReviewSummary(rated: 0, total: 0)
-    private(set) var isLoadingAssigned = false
+    var assignedProjects: [ReviewProject] = []
+    var assignedSummary = ReviewSummary(rated: 0, total: 0)
+    var isLoadingAssigned = false
     var assignedErrorMessage: String?
-    private(set) var assignedLoaded = false
+    var assignedLoaded = false
 
-    private let api: APIClient
+    let api: APIClient
     private var loadID = UUID()
     private var assignedLoadID = UUID()
+    var accessByFair: [String: ReviewAccess] = [:]
+    var dataGeneration = UUID()
+    private(set) var scope: ReviewScope = .assigned
+
+    func access(fairId: String, fallback: ReviewAccess) -> ReviewAccess {
+        if fallback.phase == .ended { return fallback }
+        return (accessByFair[fairId] ?? ReviewAccess()).merging(fallback)
+    }
+
+    func uniqueCategories(in projects: [ReviewProject]) -> [Category] {
+        var seen = Set<String>()
+        return projects.compactMap { project in
+            guard let id = project.categoryId, let name = project.categoryName,
+                  seen.insert(id).inserted else { return nil }
+            return Category(id: id, fairId: fairId, name: name, description: nil)
+        }
+    }
 
     init(api: APIClient) {
         self.api = api
@@ -34,15 +51,17 @@ final class ProjectsStore {
         projects.filter { !$0.sinResena }
     }
 
-    func load(fairId: String) async {
+    func load(fairId: String, scope: ReviewScope = .assigned) async {
         let requestID = UUID()
         loadID = requestID
-        if fairId != self.fairId {
+        if fairId != self.fairId || scope != self.scope {
             projects = []
             summary = ReviewSummary(rated: 0, total: 0)
             categories = []
         }
 
+        self.fairId = fairId
+        self.scope = scope
         isLoading = true
         errorMessage = nil
         defer {
@@ -51,12 +70,14 @@ final class ProjectsStore {
 
         do {
             let list = try await api.send(
-                .reviewProjects(fairId: fairId),
+                .reviewProjects(fairId: fairId, scope: scope),
                 as: ReviewList.self
             )
             try Task.checkCancellation()
             guard loadID == requestID else { return }
             self.fairId = fairId
+            self.scope = list.scope ?? scope
+            accessByFair[fairId] = list.access.merging(accessByFair[fairId] ?? ReviewAccess())
             projects = list.projects
             summary = list.summary
             categories = uniqueCategories(in: list.projects)
@@ -83,6 +104,11 @@ final class ProjectsStore {
             let list = try await api.send(.myProjects, as: ReviewList.self)
             try Task.checkCancellation()
             guard assignedLoadID == requestID else { return }
+            for project in list.projects {
+                if let fairId = project.fairId {
+                    accessByFair[fairId] = project.access.merging(accessByFair[fairId] ?? ReviewAccess())
+                }
+            }
             assignedProjects = list.projects
             assignedSummary = list.summary
             assignedLoaded = true
@@ -99,10 +125,13 @@ final class ProjectsStore {
     }
 
     func reset() {
+        dataGeneration = UUID()
         projects = []
         summary = ReviewSummary(rated: 0, total: 0)
         categories = []
         fairId = nil
+        scope = .assigned
+        accessByFair = [:]
         errorMessage = nil
         isLoading = false
         assignedProjects = []
@@ -154,91 +183,4 @@ final class ProjectsStore {
         }
     }
 
-    func saveRating(
-        fairId: String,
-        projectId: String,
-        rating: Int,
-        comment: String
-    ) async -> ProjectRating? {
-        guard (1...5).contains(rating) else {
-            errorMessage = "La reseña va de 1 a 5 estrellas."
-            return nil
-        }
-
-        let text = comment.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard text.count >= 10, text.count <= 1000 else {
-            errorMessage = "El comentario debe tener entre 10 y 1000 caracteres."
-            return nil
-        }
-
-        errorMessage = nil
-        do {
-            let saved = try await api.send(
-                .saveRating(
-                    fairId: fairId,
-                    projectId: projectId,
-                    body: ReviewPutBody(rating: rating, comment: text)
-                ),
-                as: ProjectRating.self
-            )
-            apply(saved, projectId: projectId, fallbackRating: rating, fallbackComment: text)
-            return saved
-        } catch {
-            errorMessage = error.userMessage
-            return nil
-        }
-    }
-
-    private func apply(
-        _ saved: ProjectRating,
-        projectId: String,
-        fallbackRating: Int,
-        fallbackComment: String
-    ) {
-        if let index = projects.firstIndex(where: { $0.id == projectId }) {
-            projects[index] = rated(
-                projects[index],
-                rating: saved.rating ?? fallbackRating,
-                comment: saved.comment ?? fallbackComment
-            )
-            summary = ReviewSummary(projects: projects)
-        }
-
-        if let index = assignedProjects.firstIndex(where: { $0.id == projectId }) {
-            assignedProjects[index] = rated(
-                assignedProjects[index],
-                rating: saved.rating ?? fallbackRating,
-                comment: saved.comment ?? fallbackComment
-            )
-            assignedSummary = ReviewSummary(projects: assignedProjects)
-        }
-    }
-
-    private func rated(_ project: ReviewProject, rating: Int, comment: String) -> ReviewProject {
-        ReviewProject(
-            id: project.id,
-            fairId: project.fairId,
-            fairName: project.fairName,
-            name: project.name,
-            coverUrl: project.coverUrl,
-            categoryId: project.categoryId,
-            categoryName: project.categoryName,
-            standCode: project.standCode,
-            teamName: project.teamName,
-            myRating: rating,
-            myComment: comment
-        )
-    }
-
-    private func uniqueCategories(in projects: [ReviewProject]) -> [Category] {
-        var seen = Set<String>()
-        return projects.compactMap { project in
-            guard let id = project.categoryId,
-                  let name = project.categoryName,
-                  seen.insert(id).inserted else {
-                return nil
-            }
-            return Category(id: id, fairId: fairId, name: name, description: nil)
-        }
-    }
 }

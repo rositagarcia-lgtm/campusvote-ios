@@ -12,7 +12,7 @@ struct PremiumFieldRow<Content: View>: View {
         HStack(spacing: 16) {
             Image(systemName: icon)
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(isFocused ? Color.onBrand : Color.campusGreen.opacity(0.6))
+                .foregroundStyle(isFocused ? Color(light: 0xFFFFFF, dark: 0x0E1514) : Color.campusGreen.opacity(0.6))
                 .frame(width: 40, height: 40)
                 .background(
                     Circle().fill(isFocused ? Color.campusGreen : Color.iconTile)

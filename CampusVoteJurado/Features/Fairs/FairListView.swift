@@ -9,7 +9,7 @@ struct FairListView: View {
 
     private var institutionName: String {
         if let name = InstitutionAppearance.name, !name.isEmpty { return name }
-        return fairsStore.organizationName ?? L10n.tr("Institución", locale: locale)
+        return "CampusVote"
     }
 
     private var greetingName: String {
@@ -144,7 +144,12 @@ struct FairListView: View {
             emptyIcon: "calendar"
         ) {
             ForEach(fairsStore.scheduledFairs) { assignment in
-                FilaDeFeria(fair: assignment.fair, status: .scheduled)
+                Button { path.append(assignment.id) } label: {
+                    FilaDeFeria(fair: assignment.fair,
+                                status: assignment.access.phase == .preview ? .preview : .scheduled)
+                }
+                .buttonStyle(.plain)
+                .disabled(!assignment.access.allowsBrowsing)
             }
         }
     }
@@ -161,7 +166,10 @@ struct FairListView: View {
             emptyIcon: "lock.shield"
         ) {
             ForEach(fairsStore.closedFairs) { assignment in
-                FilaDeFeria(fair: assignment.fair, status: .closed)
+                Button { path.append(assignment.id) } label: {
+                    FilaDeFeria(fair: assignment.fair, status: .closed)
+                }
+                .buttonStyle(.plain)
             }
         }
     }

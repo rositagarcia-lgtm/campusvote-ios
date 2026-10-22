@@ -22,7 +22,7 @@ struct ProjectCoverCard: View {
 
                     Spacer(minLength: 8)
 
-                    Text(L10n.tr(project.sinResena ? "Sin reseña" : "Evaluado", locale: locale))
+                    Text(L10n.tr(project.sinResena ? "Sin reseña" : "Con reseña", locale: locale))
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(project.sinResena ? naranja : verde)
                         .padding(.horizontal, 8)
@@ -57,18 +57,18 @@ struct ProjectCoverCard: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Text(L10n.tr(project.sinResena ? "Evaluación requerida" : "Reseña enviada", locale: locale))
+                Text(L10n.tr(project.sinResena ? "Reseña pendiente" : "Reseña enviada", locale: locale))
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
-                Text(L10n.tr(project.sinResena ? "Evaluar >" : "Ver >", locale: locale))
+                Text("Ver proyecto")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.brand)
             }
             .padding(12)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.cardBackground)
+        .premiumSurface()
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }

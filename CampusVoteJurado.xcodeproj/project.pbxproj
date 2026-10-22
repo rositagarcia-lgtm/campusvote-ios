@@ -7,6 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		86C7889DBCD64C87BC75475F /* ProjectsStore+Reviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = E64DC71F1E8B45E5A9077F45 /* ProjectsStore+Reviews.swift */; };
+		9AB31A953E5842ADBE95930C /* ReviewProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD569712EB24FBF878523FF /* ReviewProject.swift */; };
+		994F5F128A414E47B083F0BE /* ReviewAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7181133CE1F34CE58E3710BF /* ReviewAccess.swift */; };
+		97B82F15721C411888CAA12A /* ProjectMembersCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 207F8E35334740F7BC988896 /* ProjectMembersCard.swift */; };
+		27996AC07E7F43DB8F74215A /* ProjectDetailView+Loading.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73066E75581B4F87956E628D /* ProjectDetailView+Loading.swift */; };
+		5C2948082E7347FB8DE8D34E /* FairReviewNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = B119A40F0E884BEBA5A3B7B7 /* FairReviewNotice.swift */; };
+		94CCD1DDEB4F4551937A0881 /* JuryOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DB0ECDBDE004955AF07EE16 /* JuryOnboardingView.swift */; };
+		6EE616B8029542CFACB2197B /* BrandArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A57F11ADE3C435CBC11945C /* BrandArchive.swift */; };
+		363D33A0CBCB4724B7379265 /* APIClient+Errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0132A8A9294CB2B564974A /* APIClient+Errors.swift */; };
+		5F804DAB30F04852A5EEA6F1 /* APIClient+Assignments.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA06BEF3F4EF48B38CC06B5F /* APIClient+Assignments.swift */; };
+		2A5D727D9F8B455D93D96724 /* OrganizationHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A6CA9794BC44F09ADF4EF0E /* OrganizationHeader.swift */; };
+		32EB653B02A24A7A83AC8E85 /* InstitutionBrandState.swift in Sources */ = {isa = PBXBuildFile; fileRef = D70F57E00CB9475CB96E5BD6 /* InstitutionBrandState.swift */; };
+		644277AE2F2F4093A2BBC333 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = D02FCE0D356C469496D6A75F /* Color+Hex.swift */; };
 		0189AC643DAEDDA7CF2D35DF /* LoginFieldRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C05A732A8BAF930E4B30359 /* LoginFieldRow.swift */; };
 		0BD69AB27AA3B3A47C7AA9D1 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECDE4C465851BF6DBDEBF8A0 /* APIClient.swift */; };
 		0C1F5CBA478BE3DB55A71B90 /* ProjectCoverCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79FB4C372CE9FE86AD5CFEE6 /* ProjectCoverCard.swift */; };
@@ -44,7 +57,6 @@
 		88CEF182306EB18C00B8E81E /* MyProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88CEF180306EB18C00B8E81E /* MyProgressView.swift */; };
 		88CEF187306EB29700B8E81E /* ChangePasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88CEF186306EB28100B8E81E /* ChangePasswordView.swift */; };
 		8ACCFB0653A95BCF9F8BF172 /* FairsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8D9374EE589C4BC12B04B7 /* FairsStore.swift */; };
-		8C1E97EB020CF593166BB3C5 /* PublicProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D6DD654AF6451CAD6198008 /* PublicProject.swift */; };
 		92F7ACF4040532080F799975 /* Project.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28EEA630375F02544375BF2 /* Project.swift */; };
 		9852B3FAEB9C9471FB2FB918 /* SessionNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE8FAF184708F07B62CD858 /* SessionNotifications.swift */; };
 		999BBD3DCE56F9BAF60D8A3C /* ProfileDashboardViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BACA9BBA00AC3C6DD7C71FF /* ProfileDashboardViews.swift */; };
@@ -90,18 +102,27 @@
 		FA5E0000000000000000000A /* AssignedSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5E00000000000000000009 /* AssignedSummaryCard.swift */; };
 		FA5E0000000000000000000C /* AssignedProjectRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5E0000000000000000000B /* AssignedProjectRow.swift */; };
 		FA5E0000000000000000000E /* AssignedProjectsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5E0000000000000000000D /* AssignedProjectsListView.swift */; };
-		FA5E00000000000000000010 /* AllProjectsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5E0000000000000000000F /* AllProjectsView.swift */; };
-		FA5E00000000000000000012 /* PublicProjectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5E00000000000000000011 /* PublicProjectView.swift */; };
 		FA5E00000000000000000014 /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5E00000000000000000013 /* QRScannerView.swift */; };
 		FA5E00000000000000000016 /* QRCodePayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5E00000000000000000015 /* QRCodePayload.swift */; };
-		FA5E00000000000000000018 /* ProjectsCatalogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5E00000000000000000017 /* ProjectsCatalogStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		E64DC71F1E8B45E5A9077F45 /* ProjectsStore+Reviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectsStore+Reviews.swift"; sourceTree = "<group>"; };
+		CFD569712EB24FBF878523FF /* ReviewProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReviewProject.swift"; sourceTree = "<group>"; };
+		7181133CE1F34CE58E3710BF /* ReviewAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReviewAccess.swift"; sourceTree = "<group>"; };
+		207F8E35334740F7BC988896 /* ProjectMembersCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectMembersCard.swift"; sourceTree = "<group>"; };
+		73066E75581B4F87956E628D /* ProjectDetailView+Loading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectDetailView+Loading.swift"; sourceTree = "<group>"; };
+		B119A40F0E884BEBA5A3B7B7 /* FairReviewNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FairReviewNotice.swift"; sourceTree = "<group>"; };
+		9DB0ECDBDE004955AF07EE16 /* JuryOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JuryOnboardingView.swift"; sourceTree = "<group>"; };
+		5A57F11ADE3C435CBC11945C /* BrandArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BrandArchive.swift"; sourceTree = "<group>"; };
+		BA0132A8A9294CB2B564974A /* APIClient+Errors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIClient+Errors.swift"; sourceTree = "<group>"; };
+		DA06BEF3F4EF48B38CC06B5F /* APIClient+Assignments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIClient+Assignments.swift"; sourceTree = "<group>"; };
+		5A6CA9794BC44F09ADF4EF0E /* OrganizationHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrganizationHeader.swift"; sourceTree = "<group>"; };
+		D70F57E00CB9475CB96E5BD6 /* InstitutionBrandState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InstitutionBrandState.swift"; sourceTree = "<group>"; };
+		D02FCE0D356C469496D6A75F /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		015B22E14F6B81C2986B19D9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		039683164AB1450A312AFC24 /* SessionStore+Auth.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "SessionStore+Auth.swift"; sourceTree = "<group>"; };
 		171B7245C91A5A8787AB6748 /* ProjectGalleryBanner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProjectGalleryBanner.swift; sourceTree = "<group>"; };
-		1D6DD654AF6451CAD6198008 /* PublicProject.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PublicProject.swift; sourceTree = "<group>"; };
 		2D8F676ED285622C4A3BD352 /* ProfileView+Presentation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "ProfileView+Presentation.swift"; sourceTree = "<group>"; };
 		34606F78484F82B99691D0E0 /* ProjectReviewCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProjectReviewCard.swift; sourceTree = "<group>"; };
 		398B91CC9CBFBAAFCE9D5CBB /* Endpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Endpoint.swift; sourceTree = "<group>"; };
@@ -180,11 +201,8 @@
 		FA5E00000000000000000009 /* AssignedSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssignedSummaryCard.swift; sourceTree = "<group>"; };
 		FA5E0000000000000000000B /* AssignedProjectRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssignedProjectRow.swift; sourceTree = "<group>"; };
 		FA5E0000000000000000000D /* AssignedProjectsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssignedProjectsListView.swift; sourceTree = "<group>"; };
-		FA5E0000000000000000000F /* AllProjectsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AllProjectsView.swift; sourceTree = "<group>"; };
-		FA5E00000000000000000011 /* PublicProjectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PublicProjectView.swift; sourceTree = "<group>"; };
 		FA5E00000000000000000013 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
 		FA5E00000000000000000015 /* QRCodePayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodePayload.swift; sourceTree = "<group>"; };
-		FA5E00000000000000000017 /* ProjectsCatalogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsCatalogStore.swift; sourceTree = "<group>"; };
 		FB690E5A37328C09DC4201B4 /* ProjectListFilterSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProjectListFilterSheet.swift; sourceTree = "<group>"; };
 		FE6D77600A213A3B66854C82 /* ChipFlow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChipFlow.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -212,6 +230,7 @@
 		05FBDA5F1B55CC91F55B622A /* Fairs */ = {
 			isa = PBXGroup;
 			children = (
+				B119A40F0E884BEBA5A3B7B7 /* FairReviewNotice.swift */,
 				FA5E00000000000000000001 /* FairListHeaderView.swift */,
 				437C479ACB20AB365A982B3C /* FairListView.swift */,
 				FA5E00000000000000000003 /* FairRowView.swift */,
@@ -223,6 +242,8 @@
 		112089A5EBDD95D1AC0BABE3 /* Networking */ = {
 			isa = PBXGroup;
 			children = (
+				BA0132A8A9294CB2B564974A /* APIClient+Errors.swift */,
+				DA06BEF3F4EF48B38CC06B5F /* APIClient+Assignments.swift */,
 				ECDE4C465851BF6DBDEBF8A0 /* APIClient.swift */,
 				7EF3A66A985F8BA0B2895EF4 /* APIConfig.swift */,
 				A0D484055800DBC2073A00C8 /* APIError.swift */,
@@ -240,6 +261,7 @@
 		1B4C1F2D28C37003F2E6B990 /* Storage */ = {
 			isa = PBXGroup;
 			children = (
+				5A57F11ADE3C435CBC11945C /* BrandArchive.swift */,
 				8934F1D6DF6F4F7B90B8371D /* KeychainStore.swift */,
 				47CF6049FC538C814131402D /* SessionArchive.swift */,
 			);
@@ -278,6 +300,8 @@
 		444EFA025E066E7F6A28ADE1 /* Detail */ = {
 			isa = PBXGroup;
 			children = (
+				207F8E35334740F7BC988896 /* ProjectMembersCard.swift */,
+				73066E75581B4F87956E628D /* ProjectDetailView+Loading.swift */,
 				FE6D77600A213A3B66854C82 /* ChipFlow.swift */,
 				A4AF28E45ED7171A5B01B5E8 /* PhotoViewer.swift */,
 				8517612D2B6C64117FC464DD /* ProjectDetailHeader.swift */,
@@ -305,6 +329,7 @@
 		4F77C649D8562BDAD45390FF /* Auth */ = {
 			isa = PBXGroup;
 			children = (
+				5882BF2F2E5A414EA1A7CB07 /* Onboarding */,
 				62D9A996E9E49E0119F1F398 /* Login */,
 				1F89F6BA578DB5874ADD53EC /* Splash */,
 				CC75A7C54556BEF1EDDE14BB /* Otp */,
@@ -321,7 +346,6 @@
 				D28EEA630375F02544375BF2 /* Project.swift */,
 				401E8866F1300BB42D665FB3 /* ProjectDetail.swift */,
 				998AC5F359E42E3FC072D9F0 /* ProjectTaxonomy.swift */,
-				1D6DD654AF6451CAD6198008 /* PublicProject.swift */,
 			);
 			name = Project;
 			path = Project;
@@ -384,8 +408,6 @@
 		84D118EBDEF49DBBF5CAAF7F /* Catalog */ = {
 			isa = PBXGroup;
 			children = (
-				FA5E0000000000000000000F /* AllProjectsView.swift */,
-				FA5E00000000000000000011 /* PublicProjectView.swift */,
 				FA5E00000000000000000015 /* QRCodePayload.swift */,
 				FA5E00000000000000000013 /* QRScannerView.swift */,
 			);
@@ -472,9 +494,9 @@
 		D8F4C7F4A4CFE1B0FEE627B9 /* Stores */ = {
 			isa = PBXGroup;
 			children = (
+				E64DC71F1E8B45E5A9077F45 /* ProjectsStore+Reviews.swift */,
 				2178F6FFEE3396B98D43A241 /* Session */,
 				DC8D9374EE589C4BC12B04B7 /* FairsStore.swift */,
-				FA5E00000000000000000017 /* ProjectsCatalogStore.swift */,
 				EFA3FA3774F80D2B8506DD85 /* ProjectsStore.swift */,
 			);
 			path = Stores;
@@ -495,6 +517,9 @@
 		F01CB7E5617F26B5651D3EA2 /* DesignSystem */ = {
 			isa = PBXGroup;
 			children = (
+				5A6CA9794BC44F09ADF4EF0E /* OrganizationHeader.swift */,
+				D70F57E00CB9475CB96E5BD6 /* InstitutionBrandState.swift */,
+				D02FCE0D356C469496D6A75F /* Color+Hex.swift */,
 				CDBE4CDA30585BC0007D3D01 /* Colors.swift */,
 				62842C0B27ECE481E0936292 /* CoverImage.swift */,
 				A2B930E643F541E24C297C3A /* ErrorBanner.swift */,
@@ -520,12 +545,22 @@
 		FFB7BEFA2DB38ED3E597E574 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				CFD569712EB24FBF878523FF /* ReviewProject.swift */,
+				7181133CE1F34CE58E3710BF /* ReviewAccess.swift */,
 				5C5CF7E44315EA6B90CB5A68 /* Project */,
 				ABB0329F19CA5ACA2DD82304 /* Fair.swift */,
 				88CEF17A306EAF7B00B8E81E /* Review.swift */,
 				EED3D6B826D3E184A73E8AF3 /* User.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		5882BF2F2E5A414EA1A7CB07 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				9DB0ECDBDE004955AF07EE16 /* JuryOnboardingView.swift */,
+			);
+			path = Onboarding;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -600,6 +635,19 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				86C7889DBCD64C87BC75475F /* ProjectsStore+Reviews.swift in Sources */,
+				9AB31A953E5842ADBE95930C /* ReviewProject.swift in Sources */,
+				994F5F128A414E47B083F0BE /* ReviewAccess.swift in Sources */,
+				97B82F15721C411888CAA12A /* ProjectMembersCard.swift in Sources */,
+				27996AC07E7F43DB8F74215A /* ProjectDetailView+Loading.swift in Sources */,
+				5C2948082E7347FB8DE8D34E /* FairReviewNotice.swift in Sources */,
+				94CCD1DDEB4F4551937A0881 /* JuryOnboardingView.swift in Sources */,
+				6EE616B8029542CFACB2197B /* BrandArchive.swift in Sources */,
+				363D33A0CBCB4724B7379265 /* APIClient+Errors.swift in Sources */,
+				5F804DAB30F04852A5EEA6F1 /* APIClient+Assignments.swift in Sources */,
+				2A5D727D9F8B455D93D96724 /* OrganizationHeader.swift in Sources */,
+				32EB653B02A24A7A83AC8E85 /* InstitutionBrandState.swift in Sources */,
+				644277AE2F2F4093A2BBC333 /* Color+Hex.swift in Sources */,
 				3AC91A59EE028D529924037A /* CampusVoteJuradoApp.swift in Sources */,
 				39FA6602960D4C0B8CBC2B5E /* RootView.swift in Sources */,
 				746D2799F344F09ACD810FC9 /* CoverImage.swift in Sources */,
@@ -623,11 +671,8 @@
 				FA5E0000000000000000000A /* AssignedSummaryCard.swift in Sources */,
 				FA5E0000000000000000000C /* AssignedProjectRow.swift in Sources */,
 				FA5E0000000000000000000E /* AssignedProjectsListView.swift in Sources */,
-				FA5E00000000000000000010 /* AllProjectsView.swift in Sources */,
-				FA5E00000000000000000012 /* PublicProjectView.swift in Sources */,
 				FA5E00000000000000000014 /* QRScannerView.swift in Sources */,
 				FA5E00000000000000000016 /* QRCodePayload.swift in Sources */,
-				FA5E00000000000000000018 /* ProjectsCatalogStore.swift in Sources */,
 				CDBE4CF53058908A007D3D01 /* MainTabView.swift in Sources */,
 				600D0A73DA8BAE4D298A7FA0 /* Fair.swift in Sources */,
 				92F7ACF4040532080F799975 /* Project.swift in Sources */,
@@ -679,7 +724,6 @@
 				E5EB62F3A0B9B797CC658198 /* ProjectListFilters.swift in Sources */,
 				DCAC4081C46E947042602F34 /* ProjectDetail.swift in Sources */,
 				9D4FE741FADEEF29C150427F /* ProjectTaxonomy.swift in Sources */,
-				8C1E97EB020CF593166BB3C5 /* PublicProject.swift in Sources */,
 				29126687878BD787F4D13EA0 /* JuryAccessType.swift in Sources */,
 				DC91437713E158F83E4D1731 /* SessionStore+Auth.swift in Sources */,
 				0BD69AB27AA3B3A47C7AA9D1 /* APIClient.swift in Sources */,

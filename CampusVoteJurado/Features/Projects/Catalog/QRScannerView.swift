@@ -34,7 +34,7 @@ struct QRScannerView: View {
                         Image(systemName: "xmark")
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.white)
-                            .frame(width: 40, height: 40)
+                            .frame(width: 44, height: 44)
                             .background(Circle().fill(.black.opacity(0.45)))
                     }
                     .buttonStyle(.plain)

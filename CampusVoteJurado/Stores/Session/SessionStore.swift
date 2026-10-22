@@ -19,6 +19,7 @@ final class SessionStore {
     var pendingEmail = ""
     var pendingAccessType: JuryAccessType?
 
+    var sessionGeneration = UUID()
     let api: APIClient
     @ObservationIgnored private var sessionObserver: NSObjectProtocol?
 
@@ -45,18 +46,25 @@ final class SessionStore {
             return
         }
 
+        if let user = SessionArchive.load(), user.canUseJuryApp {
+            if let brand = BrandArchive.load(user: user) { InstitutionAppearance.apply(brand) }
+            phase = user.mustChangePassword ? .mustChangePassword(user) : .signedIn(user)
+        }
+        let generation = sessionGeneration
         isWorking = true
         defer { isWorking = false }
 
         do {
             let user = try await api.send(.me, as: User.self)
+            guard sessionGeneration == generation else { return }
             SessionArchive.save(user)
             try await validateAccess(for: user)
-            if let organizationId = user.organizationId {
-                await loadBrand(organizationId: organizationId)
-            }
+            guard sessionGeneration == generation else { return }
+            await loadBrand(user: user)
+            guard sessionGeneration == generation, api.hasSavedSession else { return }
             phase = user.mustChangePassword ? .mustChangePassword(user) : .signedIn(user)
         } catch let error as APIError {
+            guard sessionGeneration == generation else { return }
             if error.isSessionRejection {
                 api.clearTokens()
                 SessionArchive.clear()
@@ -67,12 +75,15 @@ final class SessionStore {
                 await restoreCachedSession(message: error.userMessage)
             } else {
                 errorMessage = error.userMessage
+                InstitutionAppearance.reset()
                 phase = .signedOut
             }
         } catch is CancellationError {
             return
         } catch {
+            guard sessionGeneration == generation else { return }
             errorMessage = error.userMessage
+            InstitutionAppearance.reset()
             phase = .signedOut
         }
     }
@@ -81,15 +92,14 @@ final class SessionStore {
     /// usuario guardado, entra con esos datos y deja que las pantallas
     /// reintenten sus propias peticiones.
     private func restoreCachedSession(message: String?) async {
-        guard let cached = SessionArchive.load() else {
+        guard let cached = SessionArchive.load(), cached.canUseJuryApp else {
             errorMessage = message ?? APIError.network.message
+            InstitutionAppearance.reset()
             phase = .signedOut
             return
         }
 
-        if let organizationId = cached.organizationId {
-            await loadBrand(organizationId: organizationId)
-        }
+        if let brand = BrandArchive.load(user: cached) { InstitutionAppearance.apply(brand) }
         errorMessage = message
         phase = cached.mustChangePassword ? .mustChangePassword(cached) : .signedIn(cached)
     }
@@ -174,7 +184,10 @@ final class SessionStore {
     }
 
     func logout() async {
-        try? await api.send(.logout(refreshToken: api.savedRefreshToken))
+        sessionGeneration = UUID()
+        var endpoint = Endpoint.logout(refreshToken: api.savedRefreshToken)
+        endpoint.explicitToken = KeychainStore.getToken()
+        endpoint.usesStoredToken = false
         api.clearTokens()
         SessionArchive.clear()
         InstitutionAppearance.reset()
@@ -182,9 +195,11 @@ final class SessionStore {
         pendingEmail = ""
         pendingAccessType = nil
         phase = .signedOut
+        try? await api.send(endpoint)
     }
 
     private func expireSession() {
+        sessionGeneration = UUID()
         switch phase {
         case .signedIn, .mustChangePassword:
             break

@@ -6,13 +6,15 @@ struct FilaDeFeria: View {
     let status: FairStatus
 
     enum FairStatus {
-        case open, scheduled, closed
+        case open, preview, scheduled, closed
     }
 
     private var statusConfig: (text: String, textColor: Color, bgColor: Color, borderColor: Color) {
         switch status {
         case .open:
             return ("Abierta", Color.onBrand, Color.brand, Color.clear)
+        case .preview:
+            return ("Vista previa", Color.brand, Color.brand.opacity(0.12), Color.clear)
         case .scheduled:
             return ("Programada", Color.appWarning, Color.appWarning.opacity(0.12), Color.appWarning.opacity(0.3))
         case .closed:

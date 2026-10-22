@@ -18,7 +18,7 @@ struct LoginAccessTypeSelector: View {
                         Text(L10n.tr(type.rawValue, locale: locale))
                             .font(.system(size: 14, weight: .semibold))
                     }
-                    .foregroundStyle(accessType == type ? Color.onBrand : Color.campusGreen)
+                    .foregroundStyle(accessType == type ? Color(light: 0xFFFFFF, dark: 0x0E1514) : Color.campusGreen)
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)
                     .background(

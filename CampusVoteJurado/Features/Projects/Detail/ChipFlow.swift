@@ -10,7 +10,7 @@ struct ChipFlow: Layout {
         var rowHeight: CGFloat = 0
 
         for view in subviews {
-            let size = view.sizeThatFits(.unspecified)
+            let size = view.sizeThatFits(ProposedViewSize(width: proposal.width, height: nil))
             if x > 0, x + size.width > width {
                 x = 0
                 y += rowHeight + spacing
@@ -29,7 +29,7 @@ struct ChipFlow: Layout {
         var rowHeight: CGFloat = 0
 
         for view in subviews {
-            let size = view.sizeThatFits(.unspecified)
+            let size = view.sizeThatFits(ProposedViewSize(width: bounds.width, height: nil))
             if x > bounds.minX, x + size.width > bounds.maxX {
                 x = bounds.minX
                 y += rowHeight + spacing

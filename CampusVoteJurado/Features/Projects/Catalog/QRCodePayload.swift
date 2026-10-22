@@ -1,60 +1,57 @@
 import Foundation
 
-/// Datos mínimos que puede traer el QR de un stand.
-/// Acepta JSON, URLs con UUIDs o el UUID del proyecto solamente.
+/// Solo extrae identificadores. Nunca abre URLs ni consulta catálogos públicos.
 struct QRCodePayload: Hashable {
     let fairId: String?
     let projectId: String
 
     static func parse(_ raw: String) -> QRCodePayload? {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return nil }
+        guard !text.isEmpty, text.utf8.count <= 8192 else { return nil }
+        if text.hasPrefix("{") { return parseJSON(text) }
 
-        if let fromJSON = parseJSON(text) {
-            return fromJSON
+        if let url = URLComponents(string: text), url.scheme != nil || text.contains("?") {
+            let parts = url.path.split(separator: "/").map(String.init)
+            // QR del stand: https://…/ferias/{fairId}/proyectos/{projectId}
+            let fairIndex = parts.firstIndex { $0 == "ferias" || $0 == "fairs" }
+            let fair = fairIndex.flatMap { index in
+                parts.indices.contains(index + 1) ? validID(parts[index + 1]) : nil
+            }
+            if let item = url.queryItems?.first(where: { ["project", "projectId"].contains($0.name) }) {
+                guard let project = item.value.flatMap(validID) else { return nil }
+                return QRCodePayload(fairId: fair, projectId: project)
+            }
+            guard let project = parts.reversed().compactMap(validID).first else { return nil }
+            // Una URL de feria sin proyecto no es un QR de proyecto.
+            guard parts.last != "projects", parts.last != "proyectos", project != fair else { return nil }
+            return QRCodePayload(fairId: fair, projectId: project)
         }
 
-        let ids = uuids(in: text)
-        if ids.count >= 2 {
-            return QRCodePayload(fairId: ids[0], projectId: ids[1])
-        }
-        if ids.count == 1 {
-            return QRCodePayload(fairId: nil, projectId: ids[0])
-        }
-        return nil
+        let tokens = text.components(separatedBy: CharacterSet.alphanumerics
+            .union(CharacterSet(charactersIn: "-")).inverted)
+        guard let project = tokens.reversed().compactMap(validID).first else { return nil }
+        return QRCodePayload(fairId: nil, projectId: project)
+    }
+
+    private static func validID(_ text: String) -> String? {
+        if UUID(uuidString: text) != nil { return text }
+        return !text.isEmpty && text.allSatisfy { $0.isASCII && $0.isNumber } ? text : nil
     }
 
     private static func parseJSON(_ text: String) -> QRCodePayload? {
         guard let data = text.data(using: .utf8),
-              let object = try? JSONSerialization.jsonObject(with: data),
-              let json = object as? [String: Any] else {
+              let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let project = identifier(json["project_id"] ?? json["projectId"] ?? json["project"]) else {
             return nil
         }
-
-        let fair = (json["fair_id"] as? String)
-            ?? (json["fairId"] as? String)
-            ?? nestedId(json["fair"])
-        let project = (json["project_id"] as? String)
-            ?? (json["projectId"] as? String)
-            ?? (json["project"] as? String)
-            ?? nestedId(json["project"])
-
-        guard let project else { return nil }
+        let fair = identifier(json["fair_id"] ?? json["fairId"] ?? json["fair"])
         return QRCodePayload(fairId: fair, projectId: project)
     }
 
-    private static func nestedId(_ value: Any?) -> String? {
-        guard let object = value as? [String: Any] else { return value as? String }
-        return (object["id"] as? String) ?? (object["project_id"] as? String)
-    }
-
-    private static func uuids(in text: String) -> [String] {
-        let pattern = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
-        let range = NSRange(text.startIndex..<text.endIndex, in: text)
-        return regex.matches(in: text, range: range).compactMap { match in
-            guard let matchRange = Range(match.range, in: text) else { return nil }
-            return String(text[matchRange])
-        }
+    private static func identifier(_ value: Any?) -> String? {
+        if let text = value as? String { return validID(text) }
+        if let number = value as? NSNumber { return validID(number.stringValue) }
+        if let object = value as? [String: Any] { return identifier(object["id"] ?? object["project_id"]) }
+        return nil
     }
 }

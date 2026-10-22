@@ -73,6 +73,7 @@ struct ProfileView: View {
             .padding(.top, 20)
             .padding(.bottom, 28)
         }
+        .safeAreaInset(edge: .top, spacing: 0) { OrganizationHeader(title: "Perfil") }
         .background(Color.appBackground.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(isPresented: $showPreferences) {

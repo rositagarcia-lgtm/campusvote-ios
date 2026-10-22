@@ -15,8 +15,9 @@ enum APIError: Error, Equatable {
 
     var message: String {
         switch self {
+        case .server(_, "REVIEW_NOT_OPEN_YET", _):
+            return "Podrás calificar cuando empiece la feria"
         case .server(_, _, let message):
-            // El backend ya manda el mensaje en español, listo para mostrar.
             return message
         case .sessionExpired:
             return "Tu sesión venció. Vuelve a iniciar sesión."
@@ -66,11 +67,13 @@ enum APIError: Error, Equatable {
 /// Forma del cuerpo de error del backend.
 struct ServerErrorBody: Decodable {
     struct Detail: Decodable {
-        let code: String
-        let message: String
+        let code: String?
+        let message: String?
     }
 
-    let error: Detail
+    let error: Detail?
+    let code: String?
+    let message: String?
 }
 
 extension Error {

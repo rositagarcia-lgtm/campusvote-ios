@@ -20,11 +20,11 @@ struct MyProgressView: View {
 
     private var institutionName: String {
         if let name = InstitutionAppearance.name, !name.isEmpty { return name }
-        return fairsStore.organizationName ?? L10n.tr("Institución", locale: locale)
+        return "CampusVote"
     }
 
     private var listMatchesFair: Bool {
-        projectsStore.fairId == selectedFairId
+        projectsStore.fairId == selectedFairId && projectsStore.scope == .assigned
     }
 
     private var ratedCount: Int {
@@ -71,7 +71,14 @@ struct MyProgressView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     if let message = projectsStore.errorMessage ?? fairsStore.errorMessage {
-                        ErrorBanner(message: message)
+                        ScreenStateView(icon: "exclamationmark.triangle", title: "No pudimos cargar tu avance",
+                                        message: message, actionTitle: "Reintentar") {
+                            Task {
+                                await fairsStore.fetchMyAssignments()
+                                selectedFairId = selectedFairId ?? fairsStore.activeFairs.first?.id
+                                if let selectedFairId { await projectsStore.load(fairId: selectedFairId) }
+                            }
+                        }
                     }
 
                     if selectedFairId == nil && !fairsStore.isLoading {
@@ -147,21 +154,13 @@ struct MyProgressView: View {
             guard let selectedFairId else { return }
             await projectsStore.load(fairId: selectedFairId)
         }
+        .onAppear {
+            guard let selectedFairId, !listMatchesFair else { return }
+            Task { await projectsStore.load(fairId: selectedFairId) }
+        }
     }
 
-    private var header: some View {
-        VStack(spacing: 0) {
-            Text("Avance")
-                .font(.headline)
-                .foregroundStyle(Color.onBrand)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-            Rectangle()
-                .fill(Color.onBrand.opacity(0.35))
-                .frame(height: 0.5)
-        }
-        .background(Color.brand.ignoresSafeArea(edges: .top))
-    }
+    private var header: some View { OrganizationHeader(title: "Avance") }
 
     private var fairMenu: some View {
         Menu {

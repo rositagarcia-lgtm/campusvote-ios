@@ -6,7 +6,6 @@ struct CampusVoteJuradoApp: App {
     @State private var session: SessionStore
     @State private var fairsStore: FairsStore
     @State private var projectsStore: ProjectsStore
-    @State private var catalogStore: ProjectsCatalogStore
     @State private var tabBar = TabBarVisibility()
     @AppStorage("campusvote.preferences.appearance") private var appearance = "system"
     @AppStorage("campusvote.preferences.language") private var language = "es"
@@ -25,7 +24,6 @@ struct CampusVoteJuradoApp: App {
         _session = State(initialValue: SessionStore(api: api))
         _fairsStore = State(initialValue: FairsStore(api: api))
         _projectsStore = State(initialValue: ProjectsStore(api: api))
-        _catalogStore = State(initialValue: ProjectsCatalogStore(api: api))
     }
 
     var body: some Scene {
@@ -34,7 +32,6 @@ struct CampusVoteJuradoApp: App {
                 .environment(session)
                 .environment(fairsStore)
                 .environment(projectsStore)
-                .environment(catalogStore)
                 .environment(tabBar)
                 .environment(\.locale, Locale(identifier: language == "en" ? "en" : "es"))
                 .modifier(PreferredTextSize())
@@ -43,7 +40,6 @@ struct CampusVoteJuradoApp: App {
                     guard phase == .signedOut else { return }
                     fairsStore.reset()
                     projectsStore.reset()
-                    catalogStore.reset()
                     tabBar.isHidden = false
                 }
         }

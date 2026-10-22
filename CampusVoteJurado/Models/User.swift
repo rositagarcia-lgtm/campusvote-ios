@@ -34,7 +34,7 @@ struct User: Codable, Hashable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decodeIfPresent(String.self, forKey: .id) ?? UUID().uuidString
+        id = try container.decode(String.self, forKey: .id)
         email = try container.decodeIfPresent(String.self, forKey: .email) ?? ""
 
         let first = try? container.decodeIfPresent(String.self, forKey: .firstName)

@@ -1,101 +1,37 @@
-# CampusVote Jurado · base del proyecto iOS
+# CampusVote Jurado · iOS 17
 
-Código base de la app del jurado en SwiftUI: capa de red, modelos, sesión y las 7
-pantallas en una versión simple y funcional. Falta aplicarle el diseño (Stitch).
+App nativa SwiftUI para jurados externos (`JURY`) y docentes asignados (`TEACHER`).
+Permite consultar proyectos y guardar reseñas de 1 a 5 estrellas con un comentario.
 
-> Este código se escribió en Windows, sin Xcode, a partir de las respuestas reales
-> del backend. Puede que Xcode pida algún ajuste menor la primera vez que compile.
+Abre `CampusVoteJurado.xcodeproj` en una Mac con Xcode 15 o posterior. Selecciona el
+target CampusVoteJurado, un dispositivo con iOS 17 o posterior y tu Team de firma.
+El bundle es `pe.campusvote.CampusVoteJurado`. La URL de la API está en
+`CampusVoteJurado/Core/Networking/APIConfig.swift`.
 
-## Requisitos
+El acceso externo usa contraseña y, si corresponde, código por correo. El acceso
+interno usa código por correo. Splash y login conservan CampusVote; tras entrar
+se carga y guarda la marca de la organización del usuario. El onboarding se
+muestra una vez por usuario.
 
-- Mac con **Xcode 15 o superior** (la app usa `@Observable`, que exige iOS 17).
-- Internet: la app se conecta al backend en Render.
-- Una cuenta demo: `jurado1@demo.campusvote.edu.pe` con la contraseña de `DEMO_PASSWORD`.
+Las ferias distinguen BEFORE_PREVIEW, PREVIEW, LIVE y ENDED. Durante PREVIEW se
+consulta la categoría asignada. Durante LIVE existe el filtro «Mis categorías /
+Toda la feria» y el escáner QR. Durante ENDED se consulta en lectura. Las rutas
+protegidas del backend siempre deciden los permisos efectivos.
 
-## Abrir el proyecto
+El [informe de auditoría](AUDITORIA_IOS.md) contiene el contrato revisado, los
+cambios, las dependencias pendientes del backend y la prueba paso a paso en iPhone.
 
-1. Descomprime el paquete en la Mac.
-2. Doble clic en **`CampusVoteJurado.xcodeproj`**: se abre en Xcode con todas las
-   carpetas y archivos ya incluidos.
-3. Arriba, elige un simulador de iPhone (por ejemplo, *iPhone 15*) y presiona **⌘R**.
-4. Entra con `jurado1@demo.campusvote.edu.pe`.
+La validación disponible en Windows es:
 
-Abrir solo la carpeta no sirve: Xcode necesita el `.xcodeproj` para compilar y ejecutar.
-El proyecto usa Swift 5 e iOS 17 como mínimo. Para instalarlo en un iPhone físico,
-elige tu Apple ID en **Signing & Capabilities → Team**.
-
-## Plan B: crear el proyecto a mano
-
-Solo si Xcode no abre el `.xcodeproj` (por ejemplo, con una versión muy antigua).
-Xcode no genera las carpetas como Laravel: la plantilla solo trae el archivo de
-arranque, una vista de ejemplo y los recursos. Las carpetas de este paquete se
-copian encima.
-
-1. Xcode → **File → New → Project… → iOS → App → Next**.
-2. Completa así:
-   - **Product Name:** `CampusVoteJurado`
-   - **Team:** None (para el simulador no hace falta)
-   - **Organization Identifier:** `pe.campusvote`
-   - **Interface:** SwiftUI · **Language:** Swift · **Storage:** None
-3. Guárdalo y marca **Create Git repository on my Mac**.
-4. En el navegador de Xcode (panel izquierdo) borra `ContentView.swift` y
-   `CampusVoteJuradoApp.swift` → **Move to Trash**. Los reemplazan los de este paquete.
-5. En Finder, copia las carpetas `App`, `Models`, `Networking`, `Stores`, `Features`
-   y `Components` dentro de la carpeta `CampusVoteJurado` del proyecto (la que tiene
-   `Assets.xcassets`).
-   - **Xcode 16 o superior:** aparecen solas en el navegador.
-   - **Xcode 15:** arrástralas al navegador de Xcode y marca **Copy items if needed**,
-     **Create groups** y el target `CampusVoteJurado`.
-6. Clic en el proyecto → target **CampusVoteJurado → General → Minimum Deployments:
-   iOS 17.0**.
-7. Revisa la URL del backend en `Networking/APIConfig.swift`.
-8. Elige un simulador de iPhone y presiona **⌘R**. Entra con `jurado1`.
-
-## Si no compila
-
-| Mensaje de Xcode | Qué hacer |
-|---|---|
-| `Invalid redeclaration of 'CampusVoteJuradoApp'` | Falta borrar el archivo de la plantilla (paso 4). |
-| `Cannot find 'X' in scope` | Ese archivo no quedó en el target: selecciónalo → panel derecho → **Target Membership** → marca `CampusVoteJurado`. |
-| Errores de concurrencia (`Sendable`, `actor-isolated`) | Build Settings → **Swift Language Version → Swift 5**. |
-| La app no conecta | Abre la URL de `/health` en Safari: si Render está dormido, la primera respuesta tarda. |
-
-## Estructura
-
-```
-CampusVoteJurado.xcodeproj   el proyecto de Xcode: se abre con doble clic
-CampusVoteJurado/
-  Assets.xcassets   color de acento (verde CampusVote) e ícono de la app
-  App/          arranque, decisión login/app y rutas de navegación
-  Models/       tipos Codable con la forma exacta de las respuestas
-  Networking/   APIClient, rutas (Endpoint), errores, Llavero y fechas
-  Stores/       estado compartido: sesión, ferias, proyectos, evaluación
-  Features/     una carpeta por grupo de pantallas
-  Components/   vistas reutilizables (portada, mensaje de error)
+```powershell
+python scripts/verify_project.py
+git diff --check
 ```
 
-La regla que ordena todo: **una vista nunca llama a `APIClient`**; siempre pasa por
-un store. Los stores son `@Observable` y `@MainActor`, y se comparten con
-`.environment(...)` desde `CampusVoteJuradoApp`.
+El script valida las referencias y Sources del pbxproj, los IDs, las rutas, el
+máximo de 250 líneas por Swift, delimitadores, traducciones y configuración.
+No compila Swift ni reemplaza las pruebas en Xcode.
 
-## Pantallas
-
-| # | Pantalla | Archivo |
-|---|---|---|
-| 01 | Acceso (y código 2FA si la cuenta lo tiene) | `Features/Auth/LoginView.swift`, `TotpView.swift` |
-| 02 | Mis ferias | `Features/Fairs/FairListView.swift` |
-| 03 | Declaración de imparcialidad | `Features/Fairs/DeclarationView.swift` |
-| 04 | Proyectos, búsqueda y filtros | `Features/Projects/ProjectListView.swift` |
-| 05 | Detalle del proyecto | `Features/Projects/ProjectDetailView.swift` |
-| 06 | Calificar con la rúbrica | `Features/Evaluation/EvaluateView.swift` |
-| 07 | Mi avance | `Features/Evaluation/MyProgressView.swift` |
-
-## Lo que queda para el equipo
-
-- Aplicar el diseño de Stitch: colores de CampusVote en `Assets.xcassets` (verde
-  #00695C y dorado #D4AF37), tipografía y tarjetas.
-- Probar en un iPhone físico (requiere un Apple ID en **Team**).
-- Ícono de la app y pantalla de arranque.
-- Revisar cada pantalla con la lista «Cuándo una pantalla está lista» del plan.
-
-Rutas, respuestas reales y reglas del backend: documento **Contrato API del Jurado**.
+Las carpetas de este proyecto no se sincronizan: cada Swift nuevo debe añadirse
+en PBXFileReference, PBXBuildFile, el PBXGroup de su carpeta y PBXSourcesBuildPhase.
+Conserva `objectVersion = 56` y usa identificadores únicos de 24 hexadecimales.

@@ -17,7 +17,7 @@ final class FairsStore {
         self.api = api
     }
 
-    private var allFairs: [FairAssignment] {
+    var allFairs: [FairAssignment] {
         activeFairs + scheduledFairs + closedFairs
     }
 
@@ -46,14 +46,14 @@ final class FairsStore {
         }
 
         do {
-            let assignments = try await api.send(.myAssignments, as: [FairAssignment].self)
+            let assignments = try await api.allAssignments()
             try Task.checkCancellation()
             guard loadID == requestID else { return }
-            activeFairs = assignments.filter { $0.fair.status.uppercased() == "OPEN" }
-            closedFairs = assignments.filter { $0.fair.status.uppercased() == "CLOSED" }
+            activeFairs = assignments.filter { $0.access.phase == .live }
+            closedFairs = assignments.filter { $0.access.phase == .ended }
             scheduledFairs = assignments.filter {
-                let status = $0.fair.status.uppercased()
-                return status != "OPEN" && status != "CLOSED"
+                let phase = $0.access.phase
+                return phase != .live && phase != .ended
             }
         } catch is CancellationError {
             return

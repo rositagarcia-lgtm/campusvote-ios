@@ -10,13 +10,12 @@ struct ProjectReviewCard: View {
 
     let aspectOptions: [String]
     let highlightsKey: String
-    let fairIsClosed: Bool
     let canSave: Bool
     let isSaving: Bool
     let commentHint: String?
     let onSave: () -> Void
 
-    private let verdeAspecto = Color(red: 0.13, green: 0.62, blue: 0.36)
+    private var verdeAspecto: Color { .brandTeal }
 
     var body: some View {
         ProjectDetailCard {
@@ -30,39 +29,21 @@ struct ProjectReviewCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if fairIsClosed {
-                Text("Esta feria está cerrada.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
             HStack(spacing: 2) {
                 ForEach(1...5, id: \.self) { star in
                     Button {
-                        guard !fairIsClosed else { return }
                         stars = star
                     } label: {
                         Image(systemName: star <= stars ? "star.fill" : "star")
                             .font(.system(size: 22))
-                            .foregroundStyle(star <= stars ? Color.brandGold : Color.appNeutral)
+                            .foregroundStyle(star <= stars ? Color.brand : Color.appNeutral)
                             .frame(width: 44, height: 44)
                     }
                     .buttonStyle(.plain)
-                    .disabled(fairIsClosed)
+                    .disabled(isSaving)
                     .accessibilityLabel(L10n.format("%d estrellas", locale: locale, star))
                     .accessibilityValue(star == stars ? L10n.tr("Seleccionado", locale: locale) : "")
                     .accessibilityAddTraits(star == stars ? .isSelected : [])
-                }
-
-                Spacer(minLength: 8)
-
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text(String(format: "%.1f", Double(stars)))
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(.primary)
-                    Text("/ 5")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -81,7 +62,7 @@ struct ProjectReviewCard: View {
                 if let commentHint {
                     Text(commentHint)
                         .font(.caption)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Color.appWarning)
                 }
             }
 
@@ -116,7 +97,6 @@ struct ProjectReviewCard: View {
     private func aspectChip(_ item: String) -> some View {
         let selected = aspects.contains(item)
         return Button {
-            guard !fairIsClosed else { return }
             if selected {
                 aspects.remove(item)
             } else {
@@ -136,7 +116,6 @@ struct ProjectReviewCard: View {
             }
             .font(.caption.weight(.semibold))
             .foregroundStyle(selected ? verdeAspecto : Color.secondary)
-            .lineLimit(1)
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
             .frame(minHeight: 44)
@@ -145,7 +124,7 @@ struct ProjectReviewCard: View {
             )
         }
         .buttonStyle(.plain)
-        .disabled(fairIsClosed)
+        .disabled(isSaving)
     }
 
     private func insertAspect(_ item: String) {
@@ -156,7 +135,7 @@ struct ProjectReviewCard: View {
         }
         let sentence = "\(localizedItem)."
         let next = current.isEmpty ? sentence : "\(current) \(sentence)"
-        guard next.count <= 1000 else { return }
+        guard next.utf16.count <= 1000 else { return }
         comment = next
     }
 
@@ -172,9 +151,10 @@ struct ProjectReviewCard: View {
 
             TextEditor(text: $comment)
                 .font(.subheadline)
+                .accessibilityLabel("Escribe un comentario")
                 .scrollContentBackground(.hidden)
                 .frame(minHeight: 88)
-                .disabled(fairIsClosed)
+                .disabled(isSaving)
         }
         .padding(.horizontal, 10)
         .padding(.top, 8)
@@ -195,13 +175,13 @@ struct ProjectReviewCard: View {
                 .padding(.bottom, 8)
         }
         .onChange(of: comment) { _, newValue in
-            if newValue.count > 1000 {
-                comment = String(newValue.prefix(1000))
-            }
+            var limited = String(newValue.prefix(1000))
+            while limited.utf16.count > 1000 { limited.removeLast() }
+            if limited != newValue { comment = limited }
         }
     }
 
     private var commentCount: Int {
-        comment.trimmingCharacters(in: .whitespacesAndNewlines).count
+        comment.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count
     }
 }

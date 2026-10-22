@@ -107,8 +107,13 @@ struct Endpoint {
         )
     }
 
-    static var myAssignments: Endpoint {
-        Endpoint(path: "fairs/my-assignments", method: "GET")
+    static var myAssignments: Endpoint { assignments(page: 1) }
+
+    static func assignments(page: Int) -> Endpoint {
+        Endpoint(path: "fairs/my-assignments", method: "GET", queryItems: [
+            URLQueryItem(name: "page", value: String(page)),
+            URLQueryItem(name: "limit", value: "100")
+        ])
     }
 
     static func assignment(fairId: String) -> Endpoint {
@@ -119,8 +124,9 @@ struct Endpoint {
         Endpoint(path: "fairs/my-projects", method: "GET")
     }
 
-    static func reviewProjects(fairId: String) -> Endpoint {
-        Endpoint(path: "fairs/\(fairId)/review-projects", method: "GET")
+    static func reviewProjects(fairId: String, scope: ReviewScope = .assigned) -> Endpoint {
+        Endpoint(path: "fairs/\(fairId)/review-projects", method: "GET", queryItems:
+            scope == .all ? [URLQueryItem(name: "scope", value: "all")] : [])
     }
 
     static func projectDetail(fairId: String, projectId: String) -> Endpoint {
@@ -139,28 +145,4 @@ struct Endpoint {
         )
     }
 
-    static func project(id: String) -> Endpoint {
-        Endpoint(path: "projects/\(id)", method: "GET")
-    }
-
-    static func allProjects(fairId: String, page: Int, limit: Int) -> Endpoint {
-        Endpoint(
-            path: "projects",
-            method: "GET",
-            queryItems: [
-                URLQueryItem(name: "fair_id", value: fairId),
-                URLQueryItem(name: "status", value: "APPROVED"),
-                URLQueryItem(name: "page", value: "\(page)"),
-                URLQueryItem(name: "limit", value: "\(limit)")
-            ]
-        )
-    }
-
-    static func publicProject(fairId: String, projectId: String) -> Endpoint {
-        Endpoint(
-            path: "public/fairs/\(fairId)/projects/\(projectId)",
-            method: "GET",
-            usesStoredToken: false
-        )
-    }
 }

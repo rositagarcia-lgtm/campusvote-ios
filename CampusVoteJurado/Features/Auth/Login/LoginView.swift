@@ -150,14 +150,14 @@ struct LoginView: View {
         Button(action: submit) {
             HStack(spacing: 10) {
                 if session.isWorking {
-                    ProgressView().tint(Color.onBrand)
+                    ProgressView().tint(Color(light: 0xFFFFFF, dark: 0x0E1514))
                 } else {
                     Text(L10n.tr(accessType == .external ? "Ingresar al Panel" : "Enviar código", locale: locale))
                         .fontWeight(.semibold)
                     Image(systemName: "arrow.right").font(.system(size: 14, weight: .bold))
                 }
             }
-            .foregroundStyle(Color.onBrand)
+            .foregroundStyle(Color(light: 0xFFFFFF, dark: 0x0E1514))
             .frame(maxWidth: .infinity)
             .frame(height: 52)
             .background(

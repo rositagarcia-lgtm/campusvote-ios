@@ -29,8 +29,9 @@ struct RootView: View {
                 case .mustChangePassword:
                     ChangePasswordView()
 
-                case .signedIn:
-                    MainTabView()
+                case .signedIn(let user):
+                    SignedInExperience(user: user)
+                        .id(user.id)
                 }
             }
         }

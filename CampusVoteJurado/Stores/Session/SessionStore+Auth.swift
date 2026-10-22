@@ -19,10 +19,6 @@ extension SessionStore {
                 )
             )
         }
-        guard let organizationId = user.organizationId, !organizationId.isEmpty else {
-            throw APIError.decoding("La sesión no trae la institución del jurado.")
-        }
-
         if result.mustChangePassword == true {
             user.mustChangePassword = true
         }
@@ -35,7 +31,8 @@ extension SessionStore {
             throw error
         }
         SessionArchive.save(user)
-        await loadBrand(organizationId: organizationId)
+        await loadBrand(user: user)
+        guard api.hasSavedSession else { throw APIError.sessionExpired }
         pendingEmail = ""
         pendingAccessType = nil
         phase = user.mustChangePassword ? .mustChangePassword(user) : .signedIn(user)
@@ -49,8 +46,8 @@ extension SessionStore {
                 message: "Esta aplicación es solo para jurados y docentes asignados."
             )
         }
-        let assignments = try await api.send(.myAssignments, as: [FairAssignment].self)
-        guard !assignments.isEmpty else {
+        let assignments = try await api.sendPage(.myAssignments, as: FairAssignment.self)
+        guard !assignments.items.isEmpty else {
             throw APIError.server(
                 status: 403,
                 code: "NO_ASSIGNMENTS",
@@ -59,16 +56,20 @@ extension SessionStore {
         }
     }
 
-    func loadBrand(organizationId: String) async {
+    func loadBrand(user: User) async {
+        InstitutionAppearance.reset()
+        guard let organizationId = user.organizationId, !organizationId.isEmpty else { return }
+        if let cached = BrandArchive.load(user: user) { InstitutionAppearance.apply(cached) }
+        let generation = sessionGeneration
         do {
             let brand = try await api.send(.organization(id: organizationId), as: OrganizationBrand.self)
+            guard sessionGeneration == generation else { return }
+            BrandArchive.save(brand, user: user)
             InstitutionAppearance.apply(brand)
         } catch {
-            // Conserva la marca ya aplicada si el fallo es de red. Solo vuelve
-            // al verde por defecto cuando todavía no hay identidad cargada.
-            if InstitutionAppearance.name == nil {
-                InstitutionAppearance.reset()
-            }
+            guard sessionGeneration == generation else { return }
+            BrandArchive.clear(user: user)
+            InstitutionAppearance.reset()
         }
     }
 

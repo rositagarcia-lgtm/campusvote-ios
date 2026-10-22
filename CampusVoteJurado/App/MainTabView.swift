@@ -76,6 +76,8 @@ struct MainTabView: View {
                         activeColor: Color.brand
                     )
                 }
+                .frame(minWidth: 44, minHeight: 44)
+                .accessibilityAddTraits(selectedTab == indice ? .isSelected : [])
                 .buttonStyle(.plain)
                 .accessibilityLabel(L10n.tr(pestana.titulo, locale: locale))
             }

@@ -13,6 +13,7 @@ struct ProjectDetailHeader: View {
                     .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Volver")
 
             Text("Detalle de proyecto")
                 .font(.headline)

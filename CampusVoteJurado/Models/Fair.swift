@@ -3,6 +3,16 @@ import Foundation
 struct FairAssignment: Decodable, Identifiable, Hashable {
     var id: String { fair.id }
     let fair: Fair
+    let access: ReviewAccess
+
+    enum CodingKeys: String, CodingKey { case fair }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        fair = try values.decode(Fair.self, forKey: .fair)
+        access = try ReviewAccess(from: decoder).merging(fair.access)
+            .resolved(status: fair.status, startsAt: fair.startsAt)
+    }
 
     static func == (lhs: FairAssignment, rhs: FairAssignment) -> Bool {
         lhs.id == rhs.id
@@ -29,6 +39,7 @@ struct Fair: Decodable, Identifiable, Hashable {
     let name: String
     let description: String?
     let status: String
+    let access: ReviewAccess
     let startsAt: String?
     let endsAt: String?
     let organizationId: String?
@@ -76,6 +87,7 @@ struct Fair: Decodable, Identifiable, Hashable {
         name = try container.decodeIfPresent(String.self, forKey: .name) ?? "Feria"
         description = try container.decodeIfPresent(String.self, forKey: .description)
         status = try container.decodeIfPresent(String.self, forKey: .status) ?? ""
+        access = try ReviewAccess(from: decoder)
         startsAt = try container.decodeIfPresent(String.self, forKey: .startsAt)
         endsAt = try container.decodeIfPresent(String.self, forKey: .endsAt)
 

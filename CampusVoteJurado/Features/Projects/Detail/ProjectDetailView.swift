@@ -4,55 +4,62 @@ struct ProjectDetailView: View {
     let fairId: String
     let projectId: String
 
-    @Environment(ProjectsStore.self) private var store
-    @Environment(FairsStore.self) private var fairs
-    @Environment(TabBarVisibility.self) private var tabBar
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.locale) private var locale
+    @Environment(ProjectsStore.self) var store
+    @Environment(FairsStore.self) var fairs
+    @Environment(TabBarVisibility.self) var tabBar
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.locale) var locale
+    @Environment(\.scenePhase) var scenePhase
 
-    @State private var detail: ProjectDetail?
-    @State private var isLoading = true
-    @State private var isSaving = false
-    @State private var errorMessage: String?
-    @State private var stars = 0
-    @State private var comment = ""
-    @State private var aspects: Set<String> = []
-    @State private var photoIndex: Int?
-    @State private var bannerPage = 0
-    @State private var saveAlert: SaveAlert?
+    @State var detail: ProjectDetail?
+    @State var isLoading = true
+    @State var isSaving = false
+    @State var ratingLoaded = false
+    @State var detailLoadID = UUID()
+    @State var errorMessage: String?
+    @State var stars = 0
+    @State var comment = ""
+    @State var aspects: Set<String> = []
+    @State var photoIndex: Int?
+    @State var bannerPage = 0
+    @State var saveAlert: SaveAlert?
 
-    private struct SaveAlert: Identifiable {
+    struct SaveAlert: Identifiable {
         let id = UUID()
         let title: String
         let message: String
     }
 
-    private let api = APIClient.shared
-    private let aspectos = [
+    let api = APIClient.shared
+    let aspectos = [
         "Prototipo funcional",
         "Buena explicación",
         "Viabilidad técnica",
     ]
 
-    private var fairIsClosed: Bool {
-        fairs.closedFairs.contains { $0.fair.id == fairId }
+    @State var loadedAccess: ReviewAccess?
+
+    var reviewAccess: ReviewAccess {
+        let fallback = loadedAccess ?? fairs.allFairs.first { $0.id == fairId }?.access ?? ReviewAccess()
+        return store.access(fairId: fairId, fallback: fallback)
     }
 
-    private var commentCount: Int {
-        comment.trimmingCharacters(in: .whitespacesAndNewlines).count
+    var commentCount: Int {
+        comment.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count
     }
 
-    private var canSave: Bool {
-        !fairIsClosed && !isSaving && (1...5).contains(stars) && (10...1000).contains(commentCount)
+    var canSave: Bool {
+        reviewAccess.allowsReview && ratingLoaded && !isSaving
+            && (1...5).contains(stars) && (10...1000).contains(commentCount)
     }
 
-    private var commentHint: String? {
+    var commentHint: String? {
         guard commentCount > 0, commentCount < 10 else { return nil }
         return L10n.format("Faltan %d caracteres para poder guardar.", locale: locale, 10 - commentCount)
     }
 
-    private var highlightsKey: String {
-        "campusvote.jury.highlights.\(projectId)"
+    var highlightsKey: String {
+        "campusvote.jury.highlights.\(SessionArchive.load()?.id ?? "anonymous").\(projectId)"
     }
 
     var body: some View {
@@ -61,9 +68,13 @@ struct ProjectDetailView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
+                    FairReviewNotice(access: reviewAccess).padding(.horizontal, 16)
                     if let errorMessage {
-                        ErrorBanner(message: errorMessage)
-                            .padding(.horizontal, 16)
+                        ScreenStateView(icon: "exclamationmark.triangle", title: "No pudimos cargar el proyecto",
+                                        message: errorMessage, actionTitle: "Reintentar") {
+                            Task { await load() }
+                        }
+                        .padding(.horizontal, 16)
                     }
 
                     if isLoading {
@@ -105,6 +116,7 @@ struct ProjectDetailView: View {
                                 }
                             }
 
+                            ProjectMembersCard(members: detail.members)
                             reviewCard
                         }
                         .padding(.horizontal, 16)
@@ -125,6 +137,7 @@ struct ProjectDetailView: View {
                 dismissButton: .default(Text("Aceptar"))
             )
         }
+        .refreshable { await load() }
         .task {
             loadHighlights()
             await load()
@@ -134,6 +147,9 @@ struct ProjectDetailView: View {
         }
         .onDisappear {
             tabBar.isHidden = false
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await refreshReviewAccess() } }
         }
         .overlay {
             if let detail, let photoIndex {
@@ -149,100 +165,22 @@ struct ProjectDetailView: View {
         }
     }
 
-    private var reviewCard: some View {
-        ProjectReviewCard(
-            stars: $stars,
-            comment: $comment,
-            aspects: $aspects,
-            aspectOptions: aspectos,
-            highlightsKey: highlightsKey,
-            fairIsClosed: fairIsClosed,
-            canSave: canSave,
-            isSaving: isSaving,
-            commentHint: commentHint
-        ) {
-            Task { await save() }
-        }
-    }
-
-    private func heroURL(_ detail: ProjectDetail) -> String? {
-        if let cover = detail.coverUrl, !cover.isEmpty, cover != detail.logoUrl {
-            return cover
-        }
-        return detail.imageUrls.first { $0 != detail.logoUrl && !$0.isEmpty }
-    }
-
-    private func gallery(_ detail: ProjectDetail) -> [String] {
-        var urls: [String] = []
-        if let hero = heroURL(detail) {
-            urls.append(hero)
-        }
-        for url in detail.imageUrls where url != detail.logoUrl && !url.isEmpty && !urls.contains(url) {
-            urls.append(url)
-        }
-        return urls
-    }
-
-    private func loadHighlights() {
-        let saved = UserDefaults.standard.stringArray(forKey: highlightsKey) ?? []
-        aspects = Set(saved.filter { aspectos.contains($0) })
-    }
-
-    private func load() async {
-        isLoading = true
-        errorMessage = nil
-        defer { isLoading = false }
-
-        do {
-            detail = try await api.send(
-                .projectDetail(fairId: fairId, projectId: projectId),
-                as: ProjectDetail.self
-            )
-        } catch {
-            errorMessage = error.userMessage
-        }
-
-        do {
-            let loaded = try await api.send(
-                .projectRating(fairId: fairId, projectId: projectId),
-                as: ProjectRating.self
-            )
-            stars = min(max(loaded.rating ?? 0, 0), 5)
-            comment = String((loaded.comment ?? "").prefix(1000))
-        } catch let error as APIError {
-            if case .decoding = error {
-                stars = 0
-                comment = ""
-            } else if errorMessage == nil {
-                errorMessage = error.message
-            }
-        } catch {
-            if errorMessage == nil {
-                errorMessage = error.userMessage
+    @ViewBuilder
+    var reviewCard: some View {
+        if reviewAccess.allowsReview && ratingLoaded {
+            ProjectReviewCard(
+                stars: $stars,
+                comment: $comment,
+                aspects: $aspects,
+                aspectOptions: aspectos,
+                highlightsKey: highlightsKey,
+                canSave: canSave,
+                isSaving: isSaving,
+                commentHint: commentHint
+            ) {
+                Task { await save() }
             }
         }
     }
 
-    private func save() async {
-        guard canSave else { return }
-        isSaving = true
-        errorMessage = nil
-        defer { isSaving = false }
-
-        if let saved = await store.saveRating(
-            fairId: fairId,
-            projectId: projectId,
-            rating: stars,
-            comment: comment
-        ) {
-            stars = min(max(saved.rating ?? stars, 0), 5)
-            comment = String((saved.comment ?? comment).prefix(1000))
-            saveAlert = SaveAlert(
-                title: "Reseña guardada",
-                message: "Tu reseña y comentario se guardaron correctamente."
-            )
-        } else {
-            errorMessage = store.errorMessage
-        }
-    }
 }
