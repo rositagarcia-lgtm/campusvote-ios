@@ -39,6 +39,7 @@ final class SessionStore {
     func restore() async {
         errorMessage = nil
         guard api.hasSavedSession else {
+            if let cached = SessionArchive.load() { ProfileAvatarStore.clear(for: cached.id) }
             api.clearTokens()
             SessionArchive.clear()
             InstitutionAppearance.reset()
@@ -66,6 +67,7 @@ final class SessionStore {
         } catch let error as APIError {
             guard sessionGeneration == generation else { return }
             if error.isSessionRejection {
+                if let cached = SessionArchive.load() { ProfileAvatarStore.clear(for: cached.id) }
                 api.clearTokens()
                 SessionArchive.clear()
                 InstitutionAppearance.reset()
@@ -185,6 +187,8 @@ final class SessionStore {
 
     func logout() async {
         sessionGeneration = UUID()
+        if case .signedIn(let user) = phase { ProfileAvatarStore.clear(for: user.id) }
+        if case .mustChangePassword(let user) = phase { ProfileAvatarStore.clear(for: user.id) }
         var endpoint = Endpoint.logout(refreshToken: api.savedRefreshToken)
         endpoint.explicitToken = KeychainStore.getToken()
         endpoint.usesStoredToken = false
@@ -201,8 +205,8 @@ final class SessionStore {
     private func expireSession() {
         sessionGeneration = UUID()
         switch phase {
-        case .signedIn, .mustChangePassword:
-            break
+        case .signedIn(let user), .mustChangePassword(let user):
+            ProfileAvatarStore.clear(for: user.id)
         default:
             return
         }

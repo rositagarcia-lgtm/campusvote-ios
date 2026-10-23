@@ -22,7 +22,7 @@ struct ProfileView: View {
     @State private var showEdit = false
     @State private var showPassword = false
     @State private var showPreferences = false
-    @State private var avatarHidden = ProfileAvatarStore.isHidden
+    @State private var avatarHidden = false
 
     var body: some View {
         ScrollView {
@@ -183,8 +183,10 @@ struct ProfileView: View {
         isLoading = profile == nil
         errorMessage = nil
         defer { isLoading = false }
-        localAvatar = ProfileAvatarStore.load()
-        avatarHidden = ProfileAvatarStore.isHidden
+        if let userId = signedInUser?.id {
+            localAvatar = ProfileAvatarStore.load(for: userId)
+            avatarHidden = ProfileAvatarStore.isHidden(for: userId)
+        }
         do {
             profile = try await APIClient.shared.send(
                 Endpoint(path: "users/me", method: "GET"),
@@ -205,15 +207,17 @@ struct ProfileView: View {
     }
 
     private func storeAvatar(_ image: UIImage) {
+        guard let userId = signedInUser?.id else { return }
         localAvatar = image
         avatarHidden = false
-        ProfileAvatarStore.save(image)
+        ProfileAvatarStore.save(image, for: userId)
     }
 
     private func deleteAvatar() {
+        guard let userId = signedInUser?.id else { return }
         localAvatar = nil
         avatarHidden = true
-        ProfileAvatarStore.delete()
+        ProfileAvatarStore.delete(for: userId)
     }
 
     private func logout() {

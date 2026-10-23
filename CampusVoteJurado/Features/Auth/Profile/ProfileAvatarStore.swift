@@ -1,31 +1,52 @@
 import Foundation
 import UIKit
+import CryptoKit
 
 enum ProfileAvatarStore {
-    private static let hiddenKey = "campusvote.jury.avatar.hidden"
+    private static func hiddenKey(for userId: String) -> String {
+        "campusvote.jury.avatar.hidden.\(userId)"
+    }
 
-    private static var fileURL: URL {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    private static func fileURL(for userId: String) -> URL {
+        let digest = SHA256.hash(data: Data(userId.utf8))
+            .map { String(format: "%02x", $0) }.joined()
+        return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("jury-profile-avatar-\(digest).jpg")
+    }
+
+    private static func removeLegacyAvatar() {
+        let oldURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("jury-profile-avatar.jpg")
+        try? FileManager.default.removeItem(at: oldURL)
+        UserDefaults.standard.removeObject(forKey: "campusvote.jury.avatar.hidden")
     }
 
-    static var isHidden: Bool {
-        UserDefaults.standard.bool(forKey: hiddenKey)
+    static func isHidden(for userId: String) -> Bool {
+        UserDefaults.standard.bool(forKey: hiddenKey(for: userId))
     }
 
-    static func save(_ image: UIImage) {
+    static func save(_ image: UIImage, for userId: String) {
         guard let data = image.jpegData(compressionQuality: 0.85) else { return }
-        try? data.write(to: fileURL, options: .atomic)
-        UserDefaults.standard.set(false, forKey: hiddenKey)
+        removeLegacyAvatar()
+        try? data.write(to: fileURL(for: userId), options: .atomic)
+        UserDefaults.standard.set(false, forKey: hiddenKey(for: userId))
     }
 
-    static func load() -> UIImage? {
-        guard !isHidden, let data = try? Data(contentsOf: fileURL) else { return nil }
+    static func load(for userId: String) -> UIImage? {
+        removeLegacyAvatar()
+        guard !isHidden(for: userId),
+              let data = try? Data(contentsOf: fileURL(for: userId)) else { return nil }
         return UIImage(data: data)
     }
 
-    static func delete() {
-        try? FileManager.default.removeItem(at: fileURL)
-        UserDefaults.standard.set(true, forKey: hiddenKey)
+    static func delete(for userId: String) {
+        try? FileManager.default.removeItem(at: fileURL(for: userId))
+        UserDefaults.standard.set(true, forKey: hiddenKey(for: userId))
+    }
+
+    static func clear(for userId: String) {
+        try? FileManager.default.removeItem(at: fileURL(for: userId))
+        UserDefaults.standard.removeObject(forKey: hiddenKey(for: userId))
+        removeLegacyAvatar()
     }
 }
