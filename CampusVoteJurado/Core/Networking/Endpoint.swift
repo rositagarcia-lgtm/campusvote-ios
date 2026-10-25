@@ -130,7 +130,7 @@ struct Endpoint {
     }
 
     static func projectDetail(fairId: String, projectId: String) -> Endpoint {
-        Endpoint(path: "fairs/\(fairId)/projects/\(projectId)", method: "GET")
+        Endpoint(path: "fairs/\(fairId)/review-projects/\(projectId)", method: "GET")
     }
 
     static func projectRating(fairId: String, projectId: String) -> Endpoint {
