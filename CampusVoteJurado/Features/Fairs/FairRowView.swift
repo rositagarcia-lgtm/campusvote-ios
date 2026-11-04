@@ -9,57 +9,81 @@ struct FilaDeFeria: View {
         case open, preview, scheduled, closed
     }
 
-    private var statusConfig: (text: String, textColor: Color, bgColor: Color, borderColor: Color) {
+    private var statusConfig: (text: String, textColor: Color, bgColor: Color) {
         switch status {
         case .open:
-            return ("Abierta", Color.onBrand, Color.brand, Color.clear)
+            return ("Abierta", Color.onBrand, Color.brand)
         case .preview:
-            return ("Vista previa", Color.brand, Color.brand.opacity(0.12), Color.clear)
+            return ("Vista previa", Color.brand, Color.brand.opacity(0.12))
         case .scheduled:
-            return ("Programada", Color.appWarning, Color.appWarning.opacity(0.12), Color.appWarning.opacity(0.3))
+            return ("Programada", Color.appWarning, Color.appWarning.opacity(0.12))
         case .closed:
-            return ("Cerrada", Color.appNeutral, Color.appNeutral.opacity(0.12), Color.appNeutral.opacity(0.3))
+            return ("Cerrada", Color.appNeutral, Color.appNeutral.opacity(0.12))
         }
     }
 
-    var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(fair.name)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(status == .closed ? Color.secondary : Color.primary)
-                    .lineLimit(2)
+    private var showsChevron: Bool {
+        status == .open || status == .preview || status == .closed
+    }
 
-                if let site = fair.siteName, !site.isEmpty {
-                    HStack(spacing: 4) {
-                        Image(systemName: "mappin.circle.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(Color.appNeutral)
-                        Text(site)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            CoverImage(url: fair.coverURL)
+                .frame(maxWidth: .infinity)
+                .frame(height: 148)
+                .clipped()
+
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .top, spacing: 8) {
+                        Text(fair.name)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(status == .closed ? Color.secondary : Color.primary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+
+                        Spacer(minLength: 8)
+
+                        Text(L10n.tr(statusConfig.text, locale: locale))
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(statusConfig.textColor)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(statusConfig.bgColor))
+                    }
+
+                    if let description = fair.description?.trimmingCharacters(in: .whitespacesAndNewlines),
+                       !description.isEmpty {
+                        Text(description)
                             .font(.caption)
                             .foregroundStyle(Color.appNeutral)
+                            .lineLimit(2)
+                    }
+
+                    if let site = fair.siteName, !site.isEmpty {
+                        HStack(spacing: 4) {
+                            Image(systemName: "mappin.circle.fill")
+                                .font(.system(size: 12))
+                            Text(site)
+                                .font(.caption)
+                                .lineLimit(1)
+                        }
+                        .foregroundStyle(Color.appNeutral)
                     }
                 }
+
+                if showsChevron {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.primary)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(Color.iconTile))
+                }
             }
-
-            Spacer(minLength: 8)
-
-            Text(L10n.tr(statusConfig.text, locale: locale))
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(statusConfig.textColor)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(statusConfig.bgColor)
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(statusConfig.borderColor, lineWidth: 1))
-
-            if status == .open {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.appNeutral.opacity(0.5))
-            }
+            .padding(16)
         }
-        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .premiumSurface(raised: status == .open)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }

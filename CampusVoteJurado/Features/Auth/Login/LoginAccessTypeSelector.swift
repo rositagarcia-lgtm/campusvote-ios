@@ -7,8 +7,9 @@ struct LoginAccessTypeSelector: View {
     let onSelect: (JuryAccessType) -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 4) {
             ForEach(JuryAccessType.allCases) { type in
+                let selected = accessType == type
                 Button {
                     onSelect(type)
                 } label: {
@@ -18,31 +19,20 @@ struct LoginAccessTypeSelector: View {
                         Text(L10n.tr(type.rawValue, locale: locale))
                             .font(.system(size: 14, weight: .semibold))
                     }
-                    .foregroundStyle(accessType == type ? Color(light: 0xFFFFFF, dark: 0x0E1514) : Color.campusGreen)
+                    .foregroundStyle(selected ? Color.white : Color.primary)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 44)
+                    .frame(height: 40)
                     .background(
-                        Group {
-                            if accessType == type {
-                                LinearGradient(
-                                    colors: [Color.campusGreen, Color.campusTeal],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            } else {
-                                Color.cardBackground
-                            }
-                        }
+                        Capsule().fill(selected ? Color.campusGreen : Color.clear)
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(5)
-        .background(Color.campusGreen.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(4)
+        .background(Capsule().fill(Color(light: 0xF3F5F7, dark: 0x1C2826)))
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 12)
+        .animation(.easeInOut(duration: 0.2), value: accessType)
     }
 }

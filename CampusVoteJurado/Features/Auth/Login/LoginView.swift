@@ -69,57 +69,71 @@ struct LoginView: View {
         }
     }
 
-    // MARK: - Tarjeta de Credenciales
     private var credentialsCard: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 12) {
             PremiumFieldRow(
                 icon: "envelope.fill",
                 label: "CORREO ELECTRÓNICO",
                 isFocused: focus == .email
             ) {
-                TextField("jurado@campusvote.edu.pe", text: $email)
-                    .font(.system(size: 15, weight: .medium))
-                    .textContentType(.username)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .submitLabel(.next)
-                    .focused($focus, equals: .email)
-                    .onSubmit {
-                        if accessType == .external {
-                            focus = .password
-                        } else {
-                            submit()
-                        }
+                ZStack(alignment: .leading) {
+                    if email.isEmpty {
+                        Text("jurado@campusvote.edu.pe")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(Color.appNeutral)
+                            .allowsHitTesting(false)
                     }
+                    TextField("", text: $email)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Color.primary)
+                        .tint(Color.campusGreen)
+                        .textContentType(.username)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .submitLabel(.next)
+                        .focused($focus, equals: .email)
+                        .onSubmit {
+                            if accessType == .external {
+                                focus = .password
+                            } else {
+                                submit()
+                            }
+                        }
+                }
             }
 
             if accessType == .external {
-                Rectangle()
-                    .fill(Color.campusGreen.opacity(0.1))
-                    .frame(height: 1)
-                    .padding(.leading, 60)
-
                 PremiumFieldRow(
                     icon: "lock.fill",
                     label: "CONTRASEÑA",
                     isFocused: focus == .password
                 ) {
-                    HStack {
-                        Group {
-                            if showPassword {
-                                TextField("••••••••", text: $password)
-                            } else {
-                                SecureField("••••••••", text: $password)
+                    HStack(spacing: 8) {
+                        ZStack(alignment: .leading) {
+                            if password.isEmpty {
+                                Text("••••••••")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(Color.appNeutral)
+                                    .allowsHitTesting(false)
                             }
+                            Group {
+                                if showPassword {
+                                    TextField("", text: $password)
+                                } else {
+                                    SecureField("", text: $password)
+                                }
+                            }
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(Color.primary)
+                            .tint(Color.campusGreen)
+                            .textContentType(.password)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .submitLabel(.go)
+                            .focused($focus, equals: .password)
+                            .onSubmit(submit)
                         }
-                        .font(.system(size: 15, weight: .medium))
-                        .textContentType(.password)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .submitLabel(.go)
-                        .focused($focus, equals: .password)
-                        .onSubmit(submit)
 
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) { showPassword.toggle() }
@@ -134,18 +148,10 @@ struct LoginView: View {
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .background(Color.cardBackground)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.campusGreen.opacity(0.15), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: Color.campusGreen.opacity(0.08), radius: 20, x: 0, y: 8)
         .opacity(showContent ? 1 : 0)
         .offset(y: showContent ? 0 : 15)
     }
 
-    // MARK: - Botón de Envío
     private var submitButton: some View {
         Button(action: submit) {
             HStack(spacing: 10) {
@@ -179,7 +185,6 @@ struct LoginView: View {
         .animation(.easeInOut(duration: 0.2), value: canSubmit)
     }
 
-    // MARK: - Nota de Verificación
     private var twoStepNote: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "shield.checkered")
@@ -199,7 +204,6 @@ struct LoginView: View {
         .opacity(showContent ? 1 : 0)
     }
 
-    // MARK: - Enlace de Ayuda
     private var helpLink: some View {
         Button { showHelp = true } label: {
             HStack(spacing: 6) {
@@ -211,7 +215,6 @@ struct LoginView: View {
         .opacity(showContent ? 1 : 0)
     }
 
-    // MARK: - Lógica de Submit
     private func submit() {
         guard canSubmit else { return }
         focus = nil
@@ -221,7 +224,6 @@ struct LoginView: View {
     }
 }
 
-// MARK: - Preview
 #Preview {
     LoginView()
         .environment(SessionStore(api: .shared))

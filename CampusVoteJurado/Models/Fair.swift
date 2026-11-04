@@ -46,8 +46,17 @@ struct Fair: Decodable, Identifiable, Hashable {
     let organizationName: String?
     let siteId: String?
     let siteName: String?
+    let imageUrl: String?
 
     var isOpen: Bool { status.uppercased() == "OPEN" }
+
+    var coverURL: URL? {
+        guard let imageUrl,
+              let url = URL(string: imageUrl),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "https" || scheme == "http" else { return nil }
+        return url
+    }
 
     var organization: FairOrganization? {
         guard let organizationName, !organizationName.isEmpty else { return nil }
@@ -67,7 +76,7 @@ struct Fair: Decodable, Identifiable, Hashable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, description, status, organization, site
+        case id, name, description, status, organization, site, image
         case startsAt = "starts_at"
         case endsAt = "ends_at"
         case organizationId = "organization_id"
@@ -75,6 +84,11 @@ struct Fair: Decodable, Identifiable, Hashable {
         case siteId = "site_id"
         case siteName = "site_name"
         case fair
+        case coverUrl = "cover_url"
+        case bannerUrl = "banner_url"
+        case imageUrl = "image_url"
+        case photoUrl = "photo_url"
+        case logoUrl = "logo_url"
     }
 
     init(from decoder: Decoder) throws {
@@ -90,6 +104,7 @@ struct Fair: Decodable, Identifiable, Hashable {
         access = try ReviewAccess(from: decoder)
         startsAt = try container.decodeIfPresent(String.self, forKey: .startsAt)
         endsAt = try container.decodeIfPresent(String.self, forKey: .endsAt)
+        imageUrl = Self.firstImage(in: container)
 
         var orgId = try container.decodeIfPresent(String.self, forKey: .organizationId)
         var orgName = try container.decodeIfPresent(String.self, forKey: .organizationName)
@@ -108,6 +123,16 @@ struct Fair: Decodable, Identifiable, Hashable {
         }
         siteId = parsedSiteId
         siteName = parsedSiteName
+    }
+
+    private static func firstImage(in container: KeyedDecodingContainer<CodingKeys>) -> String? {
+        let keys: [CodingKeys] = [.coverUrl, .bannerUrl, .imageUrl, .photoUrl, .image, .logoUrl]
+        for key in keys {
+            guard let value = try? container.decodeIfPresent(String.self, forKey: key) else { continue }
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { return trimmed }
+        }
+        return nil
     }
 
     static func == (lhs: Fair, rhs: Fair) -> Bool { lhs.id == rhs.id }
