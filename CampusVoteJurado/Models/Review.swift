@@ -1,7 +1,5 @@
 import Foundation
 
-/// Lista de GET /fairs/{fairId}/review-projects.
-/// Acepta `{ summary, projects }` o un arreglo de proyectos.
 struct ReviewList: Decodable {
     let summary: ReviewSummary
     let projects: [ReviewProject]
@@ -11,7 +9,8 @@ struct ReviewList: Decodable {
     enum CodingKeys: String, CodingKey {
         case summary
         case projects
-        case items, scope, fair
+        case items, results, data, scope, fair
+        case reviewProjects = "review_projects"
     }
 
     init(summary: ReviewSummary, projects: [ReviewProject]) {
@@ -23,31 +22,54 @@ struct ReviewList: Decodable {
 
     init(from decoder: Decoder) throws {
         let values = try? decoder.container(keyedBy: CodingKeys.self)
-        let nested = try values?.decodeIfPresent(ReviewAccess.self, forKey: .fair)
+        let nested = try? values?.decodeIfPresent(ReviewAccess.self, forKey: .fair)
         access = ((try? ReviewAccess(from: decoder)) ?? ReviewAccess()).merging(nested ?? ReviewAccess())
-        let rawScope = try values?.decodeIfPresent(String.self, forKey: .scope)
-        scope = rawScope == "all" ? .all : (rawScope == "mine" ? .assigned : nil)
-        if let container = try? decoder.container(keyedBy: CodingKeys.self),
-           container.contains(.projects) || container.contains(.items) || container.contains(.summary) {
-            let projects = try container.decodeIfPresent([ReviewProject].self, forKey: .projects)
-                ?? container.decodeIfPresent([ReviewProject].self, forKey: .items)
-                ?? []
-            if let summary = try container.decodeIfPresent(ReviewSummary.self, forKey: .summary) {
-                self.summary = summary
-            } else {
-                self.summary = ReviewSummary(projects: projects)
+        scope = Self.scope(from: try? values?.decodeIfPresent(String.self, forKey: .scope))
+
+        if let container = values {
+            for key in [CodingKeys.projects, .items, .results, .reviewProjects, .data] where container.contains(key) {
+                if let projects = Self.projects(in: container, key: key) {
+                    self.projects = projects
+                    self.summary = (try? container.decodeIfPresent(ReviewSummary.self, forKey: .summary))
+                        ?? ReviewSummary(projects: projects)
+                    return
+                }
             }
+        }
+
+        if let projects = try? [OptionalProject](from: decoder).compactMap(\.project) {
             self.projects = projects
+            self.summary = ReviewSummary(projects: projects)
             return
         }
 
-        let projects = try [ReviewProject](from: decoder)
-        self.projects = projects
-        self.summary = ReviewSummary(projects: projects)
+        self.projects = []
+        self.summary = ReviewSummary(rated: 0, total: 0)
+    }
+
+    private static func scope(from raw: String?) -> ReviewScope? {
+        switch raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "all", "fair", "everyone": return .all
+        case "mine", "assigned", "my_categories", "categories": return .assigned
+        default: return nil
+        }
+    }
+
+    private static func projects(
+        in container: KeyedDecodingContainer<CodingKeys>,
+        key: CodingKeys
+    ) -> [ReviewProject]? {
+        (try? container.decode([OptionalProject].self, forKey: key))?.compactMap(\.project)
     }
 }
 
-/// Encabezado «0 de 3».
+private struct OptionalProject: Decodable {
+    let project: ReviewProject?
+    init(from decoder: Decoder) throws {
+        project = try? ReviewProject(from: decoder)
+    }
+}
+
 struct ReviewSummary: Decodable, Hashable {
     let rated: Int
     let total: Int
@@ -78,8 +100,6 @@ struct ReviewSummary: Decodable, Hashable {
     }
 }
 
-/// GET /fairs/{fairId}/projects/{projectId}/rating.
-/// `rating` null significa que todavía no hay reseña.
 struct ProjectRating: Decodable, Hashable {
     let rating: Int?
     let comment: String?
@@ -101,13 +121,12 @@ struct ProjectRating: Decodable, Hashable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         rating = container.decodeLossyInt(forKey: .rating)
-        let text = try container.decodeIfPresent(String.self, forKey: .comment)?
+        let text = (try? container.decodeIfPresent(String.self, forKey: .comment))?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         comment = (text?.isEmpty == false) ? text : nil
     }
 }
 
-/// Cuerpo del PUT de la misma ruta: `{ "rating": 4, "comment": "..." }`.
 struct ReviewPutBody: Encodable {
     let rating: Int
     let comment: String

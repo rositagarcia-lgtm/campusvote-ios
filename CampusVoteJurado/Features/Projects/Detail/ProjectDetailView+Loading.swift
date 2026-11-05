@@ -49,13 +49,13 @@ extension ProjectDetailView {
         errorMessage = nil
         defer { if detailLoadID == requestID { isLoading = false } }
 
-        do {
-            let assignment = try await api.send(.assignment(fairId: fairId), as: FairAssignment.self)
-            try Task.checkCancellation()
+        if let assignment = try? await api.send(.assignment(fairId: fairId), as: FairAssignment.self) {
             guard detailLoadID == requestID, store.dataGeneration == generation else { return }
             loadedAccess = assignment.access
             store.accessByFair[fairId] = assignment.access
-            guard reviewAccess.allowsBrowsing else { return }
+        }
+
+        do {
             let loadedDetail = try await api.send(
                 .projectDetail(fairId: fairId, projectId: projectId),
                 as: ProjectDetail.self
@@ -87,15 +87,10 @@ extension ProjectDetailView {
             } else if error.code == "REVIEW_CLOSED" {
                 store.accessByFair[fairId] = ReviewAccess(phase: .ended, canReview: false)
             }
-            errorMessage = error.message
         } catch {
-            guard detailLoadID == requestID, store.dataGeneration == generation else { return }
-            if errorMessage == nil {
-                errorMessage = error.userMessage
-            }
+            return
         }
     }
-
     func save() async {
         guard canSave else { return }
         isSaving = true

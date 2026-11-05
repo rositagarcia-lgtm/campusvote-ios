@@ -11,9 +11,23 @@ enum FairPhase: String, Decodable {
     case preview = "PREVIEW"
     case live = "LIVE"
     case ended = "ENDED"
+
+    static func parse(_ raw: String?) -> FairPhase? {
+        switch raw?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() {
+        case "LIVE", "OPEN", "ABIERTA", "ACTIVE", "IN_PROGRESS", "ONGOING":
+            return .live
+        case "PREVIEW", "VISTA_PREVIA":
+            return .preview
+        case "BEFORE_PREVIEW", "SCHEDULED", "PROGRAMADA", "DRAFT", "UPCOMING":
+            return .beforePreview
+        case "ENDED", "CLOSED", "CERRADA", "FINISHED":
+            return .ended
+        default:
+            return nil
+        }
+    }
 }
 
-/// Campos opcionales: compatible con el backend anterior y fases futuras desconocidas.
 struct ReviewAccess: Decodable, Hashable {
     let phase: FairPhase?
     let reviewOpensAt: String?
@@ -23,6 +37,8 @@ struct ReviewAccess: Decodable, Hashable {
         case phase
         case reviewOpensAt = "review_opens_at"
         case canReview = "can_review"
+        case access
+        case reviewAccess = "review_access"
     }
 
     init(phase: FairPhase? = nil, reviewOpensAt: String? = nil, canReview: Bool? = nil) {
@@ -33,22 +49,46 @@ struct ReviewAccess: Decodable, Hashable {
 
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        let raw = try values.decodeIfPresent(String.self, forKey: .phase)
-        phase = raw.map { FairPhase(rawValue: $0) ?? .beforePreview }
-        reviewOpensAt = try values.decodeIfPresent(String.self, forKey: .reviewOpensAt)
-        canReview = try values.decodeIfPresent(Bool.self, forKey: .canReview)
+        let rawPhase = try? values.decodeIfPresent(String.self, forKey: .phase)
+        var parsed = FairPhase.parse(rawPhase)
+        var opensAt = try? values.decodeIfPresent(String.self, forKey: .reviewOpensAt)
+        var allowed = Self.flexibleBool(values, key: .canReview)
+
+        for key in [CodingKeys.access, .reviewAccess] {
+            guard let nested = try? values.decode(ReviewAccess.self, forKey: key) else { continue }
+            parsed = parsed ?? nested.phase
+            opensAt = opensAt ?? nested.reviewOpensAt
+            allowed = allowed ?? nested.canReview
+        }
+
+        phase = parsed
+        reviewOpensAt = opensAt
+        canReview = allowed
     }
 
     func merging(_ fallback: ReviewAccess) -> ReviewAccess {
-        ReviewAccess(phase: phase ?? fallback.phase, reviewOpensAt: reviewOpensAt ?? fallback.reviewOpensAt,
-                     canReview: canReview ?? fallback.canReview)
+        ReviewAccess(
+            phase: phase ?? fallback.phase,
+            reviewOpensAt: reviewOpensAt ?? fallback.reviewOpensAt,
+            canReview: canReview ?? fallback.canReview
+        )
     }
 
     func resolved(status: String?, startsAt: String? = nil) -> ReviewAccess {
-        let fallback: FairPhase = status?.uppercased() == "OPEN" ? .live
-            : (status?.uppercased() == "CLOSED" ? .ended : .beforePreview)
-        return ReviewAccess(phase: phase ?? fallback, reviewOpensAt: reviewOpensAt ?? startsAt,
-                            canReview: canReview)
+        let fromStatus = FairPhase.parse(status)
+        let chosen: FairPhase
+        if fromStatus == .live {
+            chosen = .live
+        } else if let phase {
+            chosen = phase
+        } else {
+            chosen = fromStatus ?? .beforePreview
+        }
+        return ReviewAccess(
+            phase: chosen,
+            reviewOpensAt: reviewOpensAt ?? startsAt,
+            canReview: canReview
+        )
     }
 
     var allowsReview: Bool { phase == .live && canReview != false }
@@ -81,5 +121,21 @@ struct ReviewAccess: Decodable, Hashable {
         if let date = parser.date(from: reviewOpensAt) { return date }
         parser.formatOptions = [.withInternetDateTime]
         return parser.date(from: reviewOpensAt)
+    }
+
+    private static func flexibleBool(
+        _ values: KeyedDecodingContainer<CodingKeys>,
+        key: CodingKeys
+    ) -> Bool? {
+        if let value = try? values.decodeIfPresent(Bool.self, forKey: key) { return value }
+        if let value = try? values.decodeIfPresent(Int.self, forKey: key) { return value != 0 }
+        if let text = try? values.decodeIfPresent(String.self, forKey: key) {
+            switch text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+            case "true", "1", "yes", "si", "sí": return true
+            case "false", "0", "no": return false
+            default: return nil
+            }
+        }
+        return nil
     }
 }

@@ -69,18 +69,17 @@ final class ProjectsStore {
         }
 
         do {
-            let list = try await api.send(
-                .reviewProjects(fairId: fairId, scope: scope),
-                as: ReviewList.self
+            let page = try await api.sendPage(
+                .approvedProjects(fairId: fairId),
+                as: ReviewProject.self
             )
             try Task.checkCancellation()
             guard loadID == requestID else { return }
             self.fairId = fairId
-            self.scope = list.scope ?? scope
-            accessByFair[fairId] = list.access.merging(accessByFair[fairId] ?? ReviewAccess())
-            projects = list.projects
-            summary = list.summary
-            categories = uniqueCategories(in: list.projects)
+            self.scope = scope
+            projects = page.items
+            summary = ReviewSummary(projects: page.items)
+            categories = uniqueCategories(in: page.items)
         } catch is CancellationError {
             return
         } catch {

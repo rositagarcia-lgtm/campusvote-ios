@@ -10,17 +10,21 @@ struct ProjectListView: View {
     @State private var search = ""
     @State private var categoryId: String?
     @State private var scope: ReviewScope = .assigned
+    @State private var didChooseScope = false
     @State private var status: StatusFilter = .all
     @State private var route: ProjectRoute?
     @State private var showScanner = false
     @State private var scanError: String?
 
     private var assignment: FairAssignment? { fairs.allFairs.first { $0.id == fairId } }
+    private var isLive: Bool {
+        assignment?.access.phase == .live || assignment?.fair.isOpen == true
+    }
     private var access: ReviewAccess {
         store.access(fairId: fairId, fallback: assignment?.access ?? ReviewAccess())
     }
     private var visible: [ReviewProject] {
-        guard store.fairId == fairId, store.scope == scope else { return [] }
+        guard store.fairId == fairId else { return [] }
         return store.filtered(search: search, categoryId: categoryId).filter {
             switch status {
             case .all: return true
@@ -49,8 +53,11 @@ struct ProjectListView: View {
                 VStack(alignment: .leading, spacing: AppSpacing.section) {
                     Text(assignment?.fair.name ?? L10n.tr("Feria", locale: locale)).font(.title2.bold())
                     FairReviewNotice(access: access)
-                    if access.phase == .live {
-                        Picker("Alcance de proyectos", selection: $scope) {
+                    if isLive {
+                        Picker("Alcance de proyectos", selection: Binding(
+                            get: { scope },
+                            set: { didChooseScope = true; scope = $0 }
+                        )) {
                             ForEach(ReviewScope.allCases) { item in
                                 Text(L10n.tr(item.title, locale: locale)).tag(item)
                             }
@@ -84,13 +91,13 @@ struct ProjectListView: View {
                                         message: message, actionTitle: "Reintentar") {
                             Task { await reload() }
                         }
-                    } else if store.isLoading {
+                    } else if store.isLoading && visible.isEmpty {
                         ProgressView("Cargando proyectos...").frame(maxWidth: .infinity, minHeight: 120)
                     } else if visible.isEmpty {
                         ScreenStateView(icon: "tray", title: "Sin resultados",
                                         message: "No se encontraron proyectos.")
                     } else {
-                        Text(L10n.format("%d de %d", locale: locale, store.summary.rated, store.summary.total))
+                        Text(L10n.format("%d de %d", locale: locale, visible.filter { !$0.sinResena }.count, visible.count))
                             .font(.headline)
                         LazyVStack(spacing: AppSpacing.section) {
                             ForEach(visible) { project in
@@ -115,11 +122,8 @@ struct ProjectListView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await reload() } }
         }
-        .onChange(of: access.phase) { _, phase in
-            if phase != .live { scope = .assigned }
-        }
-        .onChange(of: store.scope) { _, actual in
-            if store.fairId == fairId { scope = actual }
+        .onChange(of: isLive) { _, live in
+            if !live, scope != .assigned { scope = .assigned }
         }
         .sheet(isPresented: $showScanner) {
             QRScannerView { raw in
@@ -142,7 +146,14 @@ struct ProjectListView: View {
 
     private func reload() async {
         await fairs.fetchMyAssignments()
-        if assignment?.access.phase != .live { scope = .assigned }
+        if isLive, !didChooseScope, scope != .all {
+            scope = .all
+            return
+        }
+        if !isLive, scope != .assigned {
+            scope = .assigned
+            return
+        }
         await store.load(fairId: fairId, scope: scope)
     }
 }
