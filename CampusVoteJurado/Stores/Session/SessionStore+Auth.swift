@@ -31,7 +31,7 @@ extension SessionStore {
             throw error
         }
         SessionArchive.save(user)
-        await loadBrand(user: user)
+        await loadBrand(user: user, replacing: true)
         guard api.hasSavedSession else { throw APIError.sessionExpired }
         pendingEmail = ""
         pendingAccessType = nil
@@ -56,20 +56,43 @@ extension SessionStore {
         }
     }
 
-    func loadBrand(user: User) async {
-        InstitutionAppearance.reset()
-        guard let organizationId = user.organizationId, !organizationId.isEmpty else { return }
-        if let cached = BrandArchive.load(user: user) { InstitutionAppearance.apply(cached) }
+    /// Vuelve a pedir los colores de la IE sin borrar los que ya se ven.
+    /// Si la red falla, la marca en pantalla se queda.
+    func refreshBrand() async {
+        let user: User
+        switch phase {
+        case .signedIn(let current), .mustChangePassword(let current):
+            user = current
+        default:
+            return
+        }
+        await loadBrand(user: user, replacing: false)
+    }
+
+    func loadBrand(user: User, replacing: Bool) async {
+        let loadID = UUID()
+        brandLoadID = loadID
         let generation = sessionGeneration
+        if replacing {
+            InstitutionAppearance.reset()
+            guard brandLoadID == loadID, sessionGeneration == generation else { return }
+        }
+        guard let organizationId = user.organizationId, !organizationId.isEmpty else { return }
+        if replacing, let cached = BrandArchive.load(user: user) {
+            guard brandLoadID == loadID, sessionGeneration == generation else { return }
+            InstitutionAppearance.apply(cached)
+        }
         do {
             let brand = try await api.send(.organization(id: organizationId), as: OrganizationBrand.self)
-            guard sessionGeneration == generation else { return }
+            guard brandLoadID == loadID, sessionGeneration == generation else { return }
             BrandArchive.save(brand, user: user)
             InstitutionAppearance.apply(brand)
         } catch {
-            guard sessionGeneration == generation else { return }
-            BrandArchive.clear(user: user)
-            InstitutionAppearance.reset()
+            guard brandLoadID == loadID, sessionGeneration == generation else { return }
+            if replacing {
+                BrandArchive.clear(user: user)
+                InstitutionAppearance.reset()
+            }
         }
     }
 

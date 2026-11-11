@@ -20,6 +20,7 @@ final class SessionStore {
     var pendingAccessType: JuryAccessType?
 
     var sessionGeneration = UUID()
+    var brandLoadID = UUID()
     let api: APIClient
     @ObservationIgnored private var sessionObserver: NSObjectProtocol?
 
@@ -61,7 +62,7 @@ final class SessionStore {
             SessionArchive.save(user)
             try await validateAccess(for: user)
             guard sessionGeneration == generation else { return }
-            await loadBrand(user: user)
+            await loadBrand(user: user, replacing: false)
             guard sessionGeneration == generation, api.hasSavedSession else { return }
             phase = user.mustChangePassword ? .mustChangePassword(user) : .signedIn(user)
         } catch let error as APIError {
