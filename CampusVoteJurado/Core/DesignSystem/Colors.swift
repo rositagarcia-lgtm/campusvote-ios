@@ -30,24 +30,35 @@ enum InstitutionAppearance {
 
     static func apply(_ brand: OrganizationBrand) {
         let cleanedName = brand.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        name = cleanedName.isEmpty ? nil : cleanedName
-        kindLabel = brand.kindLabel
-        primaryHex = readableAccent(brand.primaryColor)
-        secondaryHex = readableAccent(brand.secondaryColor)
-        if let logo = brand.logo, let url = URL(string: logo),
-           ["https", "http"].contains(url.scheme?.lowercased() ?? "") {
-            logoURL = url
-        } else {
-            logoURL = nil
-        }
+        let nextName = cleanedName.isEmpty ? nil : cleanedName
+        let nextKind = brand.kindLabel
+        let nextPrimary = readableAccent(brand.primaryColor)
+        let nextSecondary = readableAccent(brand.secondaryColor)
+        let nextLogo = validatedLogoURL(brand.logo)
+        guard name != nextName || kindLabel != nextKind || primaryHex != nextPrimary
+                || secondaryHex != nextSecondary || logoURL != nextLogo else { return }
+        name = nextName
+        kindLabel = nextKind
+        primaryHex = nextPrimary
+        secondaryHex = nextSecondary
+        logoURL = nextLogo
     }
 
     static func reset() {
+        guard name != nil || kindLabel != nil || logoURL != nil || primaryHex != nil || secondaryHex != nil else {
+            return
+        }
         name = nil
         kindLabel = nil
         logoURL = nil
         primaryHex = nil
         secondaryHex = nil
+    }
+
+    private static func validatedLogoURL(_ raw: String?) -> URL? {
+        guard let raw, let url = URL(string: raw),
+              ["https", "http"].contains(url.scheme?.lowercased() ?? "") else { return nil }
+        return url
     }
 
     /// Acentos legibles sobre superficies claras, también si la marca es casi blanca.
