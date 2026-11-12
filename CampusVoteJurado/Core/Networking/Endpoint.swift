@@ -129,15 +129,8 @@ struct Endpoint {
             scope == .all ? [URLQueryItem(name: "scope", value: "all")] : [])
     }
     
-    static func approvedProjects(fairId: String) -> Endpoint {
-        Endpoint(path: "fairs/\(fairId)/projects", method: "GET", queryItems: [
-            URLQueryItem(name: "page", value: "1"),
-            URLQueryItem(name: "limit", value: "100")
-        ])
-    }
-
     static func projectDetail(fairId: String, projectId: String) -> Endpoint {
-        Endpoint(path: "fairs/\(fairId)/projects/\(projectId)", method: "GET")
+        Endpoint(path: "fairs/\(fairId)/review-projects/\(projectId)", method: "GET")
     }
 
     static func projectRating(fairId: String, projectId: String) -> Endpoint {

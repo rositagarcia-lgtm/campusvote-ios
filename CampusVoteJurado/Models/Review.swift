@@ -9,8 +9,7 @@ struct ReviewList: Decodable {
     enum CodingKeys: String, CodingKey {
         case summary
         case projects
-        case items, results, data, scope, fair
-        case reviewProjects = "review_projects"
+        case scope, fair
     }
 
     init(summary: ReviewSummary, projects: [ReviewProject]) {
@@ -21,30 +20,20 @@ struct ReviewList: Decodable {
     }
 
     init(from decoder: Decoder) throws {
-        let values = try? decoder.container(keyedBy: CodingKeys.self)
-        let nested = try? values?.decodeIfPresent(ReviewAccess.self, forKey: .fair)
-        access = ((try? ReviewAccess(from: decoder)) ?? ReviewAccess()).merging(nested ?? ReviewAccess())
-        scope = Self.scope(from: try? values?.decodeIfPresent(String.self, forKey: .scope))
-
-        if let container = values {
-            for key in [CodingKeys.projects, .items, .results, .reviewProjects, .data] where container.contains(key) {
-                if let projects = Self.projects(in: container, key: key) {
-                    self.projects = projects
-                    self.summary = (try? container.decodeIfPresent(ReviewSummary.self, forKey: .summary))
-                        ?? ReviewSummary(projects: projects)
-                    return
-                }
-            }
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        let nested = try values.decodeIfPresent(ReviewAccess.self, forKey: .fair)
+        access = try ReviewAccess(from: decoder).merging(nested ?? ReviewAccess())
+        scope = Self.scope(from: try values.decodeIfPresent(String.self, forKey: .scope))
+        // Ambos endpoints de reseñas entregan { summary, projects }.
+        // Un elemento inválido debe producir error, nunca desaparecer de la lista.
+        projects = try values.decode([ReviewProject].self, forKey: .projects)
+        summary = try values.decode(ReviewSummary.self, forKey: .summary)
+        guard summary == ReviewSummary(projects: projects) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .summary, in: values,
+                debugDescription: "El resumen no coincide con los proyectos recibidos."
+            )
         }
-
-        if let projects = try? [OptionalProject](from: decoder).compactMap(\.project) {
-            self.projects = projects
-            self.summary = ReviewSummary(projects: projects)
-            return
-        }
-
-        self.projects = []
-        self.summary = ReviewSummary(rated: 0, total: 0)
     }
 
     private static func scope(from raw: String?) -> ReviewScope? {
@@ -53,20 +42,6 @@ struct ReviewList: Decodable {
         case "mine", "assigned", "my_categories", "categories": return .assigned
         default: return nil
         }
-    }
-
-    private static func projects(
-        in container: KeyedDecodingContainer<CodingKeys>,
-        key: CodingKeys
-    ) -> [ReviewProject]? {
-        (try? container.decode([OptionalProject].self, forKey: key))?.compactMap(\.project)
-    }
-}
-
-private struct OptionalProject: Decodable {
-    let project: ReviewProject?
-    init(from decoder: Decoder) throws {
-        project = try? ReviewProject(from: decoder)
     }
 }
 
@@ -95,8 +70,15 @@ struct ReviewSummary: Decodable, Hashable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        rated = container.decodeLossyInt(forKey: .rated) ?? 0
-        total = container.decodeLossyInt(forKey: .total) ?? 0
+        guard let rated = container.decodeLossyInt(forKey: .rated),
+              let total = container.decodeLossyInt(forKey: .total) else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .total, in: container,
+                debugDescription: "El resumen requiere total y rated numéricos."
+            )
+        }
+        self.rated = rated
+        self.total = total
     }
 }
 
