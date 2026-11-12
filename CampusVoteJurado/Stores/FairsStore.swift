@@ -12,6 +12,7 @@ final class FairsStore {
 
     private let api: APIClient
     private var loadID = UUID()
+    @ObservationIgnored private var refreshTask: Task<Void, Never>?
 
     init(api: APIClient) {
         self.api = api
@@ -37,12 +38,26 @@ final class FairsStore {
     }
 
     func fetchMyAssignments() async {
+        if let refreshTask {
+            await refreshTask.value
+            return
+        }
+
         let requestID = UUID()
         loadID = requestID
         isLoading = true
         errorMessage = nil
+        let task = Task { await loadAssignments(requestID: requestID) }
+        refreshTask = task
+        await task.value
+    }
+
+    private func loadAssignments(requestID: UUID) async {
         defer {
-            if loadID == requestID { isLoading = false }
+            if loadID == requestID {
+                isLoading = false
+                refreshTask = nil
+            }
         }
 
         do {
@@ -64,11 +79,13 @@ final class FairsStore {
     }
 
     func reset() {
+        refreshTask?.cancel()
+        refreshTask = nil
+        loadID = UUID()
         activeFairs = []
         scheduledFairs = []
         closedFairs = []
         isLoading = false
         errorMessage = nil
-        loadID = UUID()
     }
 }

@@ -3,6 +3,8 @@ import SwiftUI
 struct MainTabView: View {
     @Environment(TabBarVisibility.self) private var tabBar
     @Environment(\.locale) private var locale
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(FairsStore.self) private var fairsStore
     @State private var selectedTab: Int = 0
     @State private var altoMenu: CGFloat = 58
 
@@ -60,6 +62,14 @@ struct MainTabView: View {
             if nuevo > 0 {
                 altoMenu = nuevo
             }
+        }
+        .onChange(of: selectedTab) { previous, current in
+            guard previous != 0, current == 0 else { return }
+            Task { await fairsStore.fetchMyAssignments() }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, selectedTab == 0 else { return }
+            Task { await fairsStore.fetchMyAssignments() }
         }
     }
 
