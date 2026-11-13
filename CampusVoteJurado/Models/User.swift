@@ -111,7 +111,7 @@ struct AuthResult: Decodable {
     }
 }
 
-struct OrganizationBrand: Decodable {
+struct OrganizationBrand: Decodable, Sendable, Equatable {
     let id: String?
     let name: String
     let logo: String?

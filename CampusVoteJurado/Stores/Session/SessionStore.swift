@@ -21,6 +21,10 @@ final class SessionStore {
 
     var sessionGeneration = UUID()
     var brandLoadID = UUID()
+    @ObservationIgnored var brandScope: String?
+    @ObservationIgnored var brandRequestScope: String?
+    @ObservationIgnored var brandRequest: Task<OrganizationBrand, Error>?
+    @ObservationIgnored var currentBrand: OrganizationBrand?
     let api: APIClient
     @ObservationIgnored private var sessionObserver: NSObjectProtocol?
 
@@ -40,6 +44,7 @@ final class SessionStore {
     func restore() async {
         errorMessage = nil
         guard api.hasSavedSession else {
+            stopBrandUpdates()
             if let cached = SessionArchive.load() { ProfileAvatarStore.clear(for: cached.id) }
             api.clearTokens()
             SessionArchive.clear()
@@ -49,7 +54,7 @@ final class SessionStore {
         }
 
         if let user = SessionArchive.load(), user.canUseJuryApp {
-            if let brand = BrandArchive.load(user: user) { InstitutionAppearance.apply(brand) }
+            restoreCachedBrand(for: user)
             phase = user.mustChangePassword ? .mustChangePassword(user) : .signedIn(user)
         }
         let generation = sessionGeneration
@@ -68,6 +73,7 @@ final class SessionStore {
         } catch let error as APIError {
             guard sessionGeneration == generation else { return }
             if error.isSessionRejection {
+                stopBrandUpdates()
                 if let cached = SessionArchive.load() { ProfileAvatarStore.clear(for: cached.id) }
                 api.clearTokens()
                 SessionArchive.clear()
@@ -77,6 +83,7 @@ final class SessionStore {
             } else if error.isTransient {
                 await restoreCachedSession(message: error.userMessage)
             } else {
+                stopBrandUpdates()
                 errorMessage = error.userMessage
                 InstitutionAppearance.reset()
                 phase = .signedOut
@@ -85,6 +92,7 @@ final class SessionStore {
             return
         } catch {
             guard sessionGeneration == generation else { return }
+            stopBrandUpdates()
             errorMessage = error.userMessage
             InstitutionAppearance.reset()
             phase = .signedOut
@@ -96,13 +104,14 @@ final class SessionStore {
     /// reintenten sus propias peticiones.
     private func restoreCachedSession(message: String?) async {
         guard let cached = SessionArchive.load(), cached.canUseJuryApp else {
+            stopBrandUpdates()
             errorMessage = message ?? APIError.network.message
             InstitutionAppearance.reset()
             phase = .signedOut
             return
         }
 
-        if let brand = BrandArchive.load(user: cached) { InstitutionAppearance.apply(brand) }
+        restoreCachedBrand(for: cached)
         errorMessage = message
         phase = cached.mustChangePassword ? .mustChangePassword(cached) : .signedIn(cached)
     }
@@ -188,6 +197,7 @@ final class SessionStore {
 
     func logout() async {
         sessionGeneration = UUID()
+        stopBrandUpdates()
         if case .signedIn(let user) = phase { ProfileAvatarStore.clear(for: user.id) }
         if case .mustChangePassword(let user) = phase { ProfileAvatarStore.clear(for: user.id) }
         var endpoint = Endpoint.logout(refreshToken: api.savedRefreshToken)
@@ -205,6 +215,7 @@ final class SessionStore {
 
     private func expireSession() {
         sessionGeneration = UUID()
+        stopBrandUpdates()
         switch phase {
         case .signedIn(let user), .mustChangePassword(let user):
             ProfileAvatarStore.clear(for: user.id)

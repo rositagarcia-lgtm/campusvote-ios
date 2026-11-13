@@ -6,7 +6,14 @@ struct RootView: View {
     @State private var minimumSplashDone = false
 
     private let splashDuration: Duration = .seconds(2.2)
-    private let brandRefreshInterval: Duration = .seconds(20)
+    // La tarea se cancela al salir de la sesión o al dejar de estar en primer plano.
+    private let brandRefreshInterval: Duration = .seconds(5)
+
+    private var brandPollingID: String? {
+        guard scenePhase == .active, case .signedIn(let user) = session.phase,
+              let organizationId = user.organizationId, !organizationId.isEmpty else { return nil }
+        return "\(user.id)/\(organizationId)"
+    }
 
     var body: some View {
         Group {
@@ -40,11 +47,15 @@ struct RootView: View {
         .task {
             await session.restore()
         }
-        .task(id: scenePhase) {
-            guard scenePhase == .active else { return }
+        .task(id: brandPollingID) {
+            guard brandPollingID != nil else { return }
             while !Task.isCancelled {
-                try? await Task.sleep(for: brandRefreshInterval)
-                guard !Task.isCancelled else { return }
+                do {
+                    try await Task.sleep(for: brandRefreshInterval)
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled, scenePhase == .active else { return }
                 await session.refreshBrand()
             }
         }

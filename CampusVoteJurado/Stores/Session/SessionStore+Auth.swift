@@ -69,30 +69,71 @@ extension SessionStore {
         await loadBrand(user: user, replacing: false)
     }
 
-    func loadBrand(user: User, replacing: Bool) async {
-        let loadID = UUID()
-        brandLoadID = loadID
-        let generation = sessionGeneration
-        if replacing {
-            InstitutionAppearance.reset()
-            guard brandLoadID == loadID, sessionGeneration == generation else { return }
-        }
-        guard let organizationId = user.organizationId, !organizationId.isEmpty else { return }
-        if replacing, let cached = BrandArchive.load(user: user) {
-            guard brandLoadID == loadID, sessionGeneration == generation else { return }
+    func stopBrandUpdates() {
+        brandLoadID = UUID()
+        brandRequest?.cancel()
+        brandRequest = nil
+        brandRequestScope = nil
+        brandScope = nil
+        currentBrand = nil
+    }
+
+    func restoreCachedBrand(for user: User) {
+        let scope = "\(user.id)/\(user.organizationId ?? "none")"
+        guard brandScope != scope else { return }
+        stopBrandUpdates()
+        InstitutionAppearance.reset()
+        brandScope = scope
+        if let cached = BrandArchive.load(user: user) {
+            currentBrand = cached
             InstitutionAppearance.apply(cached)
         }
-        do {
-            let brand = try await api.send(.organization(id: organizationId), as: OrganizationBrand.self)
-            guard brandLoadID == loadID, sessionGeneration == generation else { return }
-            BrandArchive.save(brand, user: user)
-            InstitutionAppearance.apply(brand)
-        } catch {
-            guard brandLoadID == loadID, sessionGeneration == generation else { return }
-            if replacing {
-                BrandArchive.clear(user: user)
-                InstitutionAppearance.reset()
+    }
+
+    func loadBrand(user: User, replacing: Bool) async {
+        let scope = "\(user.id)/\(user.organizationId ?? "none")"
+        if replacing || brandScope != scope {
+            stopBrandUpdates()
+            InstitutionAppearance.reset()
+            brandScope = scope
+            if let cached = BrandArchive.load(user: user) {
+                currentBrand = cached
+                InstitutionAppearance.apply(cached)
             }
+        }
+        guard let organizationId = user.organizationId, !organizationId.isEmpty else { return }
+
+        let requestID: UUID
+        let request: Task<OrganizationBrand, Error>
+        // Foreground y temporizador pueden coincidir: comparten una sola petición.
+        if let pending = brandRequest, brandRequestScope == scope {
+            requestID = brandLoadID
+            request = pending
+        } else {
+            brandRequest?.cancel()
+            requestID = UUID()
+            brandLoadID = requestID
+            brandRequestScope = scope
+            request = Task { try await api.send(.organization(id: organizationId), as: OrganizationBrand.self) }
+            brandRequest = request
+        }
+        let generation = sessionGeneration
+        do {
+            let brand = try await request.value
+            guard brandLoadID == requestID, sessionGeneration == generation,
+                  brandScope == scope, brandRequest != nil else { return }
+            brandRequest = nil
+            brandRequestScope = nil
+            if currentBrand != brand {
+                currentBrand = brand
+                InstitutionAppearance.apply(brand)
+                BrandArchive.save(brand, user: user)
+            }
+        } catch {
+            guard brandLoadID == requestID, sessionGeneration == generation,
+                  brandScope == scope else { return }
+            brandRequest = nil
+            brandRequestScope = nil
         }
     }
 
