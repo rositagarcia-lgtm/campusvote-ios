@@ -1,9 +1,7 @@
 import Foundation
 
-enum ReviewScope: String, CaseIterable, Identifiable {
+enum ReviewScope: String {
     case assigned, all
-    var id: String { rawValue }
-    var title: String { self == .assigned ? "Mis categorías" : "Toda la feria" }
 }
 
 enum FairPhase: String, Decodable {
@@ -92,7 +90,6 @@ struct ReviewAccess: Decodable, Hashable {
     }
 
     var allowsReview: Bool { phase == .live && canReview != false }
-    var allowsBrowsing: Bool { phase == .preview || phase == .live || phase == .ended }
 
     func notice(locale: Locale) -> String? {
         switch phase {

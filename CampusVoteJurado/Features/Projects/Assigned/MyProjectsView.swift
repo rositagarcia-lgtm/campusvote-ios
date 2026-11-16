@@ -10,9 +10,11 @@ struct MyProjectsView: View {
         VStack(spacing: 0) {
             OrganizationHeader(title: "Asignados")
             Menu {
-                ForEach(fairs.allFairs.filter { $0.access.allowsBrowsing }) { assignment in
-                    NavigationLink(assignment.fair.name) {
+                ForEach(fairs.allFairs.filter { $0.access.phase == .live }) { assignment in
+                    NavigationLink {
                         ProjectListView(fairId: assignment.id)
+                    } label: {
+                        ProseText(text: assignment.fair.name)
                     }
                 }
             } label: {
@@ -20,7 +22,7 @@ struct MyProjectsView: View {
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity, minHeight: 48)
             }
-            .disabled(!fairs.allFairs.contains { $0.access.allowsBrowsing })
+            .disabled(!fairs.allFairs.contains { $0.access.phase == .live })
             AssignedProjectsListView { project in
                 guard let fairId = project.fairId else { return }
                 route = AssignedRoute(fairId: fairId, projectId: project.id)

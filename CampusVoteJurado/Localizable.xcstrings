@@ -3951,6 +3951,22 @@
         }
       }
     },
+    "Avisos" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notices"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avisos"
+          }
+        }
+      }
+    },
     "Panel de jurado" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5496,6 +5512,230 @@
         }
       }
     },
+    "Agrandar video" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand video"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agrandar video"
+          }
+        }
+      }
+    },
+    "Achicar video" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shrink video"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Achicar video"
+          }
+        }
+      }
+    },
+    "Reproducir video" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play video"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reproducir video"
+          }
+        }
+      }
+    },
+    "Pausar video" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pause video"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausar video"
+          }
+        }
+      }
+    },
+    "Presentación en video" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video presentation"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presentación en video"
+          }
+        }
+      }
+    },
+    "Conoce la propuesta del equipo" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See what the team proposes"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conoce la propuesta del equipo"
+          }
+        }
+      }
+    },
+    "Sobre el proyecto" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About the project"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sobre el proyecto"
+          }
+        }
+      }
+    },
+    "Stand" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Booth"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stand"
+          }
+        }
+      }
+    },
+    "Enviar mi opinión" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send my feedback"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enviar mi opinión"
+          }
+        }
+      }
+    },
+    "Tu calificación" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your rating"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tu calificación"
+          }
+        }
+      }
+    },
+    "Elige de 1 a 5 estrellas" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose from 1 to 5 stars"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige de 1 a 5 estrellas"
+          }
+        }
+      }
+    },
+    "%d de 5 estrellas" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d of 5 stars"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d de 5 estrellas"
+          }
+        }
+      }
+    },
+    "Solo lo verá el equipo del proyecto." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only the project team will see it."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo lo verá el equipo del proyecto."
+          }
+        }
+      }
+    },
+    "¿Qué podrían mejorar? Sé concreto y respetuoso." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What could they improve? Be specific and respectful."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "¿Qué podrían mejorar? Sé concreto y respetuoso."
+          }
+        }
+      }
+    },
     "Ver video del prototipo" : {
       "localizations" : {
         "en" : {
@@ -5710,6 +5950,138 @@
             "value" : "Ya dejaste reseña en todos los proyectos de esta feria."
           }
         }
+      }
+    },
+    "En vivo" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Live" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "En vivo" } }
+      }
+    },
+    "Terminó" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Ended" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Terminó" } }
+      }
+    },
+    "Abrir feria" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Open fair" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abrir feria" } }
+      }
+    },
+    "Estudiar proyectos" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Study projects" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Estudiar proyectos" } }
+      }
+    },
+    "Ver mi participación" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "See my participation" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ver mi participación" } }
+      }
+    },
+    "Cierra en %@" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Closes in %@" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cierra en %@" } }
+      }
+    },
+    "Podrás calificar en %@" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "You can rate in %@" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Podrás calificar en %@" } }
+      }
+    },
+    "%d días" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%d days" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%d días" } }
+      }
+    },
+    "1 día" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "1 day" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "1 día" } }
+      }
+    },
+    "%d horas" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%d hours" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%d horas" } }
+      }
+    },
+    "1 hora" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "1 hour" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "1 hora" } }
+      }
+    },
+    "menos de una hora" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "less than an hour" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "menos de una hora" } }
+      }
+    },
+    "La feria está en curso: evalúa y deja tus reseñas." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The fair is underway: evaluate and leave your reviews." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "La feria está en curso: evalúa y deja tus reseñas." } }
+      }
+    },
+    "Ya puedes estudiar los proyectos de tu categoría." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "You can already study the projects in your category." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ya puedes estudiar los proyectos de tu categoría." } }
+      }
+    },
+    "Verás los proyectos de tu categoría cuando cierre la inscripción." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "You will see your category's projects when registration closes." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Verás los proyectos de tu categoría cuando cierre la inscripción." } }
+      }
+    },
+    "La feria terminó. Tus evaluaciones quedan registradas." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The fair has ended. Your evaluations stay on record." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "La feria terminó. Tus evaluaciones quedan registradas." } }
+      }
+    },
+    "Foto de perfil" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Profile photo" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Foto de perfil" } }
+      }
+    },
+    "Estás al día" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "You're up to date" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Estás al día" } }
+      }
+    },
+    "Aquí verás los avisos de tus ferias." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Fair notices will show up here." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Aquí verás los avisos de tus ferias." } }
+      }
+    },
+    "Marcar leídas" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Mark as read" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Marcar leídas" } }
+      }
+    },
+    "No pudimos cargar los avisos" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "We couldn't load the notices" } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No pudimos cargar los avisos" } }
+      }
+    },
+    "Cargando avisos..." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Loading notices..." } },
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cargando avisos..." } }
       }
     }
   },

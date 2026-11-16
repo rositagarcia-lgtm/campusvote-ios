@@ -6,7 +6,6 @@ struct RootView: View {
     @State private var minimumSplashDone = false
 
     private let splashDuration: Duration = .seconds(2.2)
-    // La tarea se cancela al salir de la sesión o al dejar de estar en primer plano.
     private let brandRefreshInterval: Duration = .seconds(5)
 
     private var brandPollingID: String? {
@@ -49,14 +48,13 @@ struct RootView: View {
         }
         .task(id: brandPollingID) {
             guard brandPollingID != nil else { return }
-            while !Task.isCancelled {
+            while !Task.isCancelled, scenePhase == .active {
+                await session.refreshBrand()
                 do {
                     try await Task.sleep(for: brandRefreshInterval)
                 } catch {
                     return
                 }
-                guard !Task.isCancelled, scenePhase == .active else { return }
-                await session.refreshBrand()
             }
         }
         .onChange(of: scenePhase) { _, phase in

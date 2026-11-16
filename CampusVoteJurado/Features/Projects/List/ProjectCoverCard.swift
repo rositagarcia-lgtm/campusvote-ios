@@ -51,12 +51,6 @@ struct ProjectCoverCard: View {
                     }
                 }
 
-                if let team = project.teamName, !team.isEmpty {
-                    Text(team)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
                 Text(L10n.tr(project.sinResena ? "Reseña pendiente" : "Reseña enviada", locale: locale))
                     .font(.caption)
                     .foregroundStyle(.secondary)

@@ -73,6 +73,7 @@ struct ProfileView: View {
             .padding(.top, 20)
             .padding(.bottom, 28)
         }
+        .refreshable { await session.refreshBrand() }
         .safeAreaInset(edge: .top, spacing: 0) { OrganizationHeader(title: "Perfil") }
         .background(Color.appBackground.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
@@ -211,12 +212,17 @@ struct ProfileView: View {
         localAvatar = image
         avatarHidden = false
         ProfileAvatarStore.save(image, for: userId)
+        PortraitStore.shared.local = image
+        PortraitStore.shared.hidden = false
+        guard let data = image.jpegData(compressionQuality: 0.85) else { return }
+        AvatarUpload.submit(jpeg: data)
     }
 
     private func deleteAvatar() {
         guard let userId = signedInUser?.id else { return }
         localAvatar = nil
         avatarHidden = true
+        AvatarUpload.cancel()
         ProfileAvatarStore.delete(for: userId)
     }
 

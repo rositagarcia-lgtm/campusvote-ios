@@ -80,11 +80,9 @@ extension ProjectsStore {
             categoryId: project.categoryId,
             categoryName: project.categoryName,
             standCode: project.standCode,
-            teamName: project.teamName,
             myRating: rating,
             myComment: comment,
-            access: project.access,
-            inMyCategories: project.inMyCategories
+            access: project.access
         )
     }
 

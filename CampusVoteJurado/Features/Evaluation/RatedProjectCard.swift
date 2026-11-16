@@ -48,11 +48,12 @@ struct RatedProjectCard: View {
             }
 
             if let comment = project.myComment, !comment.isEmpty {
-                Text("\"\(comment)\"")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
+                ProseText(
+                    text: "\"\(comment)\"",
+                    font: .caption,
+                    color: .secondary,
+                    lineLimit: 2
+                )
             }
         }
         .padding(12)

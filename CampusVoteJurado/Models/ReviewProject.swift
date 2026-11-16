@@ -10,11 +10,9 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
     let categoryId: String?
     let categoryName: String?
     let standCode: String?
-    let teamName: String?
     let myRating: Int?
     let myComment: String?
     let access: ReviewAccess
-    let inMyCategories: Bool?
 
     var sinResena: Bool {
         myRating == nil
@@ -22,7 +20,6 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case id
-        case inMyCategories = "in_my_categories"
         case projectId = "project_id"
         case fairId = "fair_id"
         case fairName = "fair_name"
@@ -33,8 +30,6 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
         case categoryName = "category_name"
         case stand
         case standCode = "stand_code"
-        case teamName = "team_name"
-        case team
         case myRating = "my_rating"
         case myComment = "my_comment"
     }
@@ -48,14 +43,11 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
         categoryId: String? = nil,
         categoryName: String? = nil,
         standCode: String? = nil,
-        teamName: String? = nil,
         myRating: Int? = nil,
         myComment: String? = nil,
-        access: ReviewAccess = ReviewAccess(),
-        inMyCategories: Bool? = nil
+        access: ReviewAccess = ReviewAccess()
     ) {
         self.access = access
-        self.inMyCategories = inMyCategories
         self.id = id
         self.fairId = fairId
         self.fairName = fairName
@@ -64,7 +56,6 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
         self.categoryId = categoryId
         self.categoryName = categoryName
         self.standCode = standCode
-        self.teamName = teamName
         self.myRating = myRating
         self.myComment = myComment
     }
@@ -72,7 +63,6 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
     init(from decoder: Decoder) throws {
         access = try ReviewAccess(from: decoder)
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        inMyCategories = try container.decodeIfPresent(Bool.self, forKey: .inMyCategories)
         id = try container.decodeIfPresent(String.self, forKey: .id)
             ?? container.decode(String.self, forKey: .projectId)
         fairId = try container.decodeIfPresent(String.self, forKey: .fairId)
@@ -97,11 +87,6 @@ struct ReviewProject: Identifiable, Decodable, Hashable {
         } else {
             standCode = flatStand
         }
-
-        let namedTeam = try container.decodeIfPresent(String.self, forKey: .teamName)
-        let plainTeam = try container.decodeIfPresent(String.self, forKey: .team)
-        let team = namedTeam ?? plainTeam
-        teamName = (team?.isEmpty == false) ? team : nil
 
         myRating = container.decodeLossyInt(forKey: .myRating)
         let comment = try container.decodeIfPresent(String.self, forKey: .myComment)?

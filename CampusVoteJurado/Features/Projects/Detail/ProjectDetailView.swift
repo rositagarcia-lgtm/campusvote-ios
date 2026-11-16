@@ -10,6 +10,7 @@ struct ProjectDetailView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.locale) var locale
     @Environment(\.scenePhase) var scenePhase
+    @Environment(SessionStore.self) var session
 
     @State var detail: ProjectDetail?
     @State var isLoading = true
@@ -19,10 +20,10 @@ struct ProjectDetailView: View {
     @State var errorMessage: String?
     @State var stars = 0
     @State var comment = ""
-    @State var aspects: Set<String> = []
     @State var photoIndex: Int?
     @State var bannerPage = 0
     @State var saveAlert: SaveAlert?
+    @State var showReview = false
 
     struct SaveAlert: Identifiable {
         let id = UUID()
@@ -31,11 +32,6 @@ struct ProjectDetailView: View {
     }
 
     let api = APIClient.shared
-    let aspectos = [
-        "Prototipo funcional",
-        "Buena explicación",
-        "Viabilidad técnica",
-    ]
 
     @State var loadedAccess: ReviewAccess?
 
@@ -58,72 +54,39 @@ struct ProjectDetailView: View {
         return L10n.format("Faltan %d caracteres para poder guardar.", locale: locale, 10 - commentCount)
     }
 
-    var highlightsKey: String {
-        "campusvote.jury.highlights.\(SessionArchive.load()?.id ?? "anonymous").\(projectId)"
-    }
-
     var body: some View {
         VStack(spacing: 0) {
-            ProjectDetailHeader(onBack: { dismiss() })
+            if detail == nil {
+                ProjectDetailHeader(onBack: { dismiss() })
+            }
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    FairReviewNotice(access: reviewAccess).padding(.horizontal, 16)
+                VStack(alignment: .leading, spacing: 0) {
                     if let errorMessage {
                         ScreenStateView(icon: "exclamationmark.triangle", title: "No pudimos cargar el proyecto",
                                         message: errorMessage, actionTitle: "Reintentar") {
                             Task { await load() }
                         }
                         .padding(.horizontal, 16)
+                        .padding(.top, 8)
                     }
 
                     if isLoading {
                         ProgressView("Cargando proyecto...")
                             .frame(maxWidth: .infinity, minHeight: 220)
                     } else if let detail {
-                        let fotos = gallery(detail)
-                        if !fotos.isEmpty {
-                            ProjectGalleryBanner(urls: fotos, page: $bannerPage) { index in
-                                photoIndex = index
-                            }
-                        }
-
-                        VStack(alignment: .leading, spacing: 12) {
-                            ProjectIdentityRow(detail: detail)
-
-                            if let description = detail.description,
-                               !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                ProjectDetailCard {
-                                    ProjectDetailLabel(title: "DESCRIPCIÓN")
-                                    Text(description)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.primary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                            }
-
-                            if let video = detail.videoUrl, let url = URL(string: video) {
-                                ProjectDetailCard {
-                                    ProjectDetailLabel(title: "VIDEO")
-                                    ProjectVideoBlock(url: url, poster: heroURL(detail))
-                                }
-                            }
-
-                            if let page = detail.projectUrl, let url = URL(string: page) {
-                                ProjectDetailCard {
-                                    ProjectDetailLabel(title: "ENLACE")
-                                    ProjectLinkRow(url: url)
-                                }
-                            }
-
-                            ProjectMembersCard(members: detail.members)
-                            reviewCard
-                        }
-                        .padding(.horizontal, 16)
+                        ProjectDetailBody(
+                            detail: detail,
+                            fairName: fairs.allFairs.first { $0.id == fairId }?.fair.name,
+                            photos: gallery(detail),
+                            page: $bannerPage,
+                            access: reviewAccess,
+                            onSelectPhoto: { photoIndex = $0 },
+                            onBack: { dismiss() }
+                        )
                     }
                 }
-                .padding(.top, 8)
-                .padding(.bottom, 20)
+                .padding(.bottom, showsRateButton ? 88 : 20)
             }
             .scrollDismissesKeyboard(.interactively)
         }
@@ -137,11 +100,12 @@ struct ProjectDetailView: View {
                 dismissButton: .default(Text("Aceptar"))
             )
         }
-        .refreshable { await load() }
-        .task {
-            loadHighlights()
-            await load()
+        .refreshable {
+            async let brand: Void = session.refreshBrand()
+            async let detail: Void = load()
+            _ = await (brand, detail)
         }
+        .task { await load() }
         .onChange(of: photoIndex) { _, index in
             tabBar.isHidden = index != nil
         }
@@ -150,6 +114,38 @@ struct ProjectDetailView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await refreshReviewAccess() } }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if showsRateButton {
+                Button { showReview = true } label: {
+                    Image(systemName: "star.fill")
+                        .font(.title2)
+                        .foregroundStyle(Color.onBrand)
+                        .frame(width: 56, height: 56)
+                        .background(Circle().fill(Color.brand))
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 16)
+                .padding(.bottom, 16)
+                .accessibilityLabel("Calificar")
+            }
+        }
+        .sheet(isPresented: $showReview) {
+            if let detail, reviewAccess.allowsReview && ratingLoaded {
+                ProjectReviewSheet(
+                    name: detail.name,
+                    summary: detail.description,
+                    imageURL: gallery(detail).first,
+                    stars: $stars,
+                    comment: $comment,
+                    canSave: canSave,
+                    isSaving: isSaving,
+                    commentHint: commentHint,
+                    errorMessage: errorMessage
+                ) {
+                    Task { await save() }
+                }
+            }
         }
         .overlay {
             if let detail, let photoIndex {
@@ -165,22 +161,8 @@ struct ProjectDetailView: View {
         }
     }
 
-    @ViewBuilder
-    var reviewCard: some View {
-        if reviewAccess.allowsReview && ratingLoaded {
-            ProjectReviewCard(
-                stars: $stars,
-                comment: $comment,
-                aspects: $aspects,
-                aspectOptions: aspectos,
-                highlightsKey: highlightsKey,
-                canSave: canSave,
-                isSaving: isSaving,
-                commentHint: commentHint
-            ) {
-                Task { await save() }
-            }
-        }
+    var showsRateButton: Bool {
+        reviewAccess.allowsReview && ratingLoaded && detail != nil && !isLoading && photoIndex == nil
     }
 
 }

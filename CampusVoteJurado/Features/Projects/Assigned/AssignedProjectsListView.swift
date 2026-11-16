@@ -7,6 +7,7 @@ struct AssignedProjectsListView: View {
     let onSelect: (ReviewProject) -> Void
 
     @Environment(ProjectsStore.self) private var store
+    @Environment(SessionStore.self) private var session
 
     @State private var search = ""
     @State private var filter: AssignedFilter = .pending
@@ -72,7 +73,11 @@ struct AssignedProjectsListView: View {
             }
             .padding(18)
         }
-        .refreshable { await store.loadAssigned() }
+        .refreshable {
+            async let brand: Void = session.refreshBrand()
+            async let list: Void = store.loadAssigned()
+            _ = await (brand, list)
+        }
     }
 
     private var searchField: some View {
@@ -126,10 +131,7 @@ struct AssignedProjectsListView: View {
             LazyVStack(alignment: .leading, spacing: 16) {
                 ForEach(grouped, id: \.fair) { group in
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(group.fair.uppercased())
-                            .font(.system(size: 11, weight: .bold))
-                            .tracking(0.6)
-                            .foregroundStyle(Color.appNeutral)
+                        groupTitle(group)
                         ForEach(group.projects) { project in
                             AssignedProjectRow(project: project) {
                                 onSelect(project)
@@ -138,6 +140,26 @@ struct AssignedProjectsListView: View {
                     }
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func groupTitle(_ group: (fair: String, projects: [ReviewProject])) -> some View {
+        let authored = group.projects.first?.fairName
+        if let authored, !authored.isEmpty {
+            ProseText(
+                text: authored,
+                font: .system(size: 11),
+                weight: .bold,
+                color: Color.appNeutral,
+                tracking: 0.6,
+                uppercase: true
+            )
+        } else {
+            Text(group.fair.uppercased())
+                .font(.system(size: 11, weight: .bold))
+                .tracking(0.6)
+                .foregroundStyle(Color.appNeutral)
         }
     }
 

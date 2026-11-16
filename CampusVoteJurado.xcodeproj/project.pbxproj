@@ -10,7 +10,6 @@
 		86C7889DBCD64C87BC75475F /* ProjectsStore+Reviews.swift in Sources */ = {isa = PBXBuildFile; fileRef = E64DC71F1E8B45E5A9077F45 /* ProjectsStore+Reviews.swift */; };
 		9AB31A953E5842ADBE95930C /* ReviewProject.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD569712EB24FBF878523FF /* ReviewProject.swift */; };
 		994F5F128A414E47B083F0BE /* ReviewAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7181133CE1F34CE58E3710BF /* ReviewAccess.swift */; };
-		97B82F15721C411888CAA12A /* ProjectMembersCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 207F8E35334740F7BC988896 /* ProjectMembersCard.swift */; };
 		27996AC07E7F43DB8F74215A /* ProjectDetailView+Loading.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73066E75581B4F87956E628D /* ProjectDetailView+Loading.swift */; };
 		5C2948082E7347FB8DE8D34E /* FairReviewNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = B119A40F0E884BEBA5A3B7B7 /* FairReviewNotice.swift */; };
 		94CCD1DDEB4F4551937A0881 /* JuryOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DB0ECDBDE004955AF07EE16 /* JuryOnboardingView.swift */; };
@@ -18,6 +17,8 @@
 		363D33A0CBCB4724B7379265 /* APIClient+Errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA0132A8A9294CB2B564974A /* APIClient+Errors.swift */; };
 		5F804DAB30F04852A5EEA6F1 /* APIClient+Assignments.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA06BEF3F4EF48B38CC06B5F /* APIClient+Assignments.swift */; };
 		2A5D727D9F8B455D93D96724 /* OrganizationHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A6CA9794BC44F09ADF4EF0E /* OrganizationHeader.swift */; };
+		B7C31E04A9D246F08C5A17E2 /* ProseText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E7A1C90B2D64F8A9C3E51D6 /* ProseText.swift */; };
+		C6D82F15B0E347A19D4B28F3 /* ProseTranslator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A91C4E70D2B548F6A3E18C55 /* ProseTranslator.swift */; };
 		32EB653B02A24A7A83AC8E85 /* InstitutionBrandState.swift in Sources */ = {isa = PBXBuildFile; fileRef = D70F57E00CB9475CB96E5BD6 /* InstitutionBrandState.swift */; };
 		644277AE2F2F4093A2BBC333 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = D02FCE0D356C469496D6A75F /* Color+Hex.swift */; };
 		0189AC643DAEDDA7CF2D35DF /* LoginFieldRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C05A732A8BAF930E4B30359 /* LoginFieldRow.swift */; };
@@ -34,11 +35,12 @@
 		39FA6602960D4C0B8CBC2B5E /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BE3ED150D00CABC270ED543 /* RootView.swift */; };
 		3AC91A59EE028D529924037A /* CampusVoteJuradoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3C7E341BC79AE0F68773769 /* CampusVoteJuradoApp.swift */; };
 		3F4169B8D089E3656A957A50 /* ProjectMediaLinks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8714CDBFC11D326DAF38D5EC /* ProjectMediaLinks.swift */; };
+		C4E8A17B2D9F46A0B5C31E78 /* ProjectVideoPlayback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F21D6A04B7C49E1A3D58F02 /* ProjectVideoPlayback.swift */; };
+		B7C1E4A09D2F48C6A5E81370 /* ProjectDetailBody.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D8A6F14C0B547E9B3A19D55 /* ProjectDetailBody.swift */; };
 		442C19575F2C87984E9E858C /* ProfileSheetComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A510CA9A61CE35683421B78 /* ProfileSheetComponents.swift */; };
 		46587C681D9F42AD60D868C4 /* ProjectDetailHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8517612D2B6C64117FC464DD /* ProjectDetailHeader.swift */; };
 		4722B6738B50E5F5674CE9AF /* InstitutionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F536D067A790B7A6B60FFE4C /* InstitutionSheet.swift */; };
 		4DA8B1CFE4DB510936CA77D3 /* ProjectDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAB26FEC4DC861B277B9FBD0 /* ProjectDetailView.swift */; };
-		52087E1171BEB04C4712FD70 /* ChipFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE6D77600A213A3B66854C82 /* ChipFlow.swift */; };
 		56261D67E2DC7FEC883F87A5 /* ProjectListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA32D3B1324059FA76CBD69C /* ProjectListView.swift */; };
 		59C8597ED09B5628119D7638 /* JSONCoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DC14825EEDF8E1156C16E02 /* JSONCoding.swift */; };
 		600D0A73DA8BAE4D298A7FA0 /* Fair.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABB0329F19CA5ACA2DD82304 /* Fair.swift */; };
@@ -57,7 +59,6 @@
 		88CEF182306EB18C00B8E81E /* MyProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88CEF180306EB18C00B8E81E /* MyProgressView.swift */; };
 		88CEF187306EB29700B8E81E /* ChangePasswordView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88CEF186306EB28100B8E81E /* ChangePasswordView.swift */; };
 		8ACCFB0653A95BCF9F8BF172 /* FairsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8D9374EE589C4BC12B04B7 /* FairsStore.swift */; };
-		92F7ACF4040532080F799975 /* Project.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28EEA630375F02544375BF2 /* Project.swift */; };
 		9852B3FAEB9C9471FB2FB918 /* SessionNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE8FAF184708F07B62CD858 /* SessionNotifications.swift */; };
 		999BBD3DCE56F9BAF60D8A3C /* ProfileDashboardViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BACA9BBA00AC3C6DD7C71FF /* ProfileDashboardViews.swift */; };
 		9A92E50AA8A18695B0C34094 /* FairListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 437C479ACB20AB365A982B3C /* FairListView.swift */; };
@@ -69,7 +70,6 @@
 		AC3110A28D617FC0D13BF9BE /* ProjectReviewCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34606F78484F82B99691D0E0 /* ProjectReviewCard.swift */; };
 		B55D6F92B4476850F57CF689 /* PendingProjectCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54D1E11167FDBE57CCD0A099 /* PendingProjectCard.swift */; };
 		B9B2113D60E282E6DF8C6349 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 489904B5263977C8C180D83D /* LoginView.swift */; };
-		BF65649515782A328DC33B52 /* ProjectListFilterSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB690E5A37328C09DC4201B4 /* ProjectListFilterSheet.swift */; };
 		C0DE1234AB5678CD9EF012AB /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D9E1A2B3C4D5E6F708192A1B /* LaunchScreen.storyboard */; };
 		C1D2E3F405162738495A6B7C /* CodeInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E2F30415263748596A7B8C /* CodeInputView.swift */; };
 		C3D34562E90970AEF63550E6 /* Endpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 398B91CC9CBFBAAFCE9D5CBB /* Endpoint.swift */; };
@@ -77,10 +77,12 @@
 		CB7B86C1A7EDB494799BC7E5 /* TotpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB55688BE0135D8C809E3D7D /* TotpView.swift */; };
 		CDBE4CD73058548E007D3D01 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE4CD63058548A007D3D01 /* SplashView.swift */; };
 		CDBE4CDB30585BC2007D3D01 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE4CDA30585BC0007D3D01 /* Colors.swift */; };
-		CDBE4CEB30588630007D3D01 /* TabSegmentButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE4CEA3058862E007D3D01 /* TabSegmentButton.swift */; };
 		CDBE4CED30588648007D3D01 /* TabBarItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE4CEC30588647007D3D01 /* TabBarItem.swift */; };
-		CDBE4CEF3058869D007D3D01 /* ProjectsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE4CEE3058869C007D3D01 /* ProjectsViewModel.swift */; };
 		CDBE4CF33058905C007D3D01 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE4CF23058905B007D3D01 /* ProfileView.swift */; };
+		D4A17C2B8E6F40C9B5D31A77 /* NoticesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8B1A04C9D24F7AB3E56012 /* NoticesView.swift */; };
+		E7C31A04A9D246F08C5B18F3 /* NoticeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4E81C90B2D64F8A9C3E52F8 /* NoticeCard.swift */; };
+		C8F21A09B4E647D3A5C17E60 /* AvatarUpload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9D4E72C0B548F6A3E81D44 /* AvatarUpload.swift */; };
+		B1E4C8A07D3F49A2C6B51830 /* APIClient+Avatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C2A6F14E8B547D0A1C39E55 /* APIClient+Avatar.swift */; };
 		CDBE4CF53058908A007D3D01 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDBE4CF430589089007D3D01 /* MainTabView.swift */; };
 		D3E663E1E9A6BE6D7F977892 /* PhotoViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4AF28E45ED7171A5B01B5E8 /* PhotoViewer.swift */; };
 		DC91437713E158F83E4D1731 /* SessionStore+Auth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 039683164AB1450A312AFC24 /* SessionStore+Auth.swift */; };
@@ -97,6 +99,7 @@
 		FA5AFAD0FD65B8135C3F55C2 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED3D6B826D3E184A73E8AF3 /* User.swift */; };
 		FA5E00000000000000000002 /* FairListHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5E00000000000000000001 /* FairListHeaderView.swift */; };
 		FA5E00000000000000000004 /* FairRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5E00000000000000000003 /* FairRowView.swift */; };
+		A7C3E91B4D2F48A0B6E15C83 /* FairCardCover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F8B2D14C6A547E09B1D7A22 /* FairCardCover.swift */; };
 		FA5E00000000000000000006 /* FairsSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5E00000000000000000005 /* FairsSectionView.swift */; };
 		FA5E00000000000000000008 /* MyProjectsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5E00000000000000000007 /* MyProjectsView.swift */; };
 		FA5E0000000000000000000A /* AssignedSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5E00000000000000000009 /* AssignedSummaryCard.swift */; };
@@ -110,7 +113,6 @@
 		E64DC71F1E8B45E5A9077F45 /* ProjectsStore+Reviews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectsStore+Reviews.swift"; sourceTree = "<group>"; };
 		CFD569712EB24FBF878523FF /* ReviewProject.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReviewProject.swift"; sourceTree = "<group>"; };
 		7181133CE1F34CE58E3710BF /* ReviewAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ReviewAccess.swift"; sourceTree = "<group>"; };
-		207F8E35334740F7BC988896 /* ProjectMembersCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectMembersCard.swift"; sourceTree = "<group>"; };
 		73066E75581B4F87956E628D /* ProjectDetailView+Loading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProjectDetailView+Loading.swift"; sourceTree = "<group>"; };
 		B119A40F0E884BEBA5A3B7B7 /* FairReviewNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FairReviewNotice.swift"; sourceTree = "<group>"; };
 		9DB0ECDBDE004955AF07EE16 /* JuryOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "JuryOnboardingView.swift"; sourceTree = "<group>"; };
@@ -118,6 +120,8 @@
 		BA0132A8A9294CB2B564974A /* APIClient+Errors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIClient+Errors.swift"; sourceTree = "<group>"; };
 		DA06BEF3F4EF48B38CC06B5F /* APIClient+Assignments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIClient+Assignments.swift"; sourceTree = "<group>"; };
 		5A6CA9794BC44F09ADF4EF0E /* OrganizationHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OrganizationHeader.swift"; sourceTree = "<group>"; };
+		4E7A1C90B2D64F8A9C3E51D6 /* ProseText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProseText.swift; sourceTree = "<group>"; };
+		A91C4E70D2B548F6A3E18C55 /* ProseTranslator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProseTranslator.swift; sourceTree = "<group>"; };
 		D70F57E00CB9475CB96E5BD6 /* InstitutionBrandState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "InstitutionBrandState.swift"; sourceTree = "<group>"; };
 		D02FCE0D356C469496D6A75F /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		015B22E14F6B81C2986B19D9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -148,6 +152,8 @@
 		7EF3A66A985F8BA0B2895EF4 /* APIConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIConfig.swift; sourceTree = "<group>"; };
 		8517612D2B6C64117FC464DD /* ProjectDetailHeader.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProjectDetailHeader.swift; sourceTree = "<group>"; };
 		8714CDBFC11D326DAF38D5EC /* ProjectMediaLinks.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProjectMediaLinks.swift; sourceTree = "<group>"; };
+		8F21D6A04B7C49E1A3D58F02 /* ProjectVideoPlayback.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProjectVideoPlayback.swift; sourceTree = "<group>"; };
+		2D8A6F14C0B547E9B3A19D55 /* ProjectDetailBody.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProjectDetailBody.swift; sourceTree = "<group>"; };
 		8831B85A50E24392DCC0756B /* APITransport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = APITransport.swift; sourceTree = "<group>"; };
 		883CF80E30648433006B4994 /* TabBarVisibility.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarVisibility.swift; sourceTree = "<group>"; };
 		88CEF17A306EAF7B00B8E81E /* Review.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Review.swift; sourceTree = "<group>"; };
@@ -173,13 +179,14 @@
 		CBB2521A16F4132FF83479CE /* RatedProjectCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RatedProjectCard.swift; sourceTree = "<group>"; };
 		CDBE4CD63058548A007D3D01 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		CDBE4CDA30585BC0007D3D01 /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
-		CDBE4CEA3058862E007D3D01 /* TabSegmentButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabSegmentButton.swift; sourceTree = "<group>"; };
 		CDBE4CEC30588647007D3D01 /* TabBarItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabBarItem.swift; sourceTree = "<group>"; };
-		CDBE4CEE3058869C007D3D01 /* ProjectsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectsViewModel.swift; sourceTree = "<group>"; };
 		CDBE4CF23058905B007D3D01 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		6E8B1A04C9D24F7AB3E56012 /* NoticesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoticesView.swift; sourceTree = "<group>"; };
+		A4E81C90B2D64F8A9C3E52F8 /* NoticeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoticeCard.swift; sourceTree = "<group>"; };
+		1A9D4E72C0B548F6A3E81D44 /* AvatarUpload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarUpload.swift; sourceTree = "<group>"; };
+		9C2A6F14E8B547D0A1C39E55 /* APIClient+Avatar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIClient+Avatar.swift"; sourceTree = "<group>"; };
 		CDBE4CF430589089007D3D01 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		D1E2F30415263748596A7B8C /* CodeInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeInputView.swift; sourceTree = "<group>"; };
-		D28EEA630375F02544375BF2 /* Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Project.swift; sourceTree = "<group>"; };
 		D51A5EE4E1FA751DDD448295 /* ChangePasswordSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChangePasswordSheet.swift; sourceTree = "<group>"; };
 		D9E1A2B3C4D5E6F708192A1B /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		DB55688BE0135D8C809E3D7D /* TotpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TotpView.swift; sourceTree = "<group>"; };
@@ -196,6 +203,7 @@
 		F87806978696C68661269F54 /* EditProfileSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EditProfileSheet.swift; sourceTree = "<group>"; };
 		FA5E00000000000000000001 /* FairListHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FairListHeaderView.swift; sourceTree = "<group>"; };
 		FA5E00000000000000000003 /* FairRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FairRowView.swift; sourceTree = "<group>"; };
+		3F8B2D14C6A547E09B1D7A22 /* FairCardCover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FairCardCover.swift; sourceTree = "<group>"; };
 		FA5E00000000000000000005 /* FairsSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FairsSectionView.swift; sourceTree = "<group>"; };
 		FA5E00000000000000000007 /* MyProjectsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyProjectsView.swift; sourceTree = "<group>"; };
 		FA5E00000000000000000009 /* AssignedSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssignedSummaryCard.swift; sourceTree = "<group>"; };
@@ -203,8 +211,6 @@
 		FA5E0000000000000000000D /* AssignedProjectsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssignedProjectsListView.swift; sourceTree = "<group>"; };
 		FA5E00000000000000000013 /* QRScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRScannerView.swift; sourceTree = "<group>"; };
 		FA5E00000000000000000015 /* QRCodePayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodePayload.swift; sourceTree = "<group>"; };
-		FB690E5A37328C09DC4201B4 /* ProjectListFilterSheet.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProjectListFilterSheet.swift; sourceTree = "<group>"; };
-		FE6D77600A213A3B66854C82 /* ChipFlow.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ChipFlow.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -234,6 +240,7 @@
 				FA5E00000000000000000001 /* FairListHeaderView.swift */,
 				437C479ACB20AB365A982B3C /* FairListView.swift */,
 				FA5E00000000000000000003 /* FairRowView.swift */,
+				3F8B2D14C6A547E09B1D7A22 /* FairCardCover.swift */,
 				FA5E00000000000000000005 /* FairsSectionView.swift */,
 			);
 			path = Fairs;
@@ -245,6 +252,7 @@
 				BA0132A8A9294CB2B564974A /* APIClient+Errors.swift */,
 				DA06BEF3F4EF48B38CC06B5F /* APIClient+Assignments.swift */,
 				ECDE4C465851BF6DBDEBF8A0 /* APIClient.swift */,
+				9C2A6F14E8B547D0A1C39E55 /* APIClient+Avatar.swift */,
 				7EF3A66A985F8BA0B2895EF4 /* APIConfig.swift */,
 				A0D484055800DBC2073A00C8 /* APIError.swift */,
 				8831B85A50E24392DCC0756B /* APITransport.swift */,
@@ -300,14 +308,14 @@
 		444EFA025E066E7F6A28ADE1 /* Detail */ = {
 			isa = PBXGroup;
 			children = (
-				207F8E35334740F7BC988896 /* ProjectMembersCard.swift */,
 				73066E75581B4F87956E628D /* ProjectDetailView+Loading.swift */,
-				FE6D77600A213A3B66854C82 /* ChipFlow.swift */,
 				A4AF28E45ED7171A5B01B5E8 /* PhotoViewer.swift */,
 				8517612D2B6C64117FC464DD /* ProjectDetailHeader.swift */,
 				EAB26FEC4DC861B277B9FBD0 /* ProjectDetailView.swift */,
 				171B7245C91A5A8787AB6748 /* ProjectGalleryBanner.swift */,
 				8714CDBFC11D326DAF38D5EC /* ProjectMediaLinks.swift */,
+				8F21D6A04B7C49E1A3D58F02 /* ProjectVideoPlayback.swift */,
+				2D8A6F14C0B547E9B3A19D55 /* ProjectDetailBody.swift */,
 				34606F78484F82B99691D0E0 /* ProjectReviewCard.swift */,
 			);
 			name = Detail;
@@ -343,7 +351,6 @@
 		5C5CF7E44315EA6B90CB5A68 /* Project */ = {
 			isa = PBXGroup;
 			children = (
-				D28EEA630375F02544375BF2 /* Project.swift */,
 				401E8866F1300BB42D665FB3 /* ProjectDetail.swift */,
 				998AC5F359E42E3FC072D9F0 /* ProjectTaxonomy.swift */,
 			);
@@ -396,10 +403,8 @@
 			isa = PBXGroup;
 			children = (
 				79FB4C372CE9FE86AD5CFEE6 /* ProjectCoverCard.swift */,
-				FB690E5A37328C09DC4201B4 /* ProjectListFilterSheet.swift */,
 				642F637F23E4493A012A1317 /* ProjectListFilters.swift */,
 				CA32D3B1324059FA76CBD69C /* ProjectListView.swift */,
-				CDBE4CEE3058869C007D3D01 /* ProjectsViewModel.swift */,
 			);
 			name = List;
 			path = List;
@@ -450,6 +455,9 @@
 				8A510CA9A61CE35683421B78 /* ProfileSheetComponents.swift */,
 				2D8F676ED285622C4A3BD352 /* ProfileView+Presentation.swift */,
 				CDBE4CF23058905B007D3D01 /* ProfileView.swift */,
+				6E8B1A04C9D24F7AB3E56012 /* NoticesView.swift */,
+				A4E81C90B2D64F8A9C3E52F8 /* NoticeCard.swift */,
+				1A9D4E72C0B548F6A3E81D44 /* AvatarUpload.swift */,
 			);
 			name = Profile;
 			path = Profile;
@@ -518,6 +526,8 @@
 			isa = PBXGroup;
 			children = (
 				5A6CA9794BC44F09ADF4EF0E /* OrganizationHeader.swift */,
+				4E7A1C90B2D64F8A9C3E51D6 /* ProseText.swift */,
+				A91C4E70D2B548F6A3E18C55 /* ProseTranslator.swift */,
 				D70F57E00CB9475CB96E5BD6 /* InstitutionBrandState.swift */,
 				D02FCE0D356C469496D6A75F /* Color+Hex.swift */,
 				CDBE4CDA30585BC0007D3D01 /* Colors.swift */,
@@ -525,7 +535,6 @@
 				A2B930E643F541E24C297C3A /* ErrorBanner.swift */,
 				42C5143E80CDECDD8A0B5602 /* PremiumSurface.swift */,
 				CDBE4CEC30588647007D3D01 /* TabBarItem.swift */,
-				CDBE4CEA3058862E007D3D01 /* TabSegmentButton.swift */,
 			);
 			name = DesignSystem;
 			path = DesignSystem;
@@ -638,7 +647,6 @@
 				86C7889DBCD64C87BC75475F /* ProjectsStore+Reviews.swift in Sources */,
 				9AB31A953E5842ADBE95930C /* ReviewProject.swift in Sources */,
 				994F5F128A414E47B083F0BE /* ReviewAccess.swift in Sources */,
-				97B82F15721C411888CAA12A /* ProjectMembersCard.swift in Sources */,
 				27996AC07E7F43DB8F74215A /* ProjectDetailView+Loading.swift in Sources */,
 				5C2948082E7347FB8DE8D34E /* FairReviewNotice.swift in Sources */,
 				94CCD1DDEB4F4551937A0881 /* JuryOnboardingView.swift in Sources */,
@@ -646,6 +654,8 @@
 				363D33A0CBCB4724B7379265 /* APIClient+Errors.swift in Sources */,
 				5F804DAB30F04852A5EEA6F1 /* APIClient+Assignments.swift in Sources */,
 				2A5D727D9F8B455D93D96724 /* OrganizationHeader.swift in Sources */,
+				B7C31E04A9D246F08C5A17E2 /* ProseText.swift in Sources */,
+				C6D82F15B0E347A19D4B28F3 /* ProseTranslator.swift in Sources */,
 				32EB653B02A24A7A83AC8E85 /* InstitutionBrandState.swift in Sources */,
 				644277AE2F2F4093A2BBC333 /* Color+Hex.swift in Sources */,
 				3AC91A59EE028D529924037A /* CampusVoteJuradoApp.swift in Sources */,
@@ -660,9 +670,13 @@
 				9A92E50AA8A18695B0C34094 /* FairListView.swift in Sources */,
 				FA5E00000000000000000002 /* FairListHeaderView.swift in Sources */,
 				FA5E00000000000000000004 /* FairRowView.swift in Sources */,
+				A7C3E91B4D2F48A0B6E15C83 /* FairCardCover.swift in Sources */,
 				FA5E00000000000000000006 /* FairsSectionView.swift in Sources */,
 				4DA8B1CFE4DB510936CA77D3 /* ProjectDetailView.swift in Sources */,
 				CDBE4CF33058905C007D3D01 /* ProfileView.swift in Sources */,
+				D4A17C2B8E6F40C9B5D31A77 /* NoticesView.swift in Sources */,
+				E7C31A04A9D246F08C5B18F3 /* NoticeCard.swift in Sources */,
+				C8F21A09B4E647D3A5C17E60 /* AvatarUpload.swift in Sources */,
 				E641A0A17B9C42F8AF136510 /* L10n.swift in Sources */,
 				E641A0A17B9C42F8AF136501 /* PreferencesView.swift in Sources */,
 				88CEF17B306EAF8500B8E81E /* Review.swift in Sources */,
@@ -675,14 +689,11 @@
 				FA5E00000000000000000016 /* QRCodePayload.swift in Sources */,
 				CDBE4CF53058908A007D3D01 /* MainTabView.swift in Sources */,
 				600D0A73DA8BAE4D298A7FA0 /* Fair.swift in Sources */,
-				92F7ACF4040532080F799975 /* Project.swift in Sources */,
-				CDBE4CEB30588630007D3D01 /* TabSegmentButton.swift in Sources */,
 				CDBE4CD73058548E007D3D01 /* SplashView.swift in Sources */,
 				FA5AFAD0FD65B8135C3F55C2 /* User.swift in Sources */,
 				2A6652A79C055797DCD94B28 /* APIConfig.swift in Sources */,
 				8800E093869725B24CCE9AB5 /* APIError.swift in Sources */,
 				883CF80F3064844C006B4994 /* TabBarVisibility.swift in Sources */,
-				CDBE4CEF3058869D007D3D01 /* ProjectsViewModel.swift in Sources */,
 				C3D34562E90970AEF63550E6 /* Endpoint.swift in Sources */,
 				59C8597ED09B5628119D7638 /* JSONCoding.swift in Sources */,
 				6B69CA1CCC2FBD05A3345B95 /* KeychainStore.swift in Sources */,
@@ -713,20 +724,21 @@
 				64B8E071F2E57BECD89DB406 /* MyProgressSummaryCard.swift in Sources */,
 				B55D6F92B4476850F57CF689 /* PendingProjectCard.swift in Sources */,
 				1E1410FF4C5B11807688E3FC /* RatedProjectCard.swift in Sources */,
-				52087E1171BEB04C4712FD70 /* ChipFlow.swift in Sources */,
 				D3E663E1E9A6BE6D7F977892 /* PhotoViewer.swift in Sources */,
 				46587C681D9F42AD60D868C4 /* ProjectDetailHeader.swift in Sources */,
 				F09F544D8EFC90E418B0EF32 /* ProjectGalleryBanner.swift in Sources */,
 				3F4169B8D089E3656A957A50 /* ProjectMediaLinks.swift in Sources */,
+				C4E8A17B2D9F46A0B5C31E78 /* ProjectVideoPlayback.swift in Sources */,
+				B7C1E4A09D2F48C6A5E81370 /* ProjectDetailBody.swift in Sources */,
 				AC3110A28D617FC0D13BF9BE /* ProjectReviewCard.swift in Sources */,
 				0C1F5CBA478BE3DB55A71B90 /* ProjectCoverCard.swift in Sources */,
-				BF65649515782A328DC33B52 /* ProjectListFilterSheet.swift in Sources */,
 				E5EB62F3A0B9B797CC658198 /* ProjectListFilters.swift in Sources */,
 				DCAC4081C46E947042602F34 /* ProjectDetail.swift in Sources */,
 				9D4FE741FADEEF29C150427F /* ProjectTaxonomy.swift in Sources */,
 				29126687878BD787F4D13EA0 /* JuryAccessType.swift in Sources */,
 				DC91437713E158F83E4D1731 /* SessionStore+Auth.swift in Sources */,
 				0BD69AB27AA3B3A47C7AA9D1 /* APIClient.swift in Sources */,
+				B1E4C8A07D3F49A2C6B51830 /* APIClient+Avatar.swift in Sources */,
 				7B5B100274E2260658CABFDD /* PremiumSurface.swift in Sources */,
 				27291E76E35F42A21A926120 /* APITransport.swift in Sources */,
 			);

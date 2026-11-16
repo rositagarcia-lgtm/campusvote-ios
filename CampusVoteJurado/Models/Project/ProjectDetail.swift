@@ -1,6 +1,6 @@
 import Foundation
 
-/// Detalle de GET /fairs/{fairId}/projects/{projectId}.
+/// Detalle de GET /fairs/{fairId}/review-projects/{projectId}.
 struct ProjectDetail: Decodable {
     let projectId: String
     let fairId: String?
@@ -16,21 +16,6 @@ struct ProjectDetail: Decodable {
     let standCode: String?
     let imageUrls: [String]
     let videoUrl: String?
-    let members: [Member]
-
-    struct Member: Decodable, Identifiable {
-        let id: String
-        let firstName: String?
-        let lastName: String?
-        let role: String?
-
-        enum CodingKeys: String, CodingKey {
-            case id
-            case firstName = "first_name"
-            case lastName = "last_name"
-            case role
-        }
-    }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -50,7 +35,6 @@ struct ProjectDetail: Decodable {
         case stand
         case standId = "stand_id"
         case standCode = "stand_code"
-        case members
     }
 
     init(from decoder: Decoder) throws {
@@ -66,7 +50,6 @@ struct ProjectDetail: Decodable {
         videoUrl = try container.decodeIfPresent(String.self, forKey: .videoUrl)
         imageUrls = try container.decodeIfPresent([String].self, forKey: .imageUrls) ?? []
         status = try container.decodeIfPresent(String.self, forKey: .status)
-        members = (try container.decodeIfPresent([Member].self, forKey: .members)) ?? []
 
         let flatCategoryId = try container.decodeIfPresent(String.self, forKey: .categoryId)
         let flatCategoryName = try container.decodeIfPresent(String.self, forKey: .categoryName)

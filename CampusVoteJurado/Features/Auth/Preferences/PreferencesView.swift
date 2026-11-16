@@ -4,6 +4,7 @@ struct PreferencesView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
     @Environment(FairsStore.self) private var fairsStore
+    @Environment(SessionStore.self) private var session
     @Environment(TabBarVisibility.self) private var tabBar
 
     @AppStorage("campusvote.preferences.appearance") private var appearance = "system"
@@ -37,6 +38,7 @@ struct PreferencesView: View {
                 .padding(.top, 22)
                 .padding(.bottom, 36)
             }
+            .refreshable { await session.refreshBrand() }
         }
         .background(Color.appBackground.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)

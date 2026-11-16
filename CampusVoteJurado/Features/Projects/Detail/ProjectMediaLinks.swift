@@ -1,40 +1,39 @@
 import SwiftUI
 
-/// Bloque con el video del prototipo.
+/// Video del prototipo dentro de la ficha. Agrandar lo pasa a toda la pantalla.
 struct ProjectVideoBlock: View {
-    @Environment(\.openURL) private var openURL
     let url: URL
     let poster: String?
+    @StateObject private var playback: ProjectVideoPlayback
+    @State private var expanded = false
+
+    init(url: URL, poster: String?) {
+        self.url = url
+        self.poster = poster
+        _playback = StateObject(wrappedValue: ProjectVideoPlayback(url: url))
+    }
 
     var body: some View {
-        Button {
-            openURL(url)
-        } label: {
-            VStack(spacing: 8) {
-                ZStack {
-                    CoverImage(url: poster.flatMap(URL.init(string:)))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 148)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                    Circle()
-                        .fill(.white.opacity(0.94))
-                        .frame(width: 44, height: 44)
-                        .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
-                        .overlay {
-                            Image(systemName: "play.fill")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(Color.brand)
-                                .offset(x: 1)
-                        }
-                }
-
-                Text("Ver video del prototipo")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        ZStack {
+            if let player = playback.player {
+                ProjectVideoSurface(player: player)
+            } else {
+                CoverImage(url: poster.flatMap(URL.init(string:)))
+            }
+            ProjectVideoChrome(playback: playback, expanded: false) {
+                playback.start()
+                expanded = true
             }
         }
-        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .aspectRatio(playback.ratio, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .fullScreenCover(isPresented: $expanded) {
+            ProjectVideoScreen(playback: playback) {
+                expanded = false
+            }
+            .presentationBackground(.black)
+        }
     }
 }
 

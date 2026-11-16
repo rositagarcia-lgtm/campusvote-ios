@@ -91,10 +91,12 @@ struct FairListView: View {
                     .padding(.vertical, 24)
                 }
                 .refreshable {
-                    await fairsStore.fetchMyAssignments()
+                    async let brand: Void = session.refreshBrand()
+                    async let list: Void = fairsStore.fetchMyAssignments()
+                    _ = await (brand, list)
                 }
             }
-            .background(Color.appBackground.ignoresSafeArea())
+            .background(Color.cardBackground.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: String.self) { fairId in
                 ProjectListView(fairId: fairId)
@@ -144,12 +146,10 @@ struct FairListView: View {
             emptyIcon: "calendar"
         ) {
             ForEach(fairsStore.scheduledFairs) { assignment in
-                Button { path.append(assignment.id) } label: {
-                    FilaDeFeria(fair: assignment.fair,
-                                status: assignment.access.phase == .preview ? .preview : .scheduled)
-                }
-                .buttonStyle(.plain)
-                .disabled(!assignment.access.allowsBrowsing)
+                FilaDeFeria(
+                    fair: assignment.fair,
+                    status: assignment.access.phase == .preview ? .preview : .scheduled
+                )
             }
         }
     }

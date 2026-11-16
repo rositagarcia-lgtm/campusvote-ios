@@ -7,6 +7,7 @@ struct MyProgressView: View {
     @Environment(\.locale) private var locale
     @Environment(ProjectsStore.self) private var projectsStore
     @Environment(FairsStore.self) private var fairsStore
+    @Environment(SessionStore.self) private var session
     @State private var selectedFairId: String?
     @State private var showsRated = false
 
@@ -135,7 +136,9 @@ struct MyProgressView: View {
             }
             .refreshable {
                 guard let selectedFairId else { return }
-                await projectsStore.load(fairId: selectedFairId)
+                async let brand: Void = session.refreshBrand()
+                async let list: Void = projectsStore.load(fairId: selectedFairId)
+                _ = await (brand, list)
             }
         }
         .background(Color.appBackground.ignoresSafeArea())
@@ -165,14 +168,20 @@ struct MyProgressView: View {
     private var fairMenu: some View {
         Menu {
             ForEach(openFairs) { assignment in
-                Button(assignment.fair.name) {
+                Button {
                     selectedFairId = assignment.fair.id
+                } label: {
+                    ProseText(text: assignment.fair.name)
                 }
             }
         } label: {
             HStack(spacing: 6) {
-                Text(fairName)
-                    .font(.subheadline.weight(.semibold))
+                ProseText(
+                    text: fairName,
+                    font: .subheadline,
+                    weight: .semibold,
+                    color: Color.brand
+                )
                 Image(systemName: "chevron.down")
                     .font(.caption.weight(.semibold))
             }

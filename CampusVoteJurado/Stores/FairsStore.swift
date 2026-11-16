@@ -64,8 +64,8 @@ final class FairsStore {
             let assignments = try await api.allAssignments()
             try Task.checkCancellation()
             guard loadID == requestID else { return }
-            activeFairs = assignments.filter { $0.access.phase == .live || $0.fair.isOpen }
-            closedFairs = assignments.filter { $0.access.phase == .ended && !$0.fair.isOpen }
+            activeFairs = assignments.filter { $0.access.phase == .live }
+            closedFairs = assignments.filter { $0.access.phase == .ended }
             scheduledFairs = assignments.filter { assignment in
                 !activeFairs.contains { $0.id == assignment.id }
                     && !closedFairs.contains { $0.id == assignment.id }

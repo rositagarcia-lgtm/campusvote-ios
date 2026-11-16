@@ -17,10 +17,14 @@ struct MyProgressSummaryCard: View {
                 progressRing
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(fairName.uppercased())
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(Color.brand)
-                        .lineLimit(2)
+                    ProseText(
+                        text: fairName,
+                        font: .caption2,
+                        weight: .semibold,
+                        color: Color.brand,
+                        lineLimit: 2,
+                        uppercase: true
+                    )
 
                     Text("Reseñas de proyectos")
                         .font(.subheadline.weight(.semibold))

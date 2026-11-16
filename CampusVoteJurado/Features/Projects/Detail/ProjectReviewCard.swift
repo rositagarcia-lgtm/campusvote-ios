@@ -1,187 +1,223 @@
 import SwiftUI
+import UIKit
 
-/// Formulario de reseña: estrellas, aspectos destacados y comentario.
-struct ProjectReviewCard: View {
-    @Environment(\.locale) private var locale
-
+/// Hoja corta de reseña. Al escribir crece y deja el campo sobre el teclado.
+struct ProjectReviewSheet: View {
+    let name: String
+    let summary: String?
+    let imageURL: String?
     @Binding var stars: Int
     @Binding var comment: String
-    @Binding var aspects: Set<String>
-
-    let aspectOptions: [String]
-    let highlightsKey: String
     let canSave: Bool
     let isSaving: Bool
     let commentHint: String?
+    let errorMessage: String?
     let onSave: () -> Void
 
-    private var verdeAspecto: Color { .brandTeal }
+    @FocusState private var commentFocused: Bool
+    @State private var detent: PresentationDetent = .fraction(0.42)
+    @State private var keyboard: CGFloat = 0
+
+    private var detents: Set<PresentationDetent> {
+        keyboard > 0 ? [.height(300 + keyboard)] : [.fraction(0.42)]
+    }
 
     var body: some View {
-        ProjectDetailCard {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Tu reseña")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                Text("Evalúa el impacto y claridad del proyecto")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        ScrollViewReader { proxy in
+            ScrollView {
+                ProjectReviewCard(
+                    name: name,
+                    summary: summary,
+                    imageURL: imageURL,
+                    stars: $stars,
+                    comment: $comment,
+                    canSave: canSave,
+                    isSaving: isSaving,
+                    commentHint: commentHint,
+                    commentFocused: $commentFocused,
+                    onSave: onSave
+                )
+                if let errorMessage, !errorMessage.isEmpty {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(Color.appDanger)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 8)
+                }
             }
+            .padding(.horizontal, 16)
+            .padding(.bottom, keyboard)
+            .scrollDismissesKeyboard(.interactively)
+            .background(Color.cardBackground)
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+            .onChange(of: commentFocused) { _, focused in
+                guard focused else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+                    withAnimation { proxy.scrollTo("comment-field", anchor: .bottom) }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
+                let overlap = Self.overlap(note)
+                keyboard = overlap
+                detent = overlap > 0 ? .height(300 + overlap) : .fraction(0.42)
+                guard commentFocused, overlap > 0 else { return }
+                withAnimation { proxy.scrollTo("comment-field", anchor: .bottom) }
+            }
+        }
+        .presentationDetents(detents, selection: $detent)
+        .presentationDragIndicator(.visible)
+        .presentationBackground(Color.cardBackground)
+    }
 
+    private static func overlap(_ note: Notification) -> CGFloat {
+        guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
+              let screen = (note.object as? UIScreen)?.bounds.height
+                ?? UIApplication.shared.connectedScenes
+                    .compactMap({ $0 as? UIWindowScene })
+                    .first?.screen.bounds.height else { return 0 }
+        return max(0, screen - frame.minY)
+    }
+}
+
+/// Ficha corta, estrellas, comentario y envío.
+struct ProjectReviewCard: View {
+    @Environment(\.locale) private var locale
+
+    let name: String
+    let summary: String?
+    let imageURL: String?
+    @Binding var stars: Int
+    @Binding var comment: String
+    let canSave: Bool
+    let isSaving: Bool
+    let commentHint: String?
+    var commentFocused: FocusState<Bool>.Binding
+    let onSave: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            summaryCard
+            ratingBlock
+            commentBlock
+                .id("comment-field")
+            sendButton
+        }
+        .padding(.top, 4)
+        .padding(.bottom, 8)
+    }
+
+    private var summaryCard: some View {
+        HStack(alignment: .center, spacing: 10) {
+            CoverImage(url: imageURL.flatMap(URL.init(string:)))
+                .frame(width: 56, height: 48)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name)
+                    .font(.subheadline.weight(.bold))
+                    .lineLimit(2)
+                if let summary = trimmed(summary) {
+                    ProseText(
+                        text: summary,
+                        font: .caption,
+                        color: .secondary,
+                        lineLimit: 2
+                    )
+                }
+            }
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+        )
+    }
+
+    private var ratingBlock: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Tu calificación")
+                .font(.subheadline.weight(.semibold))
+            Text(stars == 0
+                 ? "Elige de 1 a 5 estrellas"
+                 : L10n.format("%d de 5 estrellas", locale: locale, stars))
+                .font(.caption)
+                .foregroundStyle(.secondary)
             HStack(spacing: 2) {
                 ForEach(1...5, id: \.self) { star in
                     Button {
                         stars = star
                     } label: {
-                        Image(systemName: star <= stars ? "star.fill" : "star")
+                        Image(systemName: "star.fill")
                             .font(.system(size: 22))
-                            .foregroundStyle(star <= stars ? Color.brand : Color.appNeutral)
-                            .frame(width: 44, height: 44)
+                            .foregroundStyle(star <= stars ? Color.brand : Color.appNeutral.opacity(0.35))
+                            .frame(width: 36, height: 36)
                     }
                     .buttonStyle(.plain)
                     .disabled(isSaving)
                     .accessibilityLabel(L10n.format("%d estrellas", locale: locale, star))
-                    .accessibilityValue(star == stars ? L10n.tr("Seleccionado", locale: locale) : "")
-                    .accessibilityAddTraits(star == stars ? .isSelected : [])
                 }
             }
-
-            VStack(alignment: .leading, spacing: 8) {
-                ProjectDetailLabel(title: "ASPECTOS DESTACADOS")
-                ChipFlow(spacing: 8) {
-                    ForEach(aspectOptions, id: \.self) { item in
-                        aspectChip(item)
-                    }
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                ProjectDetailLabel(title: "COMENTARIOS ADICIONALES")
-                commentBox
-                if let commentHint {
-                    Text(commentHint)
-                        .font(.caption)
-                        .foregroundStyle(Color.appWarning)
-                }
-            }
-
-            Button(action: onSave) {
-                Group {
-                    if isSaving {
-                        ProgressView()
-                            .tint(Color.onBrand)
-                    } else {
-                        HStack(spacing: 8) {
-                            Image(systemName: "checkmark")
-                                .font(.subheadline.weight(.bold))
-                            Text("Guardar reseña")
-                                .font(.subheadline.weight(.semibold))
-                        }
-                    }
-                }
-                .foregroundStyle(Color.onBrand)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Color.brand.opacity(canSave ? 1 : 0.4))
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(!canSave)
-            .padding(.top, 4)
         }
     }
 
-    private func aspectChip(_ item: String) -> some View {
-        let selected = aspects.contains(item)
-        return Button {
-            if selected {
-                aspects.remove(item)
-            } else {
-                aspects.insert(item)
-                insertAspect(item)
+    private var commentBlock: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Comentario")
+                .font(.subheadline.weight(.semibold))
+            TextField("¿Qué podrían mejorar? Sé concreto y respetuoso.", text: $comment, axis: .vertical)
+                .lineLimit(2...4)
+                .font(.subheadline)
+                .focused(commentFocused)
+                .disabled(isSaving)
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.primary.opacity(0.12), lineWidth: 1)
+                )
+                .onChange(of: comment) { _, newValue in
+                    var limited = String(newValue.prefix(1000))
+                    while limited.utf16.count > 1000 { limited.removeLast() }
+                    if limited != newValue { comment = limited }
+                }
+            if let commentHint {
+                Text(commentHint)
+                    .font(.caption2)
+                    .foregroundStyle(Color.appWarning)
             }
-            UserDefaults.standard.set(Array(aspects), forKey: highlightsKey)
-        } label: {
-            HStack(spacing: 4) {
-                if selected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.caption.weight(.semibold))
-                    Text(L10n.tr(item, locale: locale))
+            Text("Solo lo verá el equipo del proyecto.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var sendButton: some View {
+        Button(action: onSave) {
+            Group {
+                if isSaving {
+                    ProgressView().tint(Color.onBrand)
                 } else {
-                    Text(L10n.format("+ %@", locale: locale, L10n.tr(item, locale: locale)))
+                    HStack(spacing: 8) {
+                        Image(systemName: "paperplane.fill")
+                            .font(.footnote.weight(.bold))
+                        Text("Enviar mi opinión")
+                            .font(.subheadline.weight(.semibold))
+                    }
                 }
             }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(selected ? verdeAspecto : Color.secondary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .frame(minHeight: 44)
+            .foregroundStyle(Color.onBrand)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
             .background(
-                Capsule().fill(selected ? verdeAspecto.opacity(0.12) : Color.primary.opacity(0.05))
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.brand.opacity(canSave ? 1 : 0.4))
             )
         }
         .buttonStyle(.plain)
-        .disabled(isSaving)
+        .disabled(!canSave)
     }
 
-    private func insertAspect(_ item: String) {
-        let localizedItem = L10n.tr(item, locale: locale)
-        let current = comment.trimmingCharacters(in: .whitespacesAndNewlines)
-        if current.range(of: localizedItem, options: .caseInsensitive) != nil {
-            return
-        }
-        let sentence = "\(localizedItem)."
-        let next = current.isEmpty ? sentence : "\(current) \(sentence)"
-        guard next.utf16.count <= 1000 else { return }
-        comment = next
-    }
-
-    private var commentBox: some View {
-        ZStack(alignment: .topLeading) {
-            if comment.isEmpty {
-                Text("Escribe un comentario")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 8)
-                    .padding(.leading, 5)
-            }
-
-            TextEditor(text: $comment)
-                .font(.subheadline)
-                .accessibilityLabel("Escribe un comentario")
-                .scrollContentBackground(.hidden)
-                .frame(minHeight: 88)
-                .disabled(isSaving)
-        }
-        .padding(.horizontal, 10)
-        .padding(.top, 8)
-        .padding(.bottom, 22)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.cardBackground)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-        )
-        .overlay(alignment: .bottomTrailing) {
-            Text("\(min(commentCount, 1000))/1000")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .padding(.trailing, 10)
-                .padding(.bottom, 8)
-        }
-        .onChange(of: comment) { _, newValue in
-            var limited = String(newValue.prefix(1000))
-            while limited.utf16.count > 1000 { limited.removeLast() }
-            if limited != newValue { comment = limited }
-        }
-    }
-
-    private var commentCount: Int {
-        comment.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count
+    private func trimmed(_ value: String?) -> String? {
+        let text = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return text.isEmpty ? nil : text
     }
 }

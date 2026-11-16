@@ -17,6 +17,11 @@ private struct RefreshPayload: Encodable {
     let refreshToken: String
 }
 
+private struct TranslatePayload: Encodable {
+    let texts: [String]
+    let target: String
+}
+
 private struct PasswordChangePayload: Encodable {
     let currentPassword: String
     let newPassword: String
@@ -135,6 +140,10 @@ struct Endpoint {
 
     static func projectRating(fairId: String, projectId: String) -> Endpoint {
         Endpoint(path: "fairs/\(fairId)/projects/\(projectId)/rating", method: "GET")
+    }
+
+    static func translate(texts: [String], target: String) -> Endpoint {
+        Endpoint(path: "translate", method: "POST", body: TranslatePayload(texts: texts, target: target))
     }
 
     static func saveRating(fairId: String, projectId: String, body: ReviewPutBody) -> Endpoint {

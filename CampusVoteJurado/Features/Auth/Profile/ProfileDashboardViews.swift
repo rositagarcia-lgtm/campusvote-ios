@@ -8,26 +8,29 @@ struct ProfileFairCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center) {
-                Text("FERIA ASIGNADA")
-                    .font(.caption2.weight(.bold))
-                    .tracking(1.3)
-                    .foregroundStyle(Color.onBrand.opacity(0.78))
-                Spacer(minLength: 8)
-                if fairName != nil {
-                    Text("Evaluando")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.black)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Capsule().fill(Color.brandGold))
-                }
+            if fairName != nil {
+                Text("Evaluando")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(Color.brandGold))
             }
 
-            Text(fairName ?? L10n.tr("Sin feria activa", locale: locale))
-                .font(.headline.weight(.bold))
-                .foregroundStyle(Color.onBrand)
-                .fixedSize(horizontal: false, vertical: true)
+            if let fairName {
+                ProseText(
+                    text: fairName,
+                    font: .headline,
+                    weight: .bold,
+                    color: Color.onBrand,
+                    expands: true
+                )
+            } else {
+                Text(L10n.tr("Sin feria activa", locale: locale))
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(Color.onBrand)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             if let fairDate {
                 Label(fairDate, systemImage: "calendar")

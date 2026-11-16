@@ -7,31 +7,20 @@ struct ProjectListView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(ProjectsStore.self) private var store
     @Environment(FairsStore.self) private var fairs
+    @Environment(SessionStore.self) private var session
     @State private var search = ""
     @State private var categoryId: String?
-    @State private var scope: ReviewScope = .assigned
-    @State private var didChooseScope = false
-    @State private var status: StatusFilter = .all
     @State private var route: ProjectRoute?
     @State private var showScanner = false
     @State private var scanError: String?
 
     private var assignment: FairAssignment? { fairs.allFairs.first { $0.id == fairId } }
-    private var isLive: Bool {
-        assignment?.access.phase == .live || assignment?.fair.isOpen == true
-    }
     private var access: ReviewAccess {
         store.access(fairId: fairId, fallback: assignment?.access ?? ReviewAccess())
     }
     private var visible: [ReviewProject] {
         guard store.fairId == fairId else { return [] }
-        return store.filtered(search: search, categoryId: categoryId).filter {
-            switch status {
-            case .all: return true
-            case .pending: return $0.sinResena
-            case .rated: return !$0.sinResena
-            }
-        }
+        return store.filtered(search: search, categoryId: categoryId)
     }
 
     var body: some View {
@@ -51,41 +40,19 @@ struct ProjectListView: View {
             .padding(.horizontal, AppSpacing.screen)
             ScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.section) {
-                    Text(assignment?.fair.name ?? L10n.tr("Feria", locale: locale)).font(.title2.bold())
-                    FairReviewNotice(access: access)
-                    if isLive {
-                        Picker("Alcance de proyectos", selection: Binding(
-                            get: { scope },
-                            set: { didChooseScope = true; scope = $0 }
-                        )) {
-                            ForEach(ReviewScope.allCases) { item in
-                                Text(L10n.tr(item.title, locale: locale)).tag(item)
-                            }
-                        }
-                        .pickerStyle(.segmented)
+                    if let name = assignment?.fair.name {
+                        ProseText(text: name, font: .title2, weight: .bold)
+                    } else {
+                        Text(L10n.tr("Feria", locale: locale)).font(.title2.bold())
                     }
+                    FairReviewNotice(access: access)
                     TextField("Buscar proyecto o categoría", text: $search)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .padding(AppSpacing.standard)
                         .frame(minHeight: 44)
                         .premiumSurface()
-                    Menu {
-                        Button("Todas") { categoryId = nil }
-                        ForEach(store.categories) { category in
-                            Button(category.name) { categoryId = category.id }
-                        }
-                    } label: {
-                        Label(store.categories.first { $0.id == categoryId }?.name
-                              ?? L10n.tr("Todas", locale: locale), systemImage: "line.3.horizontal.decrease")
-                            .frame(minHeight: 44)
-                    }
-                    Picker("Reseñas", selection: $status) {
-                        Text("Todos").tag(StatusFilter.all)
-                        Text("Pendientes").tag(StatusFilter.pending)
-                        Text("Reseñados").tag(StatusFilter.rated)
-                    }
-                    .pickerStyle(.menu)
+                    categoryChips
                     if let message = store.errorMessage {
                         ScreenStateView(icon: "exclamationmark.triangle", title: "No pudimos cargar los proyectos",
                                         message: message, actionTitle: "Reintentar") {
@@ -118,12 +85,9 @@ struct ProjectListView: View {
         .navigationDestination(item: $route) { destination in
             ProjectDetailView(fairId: fairId, projectId: destination.id)
         }
-        .task(id: scope) { categoryId = nil; await reload() }
+        .task { await reload() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await reload() } }
-        }
-        .onChange(of: isLive) { _, live in
-            if !live, scope != .assigned { scope = .assigned }
         }
         .sheet(isPresented: $showScanner) {
             QRScannerView { raw in
@@ -144,16 +108,38 @@ struct ProjectListView: View {
         } message: { Text(L10n.tr(scanError ?? "", locale: locale)) }
     }
 
+    private var categoryChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                categoryChip(title: L10n.tr("Todas", locale: locale), selected: categoryId == nil) {
+                    categoryId = nil
+                }
+                ForEach(store.categories) { category in
+                    categoryChip(title: category.name, selected: categoryId == category.id) {
+                        categoryId = category.id
+                    }
+                }
+            }
+        }
+    }
+
+    private func categoryChip(title: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(selected ? Color.onBrand : Color.primary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(minHeight: 44)
+                .background(Capsule().fill(selected ? Color.brand : Color.cardBackground))
+        }
+        .buttonStyle(.plain)
+    }
+
     private func reload() async {
         await fairs.fetchMyAssignments()
-        if isLive, !didChooseScope, scope != .all {
-            scope = .all
-            return
-        }
-        if !isLive, scope != .assigned {
-            scope = .assigned
-            return
-        }
-        await store.load(fairId: fairId, scope: scope)
+        async let brand: Void = session.refreshBrand()
+        async let list: Void = store.load(fairId: fairId, scope: .all)
+        _ = await (brand, list)
     }
 }

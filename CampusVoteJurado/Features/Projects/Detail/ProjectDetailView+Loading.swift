@@ -19,11 +19,6 @@ extension ProjectDetailView {
         return urls
     }
 
-    func loadHighlights() {
-        let saved = UserDefaults.standard.stringArray(forKey: highlightsKey) ?? []
-        aspects = Set(saved.filter { aspectos.contains($0) })
-    }
-
     func refreshReviewAccess() async {
         let generation = store.dataGeneration
         do {
@@ -105,6 +100,7 @@ extension ProjectDetailView {
         ) {
             stars = min(max(saved.rating ?? stars, 0), 5)
             comment = String((saved.comment ?? comment).prefix(1000))
+            showReview = false
             saveAlert = SaveAlert(
                 title: "Reseña guardada",
                 message: "Tu reseña y comentario se guardaron correctamente."

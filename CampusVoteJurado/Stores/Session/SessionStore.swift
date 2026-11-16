@@ -80,22 +80,14 @@ final class SessionStore {
                 InstitutionAppearance.reset()
                 errorMessage = error.userMessage
                 phase = .signedOut
-            } else if error.isTransient {
-                await restoreCachedSession(message: error.userMessage)
             } else {
-                stopBrandUpdates()
-                errorMessage = error.userMessage
-                InstitutionAppearance.reset()
-                phase = .signedOut
+                await restoreCachedSession(message: error.userMessage)
             }
         } catch is CancellationError {
             return
         } catch {
             guard sessionGeneration == generation else { return }
-            stopBrandUpdates()
-            errorMessage = error.userMessage
-            InstitutionAppearance.reset()
-            phase = .signedOut
+            await restoreCachedSession(message: error.userMessage)
         }
     }
 
