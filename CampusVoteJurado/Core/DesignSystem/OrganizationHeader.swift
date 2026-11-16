@@ -12,7 +12,6 @@ struct OrganizationLogo: View {
         }
         .padding(4)
         .frame(width: 38, height: 38)
-        .background(Color.brand.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
         .accessibilityHidden(true)
     }
 }

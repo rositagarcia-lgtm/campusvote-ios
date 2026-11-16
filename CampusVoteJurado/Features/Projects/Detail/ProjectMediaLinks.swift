@@ -26,7 +26,8 @@ struct ProjectVideoBlock: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .aspectRatio(playback.ratio, contentMode: .fit)
+        .frame(height: 240)
+        .clipped()
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .fullScreenCover(isPresented: $expanded) {
             ProjectVideoScreen(playback: playback) {

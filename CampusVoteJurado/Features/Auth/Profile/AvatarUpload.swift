@@ -34,9 +34,7 @@ enum AvatarUpload {
                 Endpoint(path: "users/me", method: "GET"),
                 as: JuryProfile.self
             )
-            guard let url = profile.avatarURL else { return false }
-            PortraitStore.shared.remoteURL = url
-            return true
+            return profile.avatarURL != nil
         } catch {
             return false
         }

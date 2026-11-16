@@ -7,10 +7,16 @@ struct AssignedProjectsListView: View {
     let onSelect: (ReviewProject) -> Void
 
     @Environment(ProjectsStore.self) private var store
-    @Environment(SessionStore.self) private var session
 
     @State private var search = ""
     @State private var filter: AssignedFilter = .pending
+
+    /// Vacío y sin respuesta todavía: sigue el círculo. El aviso sale al terminar.
+    private var listIsLoading: Bool {
+        if !store.assignedProjects.isEmpty { return false }
+        if store.assignedErrorMessage != nil { return false }
+        return store.isLoadingAssigned || !store.assignedLoaded
+    }
 
     private var filtered: [ReviewProject] {
         let text = search.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -43,11 +49,22 @@ struct AssignedProjectsListView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                if store.isLoadingAssigned && store.assignedProjects.isEmpty {
-                    ProgressView("Cargando tus proyectos...")
-                        .frame(maxWidth: .infinity, minHeight: 220)
-                } else if let message = store.assignedErrorMessage,
-                          store.assignedProjects.isEmpty {
+                if let message = store.assignedErrorMessage, !store.assignedProjects.isEmpty {
+                    ErrorBanner(message: message)
+                }
+
+                AssignedSummaryCard(
+                    rated: store.assignedSummary.rated,
+                    total: store.assignedSummary.total,
+                    pending: store.assignedSummary.pending
+                )
+                searchField
+                filterTabs
+
+                if listIsLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, minHeight: 180)
+                } else if let message = store.assignedErrorMessage, store.assignedProjects.isEmpty {
                     ScreenStateView(
                         icon: "wifi.exclamationmark",
                         title: "No pudimos cargar tus proyectos",
@@ -57,27 +74,12 @@ struct AssignedProjectsListView: View {
                         Task { await store.loadAssigned() }
                     }
                 } else {
-                    if let message = store.assignedErrorMessage {
-                        ErrorBanner(message: message)
-                    }
-
-                    AssignedSummaryCard(
-                        rated: store.assignedSummary.rated,
-                        total: store.assignedSummary.total,
-                        pending: store.assignedSummary.pending
-                    )
-                    searchField
-                    filterChips
                     content
                 }
             }
             .padding(18)
         }
-        .refreshable {
-            async let brand: Void = session.refreshBrand()
-            async let list: Void = store.loadAssigned()
-            _ = await (brand, list)
-        }
+        .refreshable { await store.loadAssigned() }
     }
 
     private var searchField: some View {
@@ -104,20 +106,23 @@ struct AssignedProjectsListView: View {
         .premiumSurface(cornerRadius: 12)
     }
 
-    private var filterChips: some View {
-        HStack(spacing: 8) {
+    private var filterTabs: some View {
+        HStack(alignment: .center, spacing: 22) {
             ForEach(AssignedFilter.allCases) { item in
+                let selected = filter == item
                 Button { filter = item } label: {
-                    Text(L10n.tr(item.title, locale: locale))
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(filter == item ? Color.onBrand : Color.primary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .frame(minHeight: 44)
-                        .background(Capsule().fill(filter == item ? Color.brand : Color.cardBackground))
+                    VStack(spacing: 8) {
+                        Text(L10n.tr(item.title, locale: locale))
+                            .font(.subheadline.weight(selected ? .semibold : .regular))
+                            .foregroundStyle(selected ? Color.brand : .secondary)
+                        Rectangle()
+                            .fill(selected ? Color.brand : Color.clear)
+                            .frame(height: 2)
+                    }
+                    .fixedSize()
                 }
                 .buttonStyle(.plain)
-                .accessibilityAddTraits(filter == item ? .isSelected : [])
+                .accessibilityAddTraits(selected ? .isSelected : [])
             }
             Spacer(minLength: 0)
         }
@@ -131,7 +136,10 @@ struct AssignedProjectsListView: View {
             LazyVStack(alignment: .leading, spacing: 16) {
                 ForEach(grouped, id: \.fair) { group in
                     VStack(alignment: .leading, spacing: 10) {
-                        groupTitle(group)
+                        Text(group.fair.uppercased())
+                            .font(.system(size: 11, weight: .bold))
+                            .tracking(0.6)
+                            .foregroundStyle(Color.appNeutral)
                         ForEach(group.projects) { project in
                             AssignedProjectRow(project: project) {
                                 onSelect(project)
@@ -140,26 +148,6 @@ struct AssignedProjectsListView: View {
                     }
                 }
             }
-        }
-    }
-
-    @ViewBuilder
-    private func groupTitle(_ group: (fair: String, projects: [ReviewProject])) -> some View {
-        let authored = group.projects.first?.fairName
-        if let authored, !authored.isEmpty {
-            ProseText(
-                text: authored,
-                font: .system(size: 11),
-                weight: .bold,
-                color: Color.appNeutral,
-                tracking: 0.6,
-                uppercase: true
-            )
-        } else {
-            Text(group.fair.uppercased())
-                .font(.system(size: 11, weight: .bold))
-                .tracking(0.6)
-                .foregroundStyle(Color.appNeutral)
         }
     }
 

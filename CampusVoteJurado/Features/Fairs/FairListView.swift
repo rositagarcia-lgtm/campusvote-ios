@@ -91,12 +91,10 @@ struct FairListView: View {
                     .padding(.vertical, 24)
                 }
                 .refreshable {
-                    async let brand: Void = session.refreshBrand()
-                    async let list: Void = fairsStore.fetchMyAssignments()
-                    _ = await (brand, list)
+                    await fairsStore.fetchMyAssignments()
                 }
             }
-            .background(Color.cardBackground.ignoresSafeArea())
+            .background(Color.appBackground.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: String.self) { fairId in
                 ProjectListView(fairId: fairId)
@@ -124,12 +122,9 @@ struct FairListView: View {
             emptyIcon: "calendar.badge.clock"
         ) {
             ForEach(fairsStore.activeFairs) { assignment in
-                Button {
+                FilaDeFeria(fair: assignment.fair, status: .open) {
                     path.append(assignment.fair.id)
-                } label: {
-                    FilaDeFeria(fair: assignment.fair, status: .open)
                 }
-                .buttonStyle(.plain)
             }
         }
     }
@@ -149,7 +144,9 @@ struct FairListView: View {
                 FilaDeFeria(
                     fair: assignment.fair,
                     status: assignment.access.phase == .preview ? .preview : .scheduled
-                )
+                ) {
+                    path.append(assignment.fair.id)
+                }
             }
         }
     }
@@ -166,12 +163,10 @@ struct FairListView: View {
             emptyIcon: "lock.shield"
         ) {
             ForEach(fairsStore.closedFairs) { assignment in
-                Button { path.append(assignment.id) } label: {
-                    FilaDeFeria(fair: assignment.fair, status: .closed)
+                FilaDeFeria(fair: assignment.fair, status: .closed) {
+                    path.append(assignment.fair.id)
                 }
-                .buttonStyle(.plain)
             }
         }
     }
-
 }

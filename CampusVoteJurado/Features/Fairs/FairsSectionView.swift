@@ -38,7 +38,7 @@ struct FairsSectionView<Content: View>: View {
             } else if isEmpty {
                 FairsEmptyStateView(title: emptyTitle, message: emptyMessage, icon: emptyIcon)
             } else {
-                VStack(spacing: 12) {
+                VStack(spacing: 16) {
                     content()
                 }
             }

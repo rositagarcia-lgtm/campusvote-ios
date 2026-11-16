@@ -3,66 +3,53 @@ import SwiftUI
 struct ProjectCoverCard: View {
     @Environment(\.locale) private var locale
     let project: ReviewProject
-    let naranja: Color
-    let verde: Color
+
+    private var pending: Bool { project.sinResena }
+
+    private var pillText: String {
+        pending ? "Pendiente" : "Reseñado"
+    }
+
+    private var pillColor: Color {
+        pending ? Color(red: 0.86, green: 0.42, blue: 0.10) : Color.appSuccess
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             CoverImage(url: project.coverUrl.flatMap { URL(string: $0) })
                 .frame(maxWidth: .infinity)
-                .frame(height: 188)
+                .frame(height: 176)
                 .clipped()
+                .overlay(alignment: .topTrailing) {
+                    Text(L10n.tr(pillText, locale: locale))
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(pillColor))
+                        .padding(10)
+                }
 
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .center, spacing: 8) {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(project.name)
-                        .font(.subheadline.weight(.semibold))
+                        .font(.title3.weight(.bold))
                         .foregroundStyle(.primary)
                         .multilineTextAlignment(.leading)
-
-                    Spacer(minLength: 8)
-
-                    Text(L10n.tr(project.sinResena ? "Sin reseña" : "Con reseña", locale: locale))
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(project.sinResena ? naranja : verde)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule().fill((project.sinResena ? naranja : verde).opacity(0.14))
-                        )
-                }
-
-                HStack(spacing: 6) {
                     if let category = project.categoryName, !category.isEmpty {
                         Text(category)
-                            .font(.caption2.weight(.semibold))
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Capsule().fill(Color.primary.opacity(0.06)))
-                    }
-                    if let stand = project.standCode, !stand.isEmpty {
-                        Text(stand)
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Capsule().fill(Color.primary.opacity(0.06)))
                     }
                 }
-
-                Text(L10n.tr(project.sinResena ? "Reseña pendiente" : "Reseña enviada", locale: locale))
-                    .font(.caption)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
-
-                Text("Ver proyecto")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.brand)
             }
-            .padding(12)
+            .padding(16)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .premiumSurface()
-        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }

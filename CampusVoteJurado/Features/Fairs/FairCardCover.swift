@@ -1,5 +1,9 @@
 import SwiftUI
 
+enum FairCardStatus {
+    case open, preview, scheduled, closed
+}
+
 struct FairCardCover: View {
     @Environment(\.locale) private var locale
     let url: URL?
@@ -14,8 +18,8 @@ struct FairCardCover: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
                 LinearGradient(
-                    colors: [Color.black.opacity(0.08), Color.black.opacity(0.55)],
-                    startPoint: .top,
+                    colors: [Color.black.opacity(0.05), Color.black.opacity(0.72)],
+                    startPoint: .center,
                     endPoint: .bottom
                 )
             } else {
@@ -30,7 +34,8 @@ struct FairCardCover: View {
                 .padding(.bottom, 12)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: url == nil ? 88 : 142)
+        .frame(height: url == nil ? 88 : 168)
+        .clipped()
         .accessibilityElement(children: .combine)
     }
 
@@ -64,8 +69,8 @@ struct FairCardCover: View {
         .background {
             if onImage {
                 Capsule()
-                    .fill(Color.white.opacity(0.18))
-                    .overlay(Capsule().stroke(Color.white.opacity(0.35), lineWidth: 1))
+                    .fill(Color.black.opacity(0.45))
+                    .overlay(Capsule().stroke(Color.white.opacity(0.55), lineWidth: 1))
             } else {
                 Capsule().fill(tone.opacity(0.12))
             }

@@ -8,11 +8,12 @@ struct ProjectDetailBody: View {
     @Binding var page: Int
     let access: ReviewAccess
     let onSelectPhoto: (Int) -> Void
-    let onBack: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            hero
+            if !photos.isEmpty {
+                ProjectGalleryBanner(urls: photos, page: $page, onSelect: onSelectPhoto)
+            }
             identity
                 .padding(.horizontal, 16)
             if let video = detail.videoUrl, let url = URL(string: video) {
@@ -35,31 +36,6 @@ struct ProjectDetailBody: View {
             }
             .padding(.horizontal, 16)
         }
-    }
-
-    @ViewBuilder
-    private var hero: some View {
-        if photos.isEmpty {
-            ProjectDetailHeader(onBack: onBack)
-        } else {
-            ZStack(alignment: .topLeading) {
-                ProjectGalleryBanner(urls: photos, page: $page, onSelect: onSelectPhoto)
-                backButton
-            }
-        }
-    }
-
-    private var backButton: some View {
-        Button(action: onBack) {
-            Image(systemName: "chevron.left")
-                .font(.body.weight(.semibold))
-                .foregroundStyle(.primary)
-                .frame(width: 40, height: 40)
-                .background(Circle().fill(Color.cardBackground.opacity(0.92)))
-        }
-        .buttonStyle(.plain)
-        .padding(12)
-        .accessibilityLabel("Volver")
     }
 
     private func videoCard(_ url: URL) -> some View {
@@ -109,9 +85,9 @@ struct ProjectDetailBody: View {
                 if let stand = trimmed(detail.standCode) {
                     HStack(spacing: 8) {
                         Image(systemName: "mappin.and.ellipse")
-                            .font(.subheadline)
+                            .font(.system(size: 16))
                             .foregroundStyle(.secondary)
-                            .frame(width: 18)
+                            .frame(width: 22, height: 18)
                         Text("Stand")
                             .font(.subheadline)
                         Text(stand)

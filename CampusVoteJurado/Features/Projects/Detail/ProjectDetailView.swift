@@ -56,9 +56,7 @@ struct ProjectDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if detail == nil {
-                ProjectDetailHeader(onBack: { dismiss() })
-            }
+            topBar
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -81,12 +79,11 @@ struct ProjectDetailView: View {
                             photos: gallery(detail),
                             page: $bannerPage,
                             access: reviewAccess,
-                            onSelectPhoto: { photoIndex = $0 },
-                            onBack: { dismiss() }
+                            onSelectPhoto: { photoIndex = $0 }
                         )
                     }
                 }
-                .padding(.bottom, showsRateButton ? 88 : 20)
+                .padding(.bottom, 20)
             }
             .scrollDismissesKeyboard(.interactively)
         }
@@ -107,7 +104,10 @@ struct ProjectDetailView: View {
         }
         .task { await load() }
         .onChange(of: photoIndex) { _, index in
-            tabBar.isHidden = index != nil
+            tabBar.isHidden = index != nil || showReview
+        }
+        .onChange(of: showReview) { _, open in
+            tabBar.isHidden = open || photoIndex != nil
         }
         .onDisappear {
             tabBar.isHidden = false
@@ -115,23 +115,8 @@ struct ProjectDetailView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await refreshReviewAccess() } }
         }
-        .overlay(alignment: .bottomTrailing) {
-            if showsRateButton {
-                Button { showReview = true } label: {
-                    Image(systemName: "star.fill")
-                        .font(.title2)
-                        .foregroundStyle(Color.onBrand)
-                        .frame(width: 56, height: 56)
-                        .background(Circle().fill(Color.brand))
-                }
-                .buttonStyle(.plain)
-                .padding(.trailing, 16)
-                .padding(.bottom, 16)
-                .accessibilityLabel("Calificar")
-            }
-        }
-        .sheet(isPresented: $showReview) {
-            if let detail, reviewAccess.allowsReview && ratingLoaded {
+        .overlay {
+            if showReview, let detail, reviewAccess.allowsReview && ratingLoaded {
                 ProjectReviewSheet(
                     name: detail.name,
                     summary: detail.description,
@@ -141,10 +126,14 @@ struct ProjectDetailView: View {
                     canSave: canSave,
                     isSaving: isSaving,
                     commentHint: commentHint,
-                    errorMessage: errorMessage
-                ) {
-                    Task { await save() }
-                }
+                    errorMessage: errorMessage,
+                    onSave: { Task { await save() } },
+                    onClose: {
+                        showReview = false
+                        tabBar.isHidden = false
+                    }
+                )
+                .ignoresSafeArea(edges: .bottom)
             }
         }
         .overlay {
@@ -159,6 +148,37 @@ struct ProjectDetailView: View {
                 }
             }
         }
+    }
+
+    private var topBar: some View {
+        HStack(spacing: 0) {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.left")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Volver")
+
+            Spacer(minLength: 0)
+
+            if showsRateButton {
+                Button {
+                    tabBar.isHidden = true
+                    showReview = true
+                } label: {
+                    Image(systemName: "star.fill")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(Color.brand)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Calificar")
+            }
+        }
+        .padding(.horizontal, 8)
+        .background(Color.cardBackground)
     }
 
     var showsRateButton: Bool {

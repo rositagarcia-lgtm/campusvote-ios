@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// Hoja corta de reseña. Al escribir crece y deja el campo sobre el teclado.
+/// Hoja pegada al borde inferior, del ancho del teléfono.
 struct ProjectReviewSheet: View {
     let name: String
     let summary: String?
@@ -13,60 +13,79 @@ struct ProjectReviewSheet: View {
     let commentHint: String?
     let errorMessage: String?
     let onSave: () -> Void
+    let onClose: () -> Void
 
     @FocusState private var commentFocused: Bool
-    @State private var detent: PresentationDetent = .fraction(0.42)
     @State private var keyboard: CGFloat = 0
 
-    private var detents: Set<PresentationDetent> {
-        keyboard > 0 ? [.height(300 + keyboard)] : [.fraction(0.42)]
-    }
-
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                ProjectReviewCard(
-                    name: name,
-                    summary: summary,
-                    imageURL: imageURL,
-                    stars: $stars,
-                    comment: $comment,
-                    canSave: canSave,
-                    isSaving: isSaving,
-                    commentHint: commentHint,
-                    commentFocused: $commentFocused,
-                    onSave: onSave
-                )
-                if let errorMessage, !errorMessage.isEmpty {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(Color.appDanger)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+        GeometryReader { geo in
+            let panelHeight = min(geo.size.height * 0.52 + keyboard, geo.size.height - 24)
+            ZStack(alignment: .bottom) {
+                Color.black.opacity(0.35)
+                    .ignoresSafeArea()
+                    .onTapGesture { onClose() }
+
+                VStack(spacing: 0) {
+                    Capsule()
+                        .fill(Color.primary.opacity(0.25))
+                        .frame(width: 36, height: 5)
                         .padding(.top, 8)
+                        .padding(.bottom, 8)
+
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 12) {
+                            ProjectReviewCard(
+                                name: name,
+                                summary: summary,
+                                imageURL: imageURL,
+                                stars: $stars,
+                                comment: $comment,
+                                canSave: canSave,
+                                isSaving: isSaving,
+                                commentHint: commentHint,
+                                commentFocused: $commentFocused,
+                                onSave: onSave
+                            )
+                            if let errorMessage, !errorMessage.isEmpty {
+                                Text(errorMessage)
+                                    .font(.footnote)
+                                    .foregroundStyle(Color.appDanger)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 12)
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: max(panelHeight - 28 - keyboard, 0), alignment: .center)
+                    }
+                    .scrollDismissesKeyboard(.interactively)
                 }
+                .frame(maxWidth: .infinity)
+                .frame(height: panelHeight)
+                .background(Color.cardBackground)
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: 22,
+                        bottomLeadingRadius: 0,
+                        bottomTrailingRadius: 0,
+                        topTrailingRadius: 22,
+                        style: .continuous
+                    )
+                )
+                .ignoresSafeArea(edges: .bottom)
+                .gesture(
+                    DragGesture(minimumDistance: 12).onEnded { value in
+                        if value.translation.height > 80 { onClose() }
+                    }
+                )
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, keyboard)
-            .scrollDismissesKeyboard(.interactively)
-            .background(Color.cardBackground)
-            .ignoresSafeArea(.keyboard, edges: .bottom)
-            .onChange(of: commentFocused) { _, focused in
-                guard focused else { return }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
-                    withAnimation { proxy.scrollTo("comment-field", anchor: .bottom) }
-                }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
-                let overlap = Self.overlap(note)
-                keyboard = overlap
-                detent = overlap > 0 ? .height(300 + overlap) : .fraction(0.42)
-                guard commentFocused, overlap > 0 else { return }
-                withAnimation { proxy.scrollTo("comment-field", anchor: .bottom) }
-            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
-        .presentationDetents(detents, selection: $detent)
-        .presentationDragIndicator(.visible)
-        .presentationBackground(Color.cardBackground)
+        .ignoresSafeArea(edges: .bottom)
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
+            keyboard = Self.overlap(note)
+        }
     }
 
     private static func overlap(_ note: Notification) -> CGFloat {

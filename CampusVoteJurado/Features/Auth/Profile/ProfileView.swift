@@ -212,8 +212,6 @@ struct ProfileView: View {
         localAvatar = image
         avatarHidden = false
         ProfileAvatarStore.save(image, for: userId)
-        PortraitStore.shared.local = image
-        PortraitStore.shared.hidden = false
         guard let data = image.jpegData(compressionQuality: 0.85) else { return }
         AvatarUpload.submit(jpeg: data)
     }
