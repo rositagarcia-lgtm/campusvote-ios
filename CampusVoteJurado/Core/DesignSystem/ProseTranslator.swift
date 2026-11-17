@@ -20,6 +20,12 @@ enum ProseTranslator {
         return value
     }
 
+    static func cached(_ text: String) -> String? {
+        let source = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if source.isEmpty { return text }
+        return cache[source]
+    }
+
     private static func fetch(_ text: String) async -> String {
         var result = ""
         for chunk in pieces(text) {

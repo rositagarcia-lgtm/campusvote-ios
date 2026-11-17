@@ -48,21 +48,23 @@ struct PreferencesView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 12) {
-            Button { dismiss() } label: {
-                Image(systemName: "arrow.left")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                    .frame(width: 44, height: 44)
+        ZStack {
+            Text(L10n.tr("Configuración", locale: locale))
+                .font(.headline)
+                .foregroundStyle(.primary)
+            HStack {
+                Button { dismiss() } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Volver a Perfil")
+                Spacer()
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Volver a Perfil")
-
-            Text("Configuración")
-                .font(.title3.weight(.bold))
-            Spacer()
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 8)
         .padding(.top, 6)
     }
 

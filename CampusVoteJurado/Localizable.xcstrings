@@ -1219,6 +1219,7 @@
       }
     },
     "Cargando avisos..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1603,6 +1604,7 @@
       }
     },
     "Configuración" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2882,6 +2884,7 @@
       }
     },
     "Evaluar" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3721,6 +3724,7 @@
       }
     },
     "Marcar leídas" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5373,6 +5377,7 @@
       }
     },
     "Sin reseña aún" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

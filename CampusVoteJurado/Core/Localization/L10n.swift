@@ -1,14 +1,16 @@
 import Foundation
 
-/// Lee el String Catalog compilado para el idioma elegido en Preferencias.
-/// Las vistas SwiftUI localizan sus literales con el Locale del entorno; esto
-/// cubre las cadenas construidas en tiempo de ejecución y los errores propios.
 enum L10n {
     static func tr(_ key: String, locale: Locale) -> String {
         let language = locale.language.languageCode?.identifier == "en" ? "en" : "es"
-        guard let path = Bundle.main.path(forResource: language, ofType: "lproj"),
-              let bundle = Bundle(path: path) else { return key }
-        return bundle.localizedString(forKey: key, value: key, table: "Localizable")
+        guard
+            let path = Bundle.main.path(forResource: language, ofType: "lproj"),
+            let bundle = Bundle(path: path),
+            let stringsPath = bundle.path(forResource: "Localizable", ofType: "strings"),
+            let table = NSDictionary(contentsOfFile: stringsPath) as? [String: String],
+            let value = table[key]
+        else { return key }
+        return value
     }
 
     static func format(_ key: String, locale: Locale, _ arguments: CVarArg...) -> String {

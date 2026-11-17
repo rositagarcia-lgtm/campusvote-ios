@@ -33,12 +33,19 @@ struct ProseText: View {
         return font.weight(weight)
     }
 
+    private var resolvedEnglish: String? {
+        if let english { return english }
+        return ProseTranslator.cached(text)
+    }
+
     private var waiting: Bool {
-        language == "en" && english == nil && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        language == "en"
+            && resolvedEnglish == nil
+            && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var visible: String {
-        let source = language == "en" ? (english ?? text) : text
+        let source = language == "en" ? (resolvedEnglish ?? text) : text
         return uppercase ? source.uppercased() : source
     }
 

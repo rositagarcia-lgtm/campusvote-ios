@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct PendingProjectCard: View {
+    @Environment(\.locale) private var locale
     let project: ReviewProject
 
     var body: some View {
@@ -30,13 +31,13 @@ struct PendingProjectCard: View {
             }
 
             HStack {
-                Text("Sin reseña aún")
+                Text(L10n.tr("Sin reseña aún", locale: locale))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 8)
                 HStack(spacing: 6) {
                     Image(systemName: "square.and.pencil")
-                    Text("Evaluar")
+                    Text(L10n.tr("Evaluar", locale: locale))
                 }
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Color.onBrand)

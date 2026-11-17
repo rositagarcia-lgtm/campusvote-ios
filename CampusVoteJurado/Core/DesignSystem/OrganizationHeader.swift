@@ -1,18 +1,44 @@
 import SwiftUI
 import UIKit
 
+@MainActor
+@Observable
+final class LogoMemory {
+    static let shared = LogoMemory()
+    var images: [URL: UIImage] = [:]
+}
+
 struct OrganizationLogo: View {
+    @State private var memory = LogoMemory.shared
+
+    private var url: URL? { InstitutionAppearance.logoURL }
+
+    private var ready: UIImage? {
+        guard let url else { return nil }
+        return memory.images[url]
+    }
+
     var body: some View {
-        AsyncImage(url: InstitutionAppearance.logoURL) { phase in
-            if let image = phase.image {
-                image.resizable().scaledToFit()
-            } else {
+        Group {
+            if let ready {
+                Image(uiImage: ready).resizable().scaledToFit()
+            } else if url == nil {
                 Image("logo_campusvote").resizable().scaledToFit()
+            } else {
+                Color.clear
             }
         }
         .padding(4)
         .frame(width: 38, height: 38)
         .accessibilityHidden(true)
+        .task(id: url) {
+            guard let url else { return }
+            if memory.images[url] != nil { return }
+            guard let (data, response) = try? await URLSession.shared.data(from: url),
+                  (response as? HTTPURLResponse)?.statusCode ?? 500 < 400,
+                  let downloaded = UIImage(data: data) else { return }
+            memory.images[url] = downloaded
+        }
     }
 }
 
