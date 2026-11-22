@@ -4,7 +4,7 @@ import Foundation
 enum APIConfig {
     /// Backend publicado en Render (HTTPS).
     static let baseURL: URL = {
-        guard let url = URL(string: "https://campusvote-rg13.onrender.com/api")
+        guard let url = URL(string: "https://campusvote-02.onrender.com/api")
         else {
             preconditionFailure("La URL base del backend no es válida")
         }
